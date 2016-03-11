@@ -2,6 +2,7 @@ __author__ = 'esteinig'
 
 import os
 import csv
+import time
 import operator
 
 from subprocess import call
@@ -15,7 +16,7 @@ class Tricoder:
 
     """
     Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
-    in Dart.
+    in Dart. Do not actually need to be in a class, but keeps the code nice and tidy.
 
     """
 
@@ -25,7 +26,8 @@ class Tricoder:
     def calculate_call_rate(self, calls, sample_number, missing='-'):
 
         """
-        Calculates call rate across samples for a single SNP. Pass a list with two lists containing calls for A1 and A2.
+        Calculates call rate across samples for a single SNP. Pass a list with two lists containing
+        calls for A1 and A2.
 
         """
 
@@ -56,10 +58,7 @@ class Tricoder:
 
     def find_between(self, s, first, last):
 
-        """
-        Finds the substring between two strings.
-
-        """
+        """Finds the substring between two strings."""
 
         try:
             start = s.index(first) + len(first)
@@ -70,26 +69,51 @@ class Tricoder:
 
 class DartReader:
 
+    """
+
+    Class for reading data from DArT.
+
+    """
+
     def __init__(self):
 
         self.project = "Monodon"
-        self.data = {}                  # Holds intital unfiltered data from DArT
+        self.data = {}                  # Holds initial unfiltered data from DArT
 
         self.identity_clusters = {}
         self.identity_snps = 0
 
-        self.sample_name = {}
+        self.sample_names = {}
         self.sample_number = 0
 
-        self._data_row = 6              # Row number (non-pythonic) in Excel Spreadsheet: Start of Sequences / Data
-        self._sample_row = 5            # Row number (non-pythonic) in Excel Spreadsheet: Sample Identification
-        self._call_column = 17          # Column number (pythonic) in Excel Spreadsheet: Start of SNP Calls
+        # Row numbers (non-pythonic) in Excel Spreadsheet
+
+        self._data_row = 7              # Start of Sequences / Data
+        self._sample_row = 5            # Sample Identification
+
+        # Column numbers (non-pythonic) in Excel Spreadsheet
+
+        self._id_column = 1
+        self._clone_column = 2
+        self._seq_column = 3
+        self._snp_column = 4
+        self._snp_position_column = 5
+        self._read_count_ref_column = 15
+        self._read_count_snp_column = 16
+        self._replication_count = 17
+        self._call_column = 18
 
         self.statistics = {}
 
         self.tricoder = Tricoder()
 
     def parse_cdhit(self, file):
+
+        """
+        Parses the CDHIT cluster output and retains only cluster with more than one sequence for selection and
+        removal from total SNPs.
+
+        """
 
         with open(file, "r") as clstr_file:
             clstr_reader = csv.reader(clstr_file, delimiter=' ')
@@ -106,8 +130,8 @@ class DartReader:
                     ids = []
                     cluster_id += 1
                 else:
-                    id = self.tricoder.find_between(row[1], ">", "...")
-                    ids.append(id)
+                    allele_id = self.tricoder.find_between(row[1], ">", "...")
+                    ids.append(allele_id)
 
     def read_double_row(self, file):
 
@@ -125,8 +149,9 @@ class DartReader:
         with open(file, 'r') as data_file:
             reader = csv.reader(data_file)
 
-            row_index = 1
+            row_index = 1  # Non-pythonic for Excel Users
             snp_count = 0
+
             allele_id = None
             allele_index = 1
 
@@ -139,18 +164,21 @@ class DartReader:
                     self.sample_number = len(sample_names)
 
                 # Data Rows
-                if row_index > self._data_row:
+                if row_index >= self._data_row:
 
                     # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
                     # Implement Error checks for conformity between both alleles: SNP Position, Number of Individuals
                     if allele_index == 1:
 
-                        allele_id = row[0]
+                        allele_id = row[self._id_column-1]
 
-                        entry = {"allele_id": row[0], "clone_id": row[1], "allele_seq": row[2], "snp": row[3],
-                                 "snp_position": int(row[4]), "average_read_count_reference": float(row[14]),
-                                 "average_read_count_snp": float(row[15]), "average_replication": float(row[16]),
-                                 "calls": [row[self._call_column:]]}  # Add allele 1
+                        entry = {"allele_id": allele_id, "clone_id": row[self._clone_column-1],
+                                 "allele_seq": row[self._seq_column-1], "snp": row[self._snp_column-1],
+                                 "snp_position": int(row[self._snp_position_column-1]),
+                                 "average_read_count_reference": float(row[self._read_count_ref_column-1]),
+                                 "average_read_count_snp": float(row[self._read_count_snp_column-1]),
+                                 "average_replication": float(row[self._replication_count-1]),
+                                 "calls": [row[self._call_column-1:]]}  # Add allele 1
 
                         self.data[allele_id] = entry
 
@@ -158,14 +186,17 @@ class DartReader:
                         allele_index = 2
                     else:
                         # Add allele 2 and calculate MAF of SNP
-                        self.data[allele_id]["calls"].append(row[self._call_column:])
+                        self.data[allele_id]["calls"].append(row[self._call_column-1:])
 
-                        # Manual calculation    of MAF and Call Rate, much easier than parsing and fast enough,
-                        # values correspond to pre-calculated ones from DArT
+                        # Manual calculation of MAF and Call Rate, much easier than parsing and fast enough.
                         self.data[allele_id]["maf"] = self.tricoder.calculate_maf(self.data[allele_id]["calls"],
                                                                                   self.sample_number)
                         self.data[allele_id]["call_rate"] = self.tricoder.calculate_call_rate(self.data[allele_id]["calls"],
                                                                                               self.sample_number)
+
+                        if len(self.data[allele_id]["calls"]) != 2:
+                            raise(ValueError("Error. Genotype of", allele_id, "does not contain two alleles.",
+                                  "Check if starting row for data is correctly specified."))
 
                         allele_index = 1
 
@@ -174,6 +205,12 @@ class DartReader:
             self.statistics["snps.total"] = snp_count
 
 class DartWriter:
+
+    """
+
+    Class for writing output from DART QC.
+
+    """
 
     def __init__(self, dart_control):
 
@@ -200,7 +237,7 @@ class DartWriter:
                     for snp_id, data in self.snps_total.items()]
             file_name += "_Total.fasta"
 
-        print("---------------------------------------------------------------------------------")
+        print("\n---------------------------------------------------------------------------------")
         print("Writing", len(seqs), "sequences to file (.fasta): ", file_name)
         print("---------------------------------------------------------------------------------")
 
@@ -218,10 +255,11 @@ class DartControl:
 
     Prototype
 
-
     """
 
     def __init__(self, dart):
+
+        ### Data Storage ###
 
         self.project = dart.project
         self.data = dart.data           # Holds intital unfiltered data from DArT
@@ -245,9 +283,10 @@ class DartControl:
 
         self.statistics = dart.statistics   # Dictionary of basic statistics for writing summary QC
 
-        self.tricoder = Tricoder()      # Inititate Tricoder
+        ### Operations ###
 
-        # Make temporary output directory
+        self.tricoder = Tricoder()
+
         self._tmp_path = os.path.join(os.getcwd(), "dart_qc_tmp")
         os.makedirs(self._tmp_path, exist_ok=True)
 
@@ -276,10 +315,7 @@ class DartControl:
             for allele_id in v["allele_ids"]:
                 self.snps_duplicate[allele_id] = self.snps_unique.pop(allele_id)
 
-        self.statistics["clones.duplicate"] = len(self.clones_duplicate)
-        self.statistics["snps.duplicate"] = len(self.snps_duplicate)
-        self.statistics["snps.unique"] = len(self.snps_unique)
-
+        print("\nSEARCHING FOR DUPLICATES")
         print("---------------------------------------------------------------------------------")
         print("Number of duplicated clone IDs:", len(self.clones_duplicate))
         print("Number of duplicated SNPs:", len(self.snps_duplicate))
@@ -289,11 +325,11 @@ class DartControl:
     def find_identity_clusters(self, identity=0.95, word_size=10, description_length=0, cdhit_path=None):
 
         """
-        Clusters the reference allele sequences with CDHIT-EST and parses the clusters for selecting best sequences
-        with selectors in second function.
+        Clusters the reference allele sequences with CDHIT-EST and parses the clusters for selecting and
+        retaining best sequences.
 
-        Check out if it is ok only to use the reference allele, not the one containing the SNP. Also, CD-HIT returns
-        slightly different cluster configurations for each run, be wary and check it out.
+        CD-HIT returns slightly different cluster configurations for each run due to greedy incremental algorithm,
+        but little variation observed between runs in the data for P. monodon. Know thyself!
 
         """
 
@@ -308,8 +344,11 @@ class DartControl:
         out_file = os.path.join(self._tmp_path, file_name)
         cluster_file = os.path.join(self._tmp_path, file_name + '.clstr')
 
+        print("\nRUNNING CDHIT-EST")
+        print("---------------------------------------------------------------------------------")
         call([cdhit_path, "-i", dart_writer.fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
               "-d", str(description_length)])
+        print("---------------------------------------------------------------------------------")
 
         clstr_reader = DartReader()
         clstr_reader.parse_cdhit(cluster_file)
@@ -318,7 +357,7 @@ class DartControl:
 
         self.cluster_snps = clstr_reader.identity_snps
 
-        print("\n\nCLUSTERING SEQUENCES")
+        print("\nCLUSTERING SEQUENCES BY IDENTITY")
         print("---------------------------------------------------------------------------------")
         print("Generated CD-HIT identity clusters of sequences at a threshold of", str(identity*100) + "%.")
         print("Number of identity clusters:", len(self.cluster_duplicate))
@@ -326,6 +365,13 @@ class DartControl:
         print("---------------------------------------------------------------------------------")
 
     def select_best_identity_seqs(self, selector="maf"):
+
+        """
+        Selects the best sequences (SNPs) from the identity clusters (containing more than one sequence) according
+        to 'selector', removes the best sequence from the cluster and removes bad sequences from the total
+        SNPs, while retaining the best-pick SNP.
+
+        """
 
         before = len(self.snps_total)
 
@@ -346,7 +392,7 @@ class DartControl:
                 # Add the identification to the final removed clustered SNPs
                 self.snps_clustered[i] = cluster
 
-        print("REMOVING IDENTITY CLUSTERED SEQUENCES")
+        print("\nRETAINING BEST CLUSTERED SEQUENCES")
         print("---------------------------------------------------------------------------------")
         print("Total number of SNPs before removing clustered SNPs:", before)
         print("Number of SNPs found in identity clusters:", self.cluster_snps)
@@ -373,7 +419,10 @@ class DartControl:
             # excluding the best picks.
             self.snps_total[best_snp] = self.snps_duplicate.pop(best_snp)
 
+        print("\nRETAINING BEST DUPLICATES")
+        print("---------------------------------------------------------------------------------")
         print("Number of total SNPs after inclusion of best duplicate SNPs:", len(self.snps_total))
+        print("---------------------------------------------------------------------------------")
 
     def _compare_entries(self, ids, selector="maf"):
 
@@ -391,6 +440,11 @@ class DartControl:
         return entries_ranked[0][0]
 
     def filter_snps(self, selector="maf", threshold=0.02, comparison="<", data="total"):
+
+        """"
+        Filter SNPs either on total SNPs or already filtered SNPs. Comparison sign is reversed because the list
+        comprehensions retain SNPs, while the function asks dor removal of SNPs.
+        """
 
         if data == "total":
             before = len(self.snps_total)
@@ -427,9 +481,8 @@ class DartControl:
 
         after = len(self.snps_filtered)
 
+        print("\nFILTERING SNPs")
         print("---------------------------------------------------------------------------------")
         print("Filter", str(self.filter_count) + ":", selector.upper(), comparison, str(threshold), "on", data.upper())
         print("Removed", before - after, "SNPs from a total of", before, "SNPs, retaining", after, "SNPs.")
         print("---------------------------------------------------------------------------------")
-
-
