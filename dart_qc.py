@@ -11,21 +11,83 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
+class Tricoder:
+
+    """
+    Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
+    in Dart.
+
+    """
+
+    def __init__(self):
+        pass
+
+    def calculate_call_rate(self, calls, sample_number, missing='-'):
+
+        """
+        Calculates call rate across samples for a single SNP. Pass a list with two lists containing calls for A1 and A2.
+
+        """
+
+        geno = list(zip(calls[0], calls[1]))
+        return 1 - (geno.count((missing, missing))/sample_number)
+
+    def calculate_maf(self, calls, sample_number, present='1', missing="-"):
+
+        """
+        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
+        Remove missing calls from sample number, a bit slower with zipping the alleles first, but more robust than
+        counting missing only in one allele and assuming the missing call occurs also on the other allele.
+
+        """
+
+        if sample_number != len(calls[0]) or sample_number != len(calls[1]):
+            print("Warning: Number of samples does not correspond number of allele calls.")
+
+        geno = list(zip(calls[0], calls[1]))
+        adjusted_samples = sample_number - geno.count((missing, missing))
+
+        freq_allele_one = calls[0].count(present) / adjusted_samples
+        freq_allele_two = calls[1].count(present) / adjusted_samples
+
+        return min(freq_allele_one, freq_allele_two)
+
+    ### Helper Functions ###
+
+    def find_between(self, s, first, last):
+
+        """
+        Finds the substring between two strings.
+
+        """
+
+        try:
+            start = s.index(first) + len(first)
+            end = s.index(last, start)
+            return s[start:end]
+        except ValueError:
+            return ""
+
 class DartReader:
 
     def __init__(self):
 
         self.project = "Monodon"
+        self.data = {}                  # Holds intital unfiltered data from DArT
+
         self.identity_clusters = {}
         self.identity_snps = 0
 
-    def _find_between(self, s, first, last):
-            try:
-                start = s.index(first) + len(first)
-                end = s.index(last, start)
-                return s[start:end]
-            except ValueError:
-                return ""
+        self.sample_name = {}
+        self.sample_number = 0
+
+        self._data_row = 6              # Row number (non-pythonic) in Excel Spreadsheet: Start of Sequences / Data
+        self._sample_row = 5            # Row number (non-pythonic) in Excel Spreadsheet: Sample Identification
+        self._call_column = 17          # Column number (pythonic) in Excel Spreadsheet: Start of SNP Calls
+
+        self.statistics = {}
+
+        self.tricoder = Tricoder()
 
     def parse_cdhit(self, file):
 
@@ -44,118 +106,10 @@ class DartReader:
                     ids = []
                     cluster_id += 1
                 else:
-                    id = self._find_between(row[1], ">", "...")
+                    id = self.tricoder.find_between(row[1], ">", "...")
                     ids.append(id)
 
-class DartWriter:
-
-    def __init__(self, dart_control):
-
-        self.project = dart_control.project
-
-        self.sample_names = dart_control.sample_names
-        self.sample_number = dart_control.sample_number
-
-        self.snps_total = dart_control.snps_total
-        self.snps_filtered = dart_control.snps_filtered
-
-        self.fasta_path = None
-
-    def writeFasta(self, path=os.getcwd(), filtered=False):
-
-        file_name = self.project + "_DArT_Seqs"
-
-        if filtered:
-            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=id, name="", description="")
-                    for id, data in self.snps_filtered.items()]
-            file_name += "_Filtered.fasta"
-        else:
-            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=id, name="", description="")
-                    for id, data in self.snps_total.items()]
-            file_name += "_Total.fasta"
-
-        print("---------------------------------------------------------------------------------")
-        print("Writing", len(seqs), "sequences to file (.fasta): ", file_name)
-        print("---------------------------------------------------------------------------------")
-
-        self.fasta_path = os.path.join(path, file_name)
-
-        with open(self.fasta_path, "w") as fasta_file:
-            SeqIO.write(seqs, fasta_file, "fasta")
-
-
-class DartControl:
-
-    """
-
-    DArT Quality Control Pipeline
-
-    Prototype
-
-
-    """
-
-    def __init__(self, project="Monodon"):
-
-        self.project = project
-        self.data = {}
-
-        self.clones_duplicate = {}
-        self.cluster_duplicate = {}
-
-        self.snps_unique = {}
-        self.snps_duplicate = {}
-        self.snps_clustered = {}
-
-        self.snps_total = {}
-        self.snps_filtered = {}
-
-        self.sample_names = {}
-        self.sample_number = 0
-
-        self.filter_count = 1
-
-        self.statistics = {}
-
-        self._data_row = 6
-        self._sample_row = 5
-        self._tmp_path = os.path.join(os.getcwd(), "dart_qc_tmp")
-
-
-        # Finish and delete temporary, clean-up function later.
-        os.makedirs(self._tmp_path, exist_ok=True)
-
-    def _calculate_call_rate(self, calls, missing='-'):
-
-        """
-        Calculates call rate across samples for a single SNP. Pass a list with two lists containing calls for A1 and A2.
-
-        """
-
-        geno = list(zip(calls[0], calls[1]))
-        return 1 - (geno.count((missing, missing))/self.sample_number)
-
-    def _calculate_maf(self, calls, present='1', missing="-"):
-
-        """
-        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
-        Remove missing calls from sample number, a bit slower with zipping the alleles first, but more robust than
-        counting missing only in one allele and assuming the missing call occurs also on the other allele.
-
-        """
-
-        geno = list(zip(calls[0], calls[1]))
-        adjusted_samples = self.sample_number - geno.count((missing, missing))
-
-        freq_allele_one = calls[0].count(present) / adjusted_samples
-        freq_allele_two = calls[1].count(present) / adjusted_samples
-
-        if self.sample_number != len(calls[0]) or self.sample_number != len(calls[1]):
-            print("Warning: Number of samples does not correspond number of allele calls.")
-
-        return min(freq_allele_one, freq_allele_two)
-
-    def read_data(self, file, type="SNP"):
+    def read_double_row(self, file):
 
         """"
         Read data file - requires format specific to Monodon. Will be incorporated into a DArT Reader class to parse
@@ -192,22 +146,26 @@ class DartControl:
                     if allele_index == 1:
 
                         allele_id = row[0]
+
                         entry = {"allele_id": row[0], "clone_id": row[1], "allele_seq": row[2], "snp": row[3],
-                             "snp_position": int(row[4]), "average_read_count_reference":
-                                     float(row[14]), "average_read_count_snp": float(row[15]), "average_replication":
-                                     float(row[16]), "calls": [row[17:]]}  # Add allele 1, "call_rate": float(row[5])
+                                 "snp_position": int(row[4]), "average_read_count_reference": float(row[14]),
+                                 "average_read_count_snp": float(row[15]), "average_replication": float(row[16]),
+                                 "calls": [row[self._call_column:]]}  # Add allele 1
+
                         self.data[allele_id] = entry
 
                         snp_count += 1
                         allele_index = 2
                     else:
                         # Add allele 2 and calculate MAF of SNP
-                        self.data[allele_id]["calls"].append(row[17:])
+                        self.data[allele_id]["calls"].append(row[self._call_column:])
 
-                        # Manual calculation of MAF and Call Rate, much easier than parsing and fast enough,
+                        # Manual calculation    of MAF and Call Rate, much easier than parsing and fast enough,
                         # values correspond to pre-calculated ones from DArT
-                        self.data[allele_id]["maf"] = self._calculate_maf(self.data[allele_id]["calls"])
-                        self.data[allele_id]["call_rate"] = self._calculate_call_rate(self.data[allele_id]["calls"])
+                        self.data[allele_id]["maf"] = self.tricoder.calculate_maf(self.data[allele_id]["calls"],
+                                                                                  self.sample_number)
+                        self.data[allele_id]["call_rate"] = self.tricoder.calculate_call_rate(self.data[allele_id]["calls"],
+                                                                                              self.sample_number)
 
                         allele_index = 1
 
@@ -215,7 +173,90 @@ class DartControl:
 
             self.statistics["snps.total"] = snp_count
 
+class DartWriter:
+
+    def __init__(self, dart_control):
+
+        self.project = dart_control.project
+
+        self.sample_names = dart_control.sample_names
+        self.sample_number = dart_control.sample_number
+
+        self.snps_total = dart_control.snps_total
+        self.snps_filtered = dart_control.snps_filtered
+
+        self.fasta_path = None
+
+    def write_fasta(self, path=os.getcwd(), filtered=False):
+
+        file_name = self.project + "_DArT_Seqs"
+
+        if filtered:
+            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
+                    for snp_id, data in self.snps_filtered.items()]
+            file_name += "_Filtered.fasta"
+        else:
+            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
+                    for snp_id, data in self.snps_total.items()]
+            file_name += "_Total.fasta"
+
+        print("---------------------------------------------------------------------------------")
+        print("Writing", len(seqs), "sequences to file (.fasta): ", file_name)
+        print("---------------------------------------------------------------------------------")
+
+        self.fasta_path = os.path.join(path, file_name)
+
+        with open(self.fasta_path, "w") as fasta_file:
+            SeqIO.write(seqs, fasta_file, "fasta")
+
+
+class DartControl:
+
+    """
+
+    DArT Quality Control Pipeline
+
+    Prototype
+
+
+    """
+
+    def __init__(self, dart):
+
+        self.project = dart.project
+        self.data = dart.data           # Holds intital unfiltered data from DArT
+
+        self.clones_duplicate = {}      # Duplicate clones by clone ID (Key) and Dict: Number / List: SNP IDs (Value)
+        self.cluster_duplicate = {}     # Identity clusters (Key) and List: SNP IDs (Value) SNPs
+
+        self.cluster_snps = 0           # Number of SNPs in Identity Clusters
+
+        self.snps_unique = {}           # SNPs unique after removing duplicate clone IDs
+        self.snps_duplicate = {}        # SNPs with duplicate clone IDs after selecting best SNPs
+        self.snps_clustered = {}        # SNPs in identity clusters and removed from total after selecting best SNPs
+
+        self.snps_total = {}            # Final SNPs at each stage after removing duplicates and clustered SNPs
+        self.snps_filtered = {}         # SNPs at each stage after processing through Filters
+
+        self.sample_names = dart.sample_names            # Number (Key) and sample ID (Value)
+        self.sample_number = dart.sample_number          # Total number of samples
+
+        self.filter_count = 1           # Number of applied filters in sequence, resets when filtering on total SNPs
+
+        self.statistics = dart.statistics   # Dictionary of basic statistics for writing summary QC
+
+        self.tricoder = Tricoder()      # Inititate Tricoder
+
+        # Make temporary output directory
+        self._tmp_path = os.path.join(os.getcwd(), "dart_qc_tmp")
+        os.makedirs(self._tmp_path, exist_ok=True)
+
     def find_duplicate_clones(self):
+
+        """
+        Search for duplicate clone IDs in SNPs and
+
+        """
 
         clone_counts = {}
 
@@ -257,7 +298,7 @@ class DartControl:
         """
 
         dart_writer = DartWriter(self)
-        dart_writer.writeFasta()
+        dart_writer.write_fasta()
 
         if cdhit_path is None:
             cdhit_path = "cdhit-est"
@@ -288,11 +329,13 @@ class DartControl:
 
         before = len(self.snps_total)
 
+        error_msg = "You need to find identity clusters first, then remove sequences."
+
         if not self.cluster_duplicate:
-            raise(ValueError("You need to find identity clusters firt, then remove sequences."))
+            raise(ValueError(error_msg))
 
         if not self.snps_total:
-            raise(ValueError("You need to remove duplicate clones first, then remove sequences."))
+            raise(ValueError(error_msg))
 
         for cluster, ids in self.cluster_duplicate.items():
             # Find the best SNP and remove it form ID list, then remove from total SNPs
@@ -300,7 +343,6 @@ class DartControl:
             ids.remove(best_snp)
             for i in ids:
                 del self.snps_total[i]
-
                 # Add the identification to the final removed clustered SNPs
                 self.snps_clustered[i] = cluster
 
@@ -391,13 +433,3 @@ class DartControl:
         print("---------------------------------------------------------------------------------")
 
 
-dart = DartControl()
-dart.read_data("DBtp15_1962_SNPs_PreliminaryResults.csv")
-dart.find_duplicate_clones()
-dart.select_best_clones()
-dart.find_identity_clusters()
-dart.select_best_identity_seqs()
-
-dart.filter_snps(data="total", selector="maf", threshold=0.02, comparison="<")
-dart.filter_snps(data="filtered", selector="call_rate", threshold=0.70, comparison="<")
-dart.filter_snps(data="filtered", selector="average_replication", threshold=0.95, comparison="<")
