@@ -12,61 +12,6 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-class Tricoder:
-
-    """
-    Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
-    in Dart. Do not actually need to be in a class, but keeps the code nice and tidy.
-
-    """
-
-    def __init__(self):
-        pass
-
-    def calculate_call_rate(self, calls, sample_number, missing='-'):
-
-        """
-        Calculates call rate across samples for a single SNP. Pass a list with two lists containing
-        calls for A1 and A2.
-
-        """
-
-        geno = list(zip(calls[0], calls[1]))
-        return 1 - (geno.count((missing, missing))/sample_number)
-
-    def calculate_maf(self, calls, sample_number, present='1', missing="-"):
-
-        """
-        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
-        Remove missing calls from sample number, a bit slower with zipping the alleles first, but more robust than
-        counting missing only in one allele and assuming the missing call occurs also on the other allele.
-
-        """
-
-        if sample_number != len(calls[0]) or sample_number != len(calls[1]):
-            print("Warning: Number of samples does not correspond number of allele calls.")
-
-        geno = list(zip(calls[0], calls[1]))
-        adjusted_samples = sample_number - geno.count((missing, missing))
-
-        freq_allele_one = calls[0].count(present) / adjusted_samples
-        freq_allele_two = calls[1].count(present) / adjusted_samples
-
-        return min(freq_allele_one, freq_allele_two)
-
-    ### Helper Functions ###
-
-    def find_between(self, s, first, last):
-
-        """Finds the substring between two strings."""
-
-        try:
-            start = s.index(first) + len(first)
-            end = s.index(last, start)
-            return s[start:end]
-        except ValueError:
-            return ""
-
 class DartReader:
 
     """
@@ -102,6 +47,9 @@ class DartReader:
         self._read_count_snp_column = 16
         self._replication_count = 17
         self._call_column = 18
+        self._sample_column = 18
+
+        self.get_clone_id = False
 
         self.statistics = {}
 
@@ -158,23 +106,26 @@ class DartReader:
             for row in reader:
 
                 if row_index == self._sample_row:
-                    sample_names = [r for r in row if r != '*']
+                    sample_names = row[self._sample_column-1:]
                     self.sample_names = {k: v for (k, v) in enumerate(sample_names)}
-                    self.statistics["samples.total"] = len(sample_names)
                     self.sample_number = len(sample_names)
 
                 # Data Rows
-                if row_index >= self._data_row:
+                if row_index >= self._data_row and any(row):
 
                     # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
                     # Implement Error checks for conformity between both alleles: SNP Position, Number of Individuals
                     if allele_index == 1:
 
                         allele_id = row[self._id_column-1]
+                        clone_id = row[self._clone_column-1]
 
-                        entry = {"allele_id": allele_id, "clone_id": row[self._clone_column-1],
+                        if self.get_clone_id:
+                            clone_id = clone_id.split("|")[0]
+
+                        entry = {"allele_id": allele_id, "clone_id": clone_id,
                                  "allele_seq": row[self._seq_column-1], "snp": row[self._snp_column-1],
-                                 "snp_position": int(row[self._snp_position_column-1]),
+                                 "snp_position": row[self._snp_position_column-1],
                                  "average_read_count_reference": float(row[self._read_count_ref_column-1]),
                                  "average_read_count_snp": float(row[self._read_count_snp_column-1]),
                                  "average_replication": float(row[self._replication_count-1]),
@@ -439,20 +390,24 @@ class DartControl:
 
         return entries_ranked[0][0]
 
-    def filter_snps(self, selector="maf", threshold=0.02, comparison="<", data="total"):
+    def filter_snps(self, selector="maf", threshold=0.02, comparison="<=", data="total"):
 
         """"
         Filter SNPs either on total SNPs or already filtered SNPs. Comparison sign is reversed because the list
         comprehensions retain SNPs, while the function asks dor removal of SNPs.
+
         """
+
+        if comparison not in ["<=", ">=", "=="]:
+            raise(ValueError("Comparison must be one of: <=, >=, =="))
 
         if data == "total":
             before = len(self.snps_total)
 
             # Switch around comparison symbols, since we are getting the retained SNPs, but ask for Filter
-            if comparison == "<":
+            if comparison == "<=":
                 snps_retained = {k: v for (k, v) in self.snps_total.items() if v[selector] >= threshold}
-            elif comparison == ">":
+            elif comparison == ">=":
                 snps_retained = {k: v for (k, v) in self.snps_total.items() if v[selector] <= threshold}
             else:
                 snps_retained = {k: v for (k, v) in self.snps_total.items() if v[selector] == threshold}
@@ -464,9 +419,9 @@ class DartControl:
         elif data == "filtered" and self.snps_filtered:
             before = len(self.snps_filtered)
 
-            if comparison == "<":
+            if comparison == "<=":
                 snps_retained = {k: v for (k, v) in self.snps_filtered.items() if v[selector] >= threshold}
-            elif comparison == ">":
+            elif comparison == ">=":
                 snps_retained = {k: v for (k, v) in self.snps_filtered.items() if v[selector] <= threshold}
             else:
                 snps_retained = {k: v for (k, v) in self.snps_filtered.items() if v[selector] == threshold}
@@ -486,3 +441,69 @@ class DartControl:
         print("Filter", str(self.filter_count) + ":", selector.upper(), comparison, str(threshold), "on", data.upper())
         print("Removed", before - after, "SNPs from a total of", before, "SNPs, retaining", after, "SNPs.")
         print("---------------------------------------------------------------------------------")
+
+class Tricoder:
+
+    """
+    Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
+    in Dart. Do not actually need to be in a class, but keeps the code nice and tidy.
+
+    """
+
+    def __init__(self):
+
+        self.missing = '-'
+        self.present = '1'
+        self.absent = '0'
+
+    def calculate_call_rate(self, calls, sample_number):
+
+        """
+        Calculates call rate across samples for a single SNP. Pass a list with two lists containing
+        calls for A1 and A2.
+
+        """
+
+        geno = list(zip(calls[0], calls[1]))
+        
+        return 1 - (geno.count((self.missing, self.missing))/sample_number)
+
+    def calculate_maf(self, calls, sample_number):
+
+        """
+        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
+        Returns the minimum allele frequency for processing.
+
+        """
+
+        if sample_number != len(calls[0]) or sample_number != len(calls[1]):
+            print("Warning: Number of samples does not correspond number of allele calls.")
+
+        geno = list(zip(calls[0], calls[1]))
+
+        adjusted_samples = sample_number - geno.count((self.missing, self.missing))
+
+        het_count = geno.count((self.present, self.present))
+
+        allele_one = geno.count((self.present, self.absent)) + (het_count/2)
+        allele_two = geno.count((self.absent, self.present)) + (het_count/2)
+
+        freq_allele_one = allele_one / adjusted_samples
+        freq_allele_two = allele_two / adjusted_samples
+
+        return min(freq_allele_one, freq_allele_two)
+
+    ### Helper Functions ###
+
+    def find_between(self, s, first, last):
+
+        """Finds the substring between two strings."""
+
+        try:
+            start = s.index(first) + len(first)
+            end = s.index(last, start)
+            return s[start:end]
+        except ValueError:
+            return ""
+
+
