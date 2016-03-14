@@ -23,12 +23,15 @@ class DartReader:
     def __init__(self):
 
         self.project = "Monodon"
+
+        # Parsing raw data from DArT
+
+        self.raw_file = ''              # File name with raw data from DArT
         self.data = {}                  # Holds initial unfiltered data from DArT
 
-        self.identity_clusters = {}
-        self.identity_snps = 0
+        self.header = []                # Holds the lines before the actual header for statistics and data
 
-        self.sample_names = {}
+        self.sample_names = []
         self.sample_number = 0
 
         # Row numbers (non-pythonic) in Excel Spreadsheet
@@ -38,20 +41,35 @@ class DartReader:
 
         # Column numbers (non-pythonic) in Excel Spreadsheet
 
-        self._id_column = 1
-        self._clone_column = 2
-        self._seq_column = 3
-        self._snp_column = 4
-        self._snp_position_column = 5
+        self._id = 1
+        self._clone = 2
+        self._seq = 3
+        self._snp = 4
+        self._snp_position = 5
+        self._call_rate_dart = 6
+        self._one_ratio_ref = 7
+        self._one_ratio_snp = 8
+        self._freq_homozygous_ref = 9
+        self._freq_homozygous_snp = 10
+        self._freq_heterozygous = 11
+        self._pic_ref = 12
+        self._pic_snp = 13
+        self._average_pic = 14
         self._read_count_ref_column = 15
         self._read_count_snp_column = 16
-        self._replication_count = 17
+        self._replication_average = 17
         self._call_column = 18
         self._sample_column = 18
 
         self.get_clone_id = False
+        self._clone_split = '|'
 
-        self.statistics = {}
+        # Parsing CD HIT
+
+        self.identity_clusters = {}
+        self.identity_snps = 0
+
+        # Initiating helper Tricoder
 
         self.tricoder = Tricoder()
 
@@ -84,8 +102,6 @@ class DartReader:
     def read_double_row(self, file):
 
         """"
-        Read data file - requires format specific to Monodon. Will be incorporated into a DArT Reader class to parse
-        DArTs and SNPs in various formats. Currently supports only SNPs with double row and encoding:
 
         AB: (1,1)
         AA: (1,0)
@@ -93,6 +109,8 @@ class DartReader:
         NA: (-,-) ... a bit sleepy, little Owl?
 
         """
+
+        self.raw_file = file
 
         with open(file, 'r') as data_file:
             reader = csv.reader(data_file)
@@ -105,30 +123,42 @@ class DartReader:
 
             for row in reader:
 
+                if row_index <= self._data_row-2:  # Don't include description header
+                    self.header.append(row)
+
                 if row_index == self._sample_row:
-                    sample_names = row[self._sample_column-1:]
-                    self.sample_names = {k: v for (k, v) in enumerate(sample_names)}
-                    self.sample_number = len(sample_names)
+                    self.sample_names = row[self._sample_column-1:]
+                    self.sample_number = len(self.sample_names)
 
                 # Data Rows
                 if row_index >= self._data_row and any(row):
 
-                    # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
+                    # Get reduced data by uniquesample_name allele ID in double Rows (K: Allele ID, V: Data)
                     # Implement Error checks for conformity between both alleles: SNP Position, Number of Individuals
                     if allele_index == 1:
 
-                        allele_id = row[self._id_column-1]
-                        clone_id = row[self._clone_column-1]
+                        allele_id = row[self._id-1]
+                        clone_id = row[self._clone-1]
 
                         if self.get_clone_id:
-                            clone_id = clone_id.split("|")[0]
+                            clone_id = clone_id.split(self._clone_split)[0]
 
-                        entry = {"allele_id": allele_id, "clone_id": clone_id,
-                                 "allele_seq": row[self._seq_column-1], "snp": row[self._snp_column-1],
-                                 "snp_position": row[self._snp_position_column-1],
-                                 "average_read_count_reference": float(row[self._read_count_ref_column-1]),
+                        entry = {"allele_id": allele_id,
+                                 "clone_id": clone_id,
+                                 "allele_seq_ref": row[self._seq-1],
+                                 "snp_position": row[self._snp_position-1],
+                                 "call_rate_dart": row[self._call_rate_dart-1],
+                                 "one_ratio_ref": row[self._one_ratio_ref-1],
+                                 "one_ratio_snp": row[self._one_ratio_snp-1],
+                                 "freq_homozygous_ref": row[self._freq_homozygous_ref-1],
+                                 "freq_homozygous_snp": row[self._freq_homozygous_snp-1],
+                                 "freq_heterozygous": row[self._freq_heterozygous-1],
+                                 "pic_ref": row[self._pic_ref-1],
+                                 "pic_snp": row[self._pic_snp-1],
+                                 "average_pic": row[self._average_pic-1],
+                                 "average_read_count_ref": float(row[self._read_count_ref_column-1]),
                                  "average_read_count_snp": float(row[self._read_count_snp_column-1]),
-                                 "average_replication": float(row[self._replication_count-1]),
+                                 "average_replication": float(row[self._replication_average-1]),
                                  "calls": [row[self._call_column-1:]]}  # Add allele 1
 
                         self.data[allele_id] = entry
@@ -136,8 +166,10 @@ class DartReader:
                         snp_count += 1
                         allele_index = 2
                     else:
-                        # Add allele 2 and calculate MAF of SNP
+                        # Add sequence and calls of second allele and calculate MAF of SNP
                         self.data[allele_id]["calls"].append(row[self._call_column-1:])
+                        self.data[allele_id]["allele_seq_snp"] = row[self._seq-1]
+                        self.data[allele_id]["snp"] = row[self._snp-1]
 
                         # Manual calculation of MAF and Call Rate, much easier than parsing and fast enough.
                         self.data[allele_id]["maf"] = self.tricoder.calculate_maf(self.data[allele_id]["calls"],
@@ -153,8 +185,6 @@ class DartReader:
 
                 row_index += 1
 
-            self.statistics["snps.total"] = snp_count
-
 class DartWriter:
 
     """
@@ -165,27 +195,22 @@ class DartWriter:
 
     def __init__(self, dart_control):
 
-        self.project = dart_control.project
-
-        self.sample_names = dart_control.sample_names
-        self.sample_number = dart_control.sample_number
-
-        self.snps_total = dart_control.snps_total
-        self.snps_filtered = dart_control.snps_filtered
+        self.qc = dart_control
+        self.raw = dart_control.raw
 
         self.fasta_path = None
 
     def write_fasta(self, path=os.getcwd(), filtered=False):
 
-        file_name = self.project + "_DArT_Seqs"
+        file_name = self.qc.project + "_DArT_Seqs"
 
         if filtered:
-            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
-                    for snp_id, data in self.snps_filtered.items()]
+            seqs = [SeqRecord(Seq(data["allele_seq_ref"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
+                    for snp_id, data in self.qc.snps_filtered.items()]
             file_name += "_Filtered.fasta"
         else:
-            seqs = [SeqRecord(Seq(data["allele_seq"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
-                    for snp_id, data in self.snps_total.items()]
+            seqs = [SeqRecord(Seq(data["allele_seq_ref"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
+                    for snp_id, data in self.qc.snps_total.items()]
             file_name += "_Total.fasta"
 
         print("\n---------------------------------------------------------------------------------")
@@ -196,6 +221,55 @@ class DartWriter:
 
         with open(self.fasta_path, "w") as fasta_file:
             SeqIO.write(seqs, fasta_file, "fasta")
+
+    def write_filtered(self, path=os.getcwd(), mode="dart"):
+
+        """
+        Write the filtered SNPs in various formats:
+
+        1. Original: Reads the original and only retains alleles with allele ID in filtered SNPs.
+        2. PLINK
+        3. Structure
+
+        """
+
+        out_file = os.path.join(path, self.qc.project + "_dartQC_" + time.strftime("[%H:%M:%S]") + '.csv')
+
+        if mode == "dart":
+
+            head = [["AlleleID", "CloneID", "AlleleSequence", "SNP", "SnpPosition", "CallRate", "OneRatioRef", "OneRatioSnp",
+                     "FreqHomRef", "FreqHomSnp", "FreqHets",	"PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp",
+                     "RepAvg"] + self.raw.sample_names]
+
+            out_head = self.raw.header + head
+
+            with open(out_file, 'w') as outfile:
+                writer = csv.writer(outfile)
+
+                writer.writerows(out_head)
+
+                order = sorted(self.qc.snps_filtered.keys())
+
+                for allele_id in order:
+                    entry = self.qc.snps_filtered[allele_id]
+
+                    allele_one = [allele_id, entry["clone_id"], entry["allele_seq_ref"], '-', entry["snp_position"],
+                               entry["call_rate_dart"], entry["one_ratio_ref"], entry["one_ratio_snp"],
+                               entry["freq_homozygous_ref"], entry["freq_homozygous_snp"], entry["freq_heterozygous"],
+                               entry["pic_ref"], entry["pic_snp"], entry["average_pic"], entry["average_read_count_ref"],
+                               entry["average_read_count_snp"], entry["average_replication"]]
+
+                    for c in entry["calls"][0]:
+                        allele_one.append(c)
+
+                    allele_two = allele_one.copy()[:17]
+                    allele_two[2] = entry["allele_seq_snp"]
+                    allele_two[3] = entry["snp"]
+
+                    for c in entry["calls"][1]:
+                        allele_two.append(c)
+
+                    writer.writerows([allele_one, allele_two])
 
 
 class DartControl:
@@ -212,6 +286,8 @@ class DartControl:
 
         ### Data Storage ###
 
+        self.raw = dart                 # Make the DataReader object accessible for DartWriter
+
         self.project = dart.project
         self.data = dart.data           # Holds intital unfiltered data from DArT
 
@@ -227,12 +303,15 @@ class DartControl:
         self.snps_total = {}            # Final SNPs at each stage after removing duplicates and clustered SNPs
         self.snps_filtered = {}         # SNPs at each stage after processing through Filters
 
-        self.sample_names = dart.sample_names            # Number (Key) and sample ID (Value)
-        self.sample_number = dart.sample_number          # Total number of samples
-
         self.filter_count = 1           # Number of applied filters in sequence, resets when filtering on total SNPs
 
-        self.statistics = dart.statistics   # Dictionary of basic statistics for writing summary QC
+        ### File IO ###
+
+        self.raw_file = dart.raw_file
+
+        self._data_row = dart._data_row
+        self._id = dart._id
+        self._clone = dart._clone
 
         ### Operations ###
 
@@ -262,7 +341,9 @@ class DartControl:
         self.clones_duplicate = {k: v for (k, v) in clone_counts.items() if v["count"] > 1}
 
         self.snps_unique = self.data.copy()
+
         for k, v in self.clones_duplicate.items():
+            # Remove clones from unique SNPs, which are initially a copy of raw data (see above)
             for allele_id in v["allele_ids"]:
                 self.snps_duplicate[allele_id] = self.snps_unique.pop(allele_id)
 
@@ -326,7 +407,7 @@ class DartControl:
 
         before = len(self.snps_total)
 
-        error_msg = "You need to find identity clusters first, then remove sequences."
+        error_msg = "You need to find identity clusters first, then remove    sequences."
 
         if not self.cluster_duplicate:
             raise(ValueError(error_msg))
@@ -465,7 +546,7 @@ class Tricoder:
         """
 
         geno = list(zip(calls[0], calls[1]))
-        
+
         return 1 - (geno.count((self.missing, self.missing))/sample_number)
 
     def calculate_maf(self, calls, sample_number):
@@ -505,5 +586,4 @@ class Tricoder:
             return s[start:end]
         except ValueError:
             return ""
-
 
