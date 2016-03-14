@@ -116,7 +116,7 @@ class DartReader:
             reader = csv.reader(infile, delimiter=sep)
             for row in reader:
                 if self.meta_head:
-                    self.meta[row[self._id_meta-1]] = row[self._pop_meta]
+                    self.meta[row[self._id_meta-1]] = row[self._pop_meta-1]
                 else:
                     self.meta_head = row
 
@@ -231,7 +231,6 @@ class DartWriter:
                                 self.from_heterozygous: self.to_heterozygous,
                                 self.from_missing: self.to_missing}
 
-
     def write_fasta(self, path=os.getcwd(), filtered=False):
 
         file_name = self.qc.project + "_DArT_Seqs"
@@ -326,14 +325,15 @@ class DartWriter:
 
             # Zip SNPs by Allele ID
 
-            snp_rows = [zip(out_data[allele_id]["calls"][0], out_data[allele_id]["calls"][1]) for allele_id in order]
+            snp_rows = [list(zip(out_data[allele_id]["calls"][0], out_data[allele_id]["calls"][1]))
+                        for allele_id in order]
 
-            print("SNP by Rows:", len(snp_rows), print(snp_rows)[0][:3])
+            print("SNP by Rows:", len(snp_rows))
 
             # Decode SNP Rows
             snp_rows_decoded = self.tricoder.decode(snp_rows, encoding_dict=self.encoding_scheme)
 
-            print("SNP by Rows decoded:", len(snp_rows_decoded), print(snp_rows_decoded)[0][:3])
+            print("SNP by Rows decoded:", len(snp_rows_decoded))
 
             # Turn into Numpy Array
             snp_rows_numpy = numpy.asarray(snp_rows_decoded)
@@ -341,18 +341,18 @@ class DartWriter:
             # Transpose Array
             snps_by_sample = snp_rows_numpy.transpose(1, 0, 2)
 
-            print("SNP by sample:", len(snps_by_sample), print(snp_by_sample[0][:3]))
+            print("SNP by sample:", len(snps_by_sample))
 
             genotypes = [sample.flatten().tolist() for sample in snps_by_sample]
 
-            print("SNP by sample:", len(genotypes), print(genotypes[0][:3]))
+            print("SNP by sample:", len(genotypes))
 
             names = self.raw.sample_names
 
             try:
                 pops = [self.raw.meta[name] for name in names]
             except KeyError:
-                print("Sample names from DArT file do not correspond to sample names from meta data file.")
+                KeyError("Sample names from DArT file do not correspond to sample names from meta data file.")
 
             if mode == 'plink':
 
@@ -366,14 +366,14 @@ class DartWriter:
 
                 # Zip all necessary Data for PLINK
 
-                plink = zip(pops, names, paternal, maternal, sex, phenotype, genoytpes)
+                plink = zip(pops, names, paternal, maternal, sex, phenotype, genotypes)
 
                 # PED Formatting
 
                 ped_data = []
                 for row in plink:
-                    new_row = row[:6]
-                    for geno in row[6:]:
+                    new_row = list(row[:6])
+                    for geno in row[6]:
                         new_row.append(geno)
                     ped_data.append(new_row)
 
@@ -386,7 +386,7 @@ class DartWriter:
                 map_data = [["0", snp_id, "0", "0"] for snp_id in out_data.keys()]
 
                 with open(map_file, 'w') as map_out:
-                    ped_writer = csv.writer(ped_out, delimiter='\t')
+                    ped_writer = csv.writer(map_out, delimiter='\t')
                     ped_writer.writerows(map_data)
 
             elif mode == "structure":
@@ -399,19 +399,14 @@ class DartWriter:
 
                 structure_data = []
                 for row in structure:
-                    new_row = row[:2]
-                    for geno in row[2:]:
+                    new_row = list(row[:2])
+                    for geno in row[2]:
                         new_row.append(geno)
                     structure_data.append(new_row)
 
                 with open(structure_file, 'w') as str_file:
                     str_writer = csv.writer(str_file, delimiter='\t')
                     str_writer.writerows(structure_data)
-
-
-
-
-
 
 class DartControl:
 
@@ -748,8 +743,3 @@ class Tricoder:
             return s[start:end]
         except ValueError:
             return ""
-
-
-
-
-
