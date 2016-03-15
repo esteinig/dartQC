@@ -5,6 +5,7 @@ import csv
 import time
 import numpy
 import operator
+import textwrap
 
 from subprocess import call
 
@@ -12,6 +13,118 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+
+class Tricoder:
+
+    """
+    Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
+    in DartReaders and Writers.
+
+    MAF
+    Call Rate
+    SNP Decoder / Encoder
+    Sub-string Finder
+
+    """
+
+    def __init__(self):
+
+        self.homozygous_major = ("1", "0")
+        self.homozygous_minor = ("0", "1")
+        self.heterozygous = ("1", "1")
+        self.missing = ("-", "-")
+
+        self.encoding_scheme = {}
+
+    ### Calculations ###
+
+    def calculate_call_rate(self, calls, sample_number):
+
+        """
+        Calculates call rate across samples for a single SNP. Pass a list with two lists containing
+        calls for A1 and A2.
+
+        """
+
+        geno = list(zip(calls[0], calls[1]))
+
+        return 1 - (geno.count(self.missing)/sample_number)
+
+    def calculate_maf(self, calls, sample_number):
+
+        """
+        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
+        Returns the minimum allele frequency for processing.
+
+        """
+
+        if sample_number != len(calls[0]) or sample_number != len(calls[1]):
+            print("Warning: Number of samples does not correspond number of allele calls.")
+
+        geno = list(zip(calls[0], calls[1]))
+
+        adjusted_samples = sample_number - geno.count(self.missing)
+
+        het_count = geno.count(self.heterozygous)
+
+        allele_one = geno.count(self.homozygous_major) + (het_count/2)
+        allele_two = geno.count(self.homozygous_minor) + (het_count/2)
+
+        freq_allele_one = allele_one / adjusted_samples
+        freq_allele_two = allele_two / adjusted_samples
+
+        return min(freq_allele_one, freq_allele_two)
+
+    ### SNP Operations ###
+
+    def decode(self, snp_data):
+
+        """ Decodes DArT encoding to specified format, requires list of zipped, one-row calls for SNPs"""
+
+        decoded_data = []
+        for snp in snp_data:
+            new_snp = []
+            for c in snp:
+                try:
+                    new_snp.append(self.encoding_scheme[c])
+                except KeyError:
+                    print("Could not find appropriate encoding scheme for:", c)
+
+            decoded_data.append(new_snp)
+
+        return decoded_data
+
+    def get_encoding(self, dart_reader):
+
+        """Gets the encoding scheme for homozygotes and heterozygotes when initiated in function for
+         calculating MAF and Call Rate.
+
+         """
+
+        self.homozygous_major = dart_reader.homozygous_major
+        self.homozygous_minor = dart_reader.homozygous_minor
+        self.heterozygous = dart_reader.heterozygous
+        self.missing = dart_reader.missing
+
+    def get_encoding_scheme(self, dart_writer):
+
+        self.encoding_scheme = {dart_writer.from_homozygous_major: dart_writer.to_homozygous_major,
+                                dart_writer.from_homozygous_minor: dart_writer.to_homozygous_minor,
+                                dart_writer.from_heterozygous: dart_writer.to_heterozygous,
+                                dart_writer.from_missing: dart_writer.to_missing}
+
+    ### Helper Functions ###
+
+    def find_between(self, s, first, last):
+
+        """Finds the substring between two strings."""
+
+        try:
+            start = s.index(first) + len(first)
+            end = s.index(last, start)
+            return s[start:end]
+        except ValueError:
+            return ""
 
 class DartReader:
 
@@ -34,6 +147,7 @@ class DartReader:
 
         self.sample_names = []
         self.sample_number = 0
+        self.snp_number = 0
 
         # Row numbers (non-pythonic) in Excel Spreadsheet
 
@@ -73,14 +187,19 @@ class DartReader:
         self._id_meta = 1
         self._pop_meta = 2
 
+        # Encoding Scheme
+
+        self.homozygous_major = ("1", "0")
+        self.homozygous_minor = ("0", "1")
+        self.heterozygous = ("1", "1")
+        self.missing = ("-", "-")
+
         # Parsing CD HIT
 
         self.identity_clusters = {}
         self.identity_snps = 0
 
-        # Initiating helper Tricoder
-
-        self.tricoder = Tricoder()
+        # Initiating helper Tricoder and setting
 
     def parse_cdhit(self, file):
 
@@ -89,6 +208,8 @@ class DartReader:
         removal from total SNPs.
 
         """
+
+        tricoder = Tricoder()
 
         with open(file, "r") as clstr_file:
             clstr_reader = csv.reader(clstr_file, delimiter=' ')
@@ -105,7 +226,7 @@ class DartReader:
                     ids = []
                     cluster_id += 1
                 else:
-                    allele_id = self.tricoder.find_between(row[1], ">", "...")
+                    allele_id = tricoder.find_between(row[1], ">", "...")
                     ids.append(allele_id)
 
     def read_pops(self, file, sep=','):
@@ -125,6 +246,9 @@ class DartReader:
         """" Read DArT data in double row format. """
 
         self.raw_file = file
+
+        tricoder = Tricoder()
+        tricoder.get_encoding(self)
 
         with open(file, 'r') as data_file:
             reader = csv.reader(data_file)
@@ -186,14 +310,16 @@ class DartReader:
                         self.data[allele_id]["snp"] = row[self._snp-1]
 
                         # Manual calculation of MAF and Call Rate, much easier than parsing and fast enough.
-                        self.data[allele_id]["maf"] = self.tricoder.calculate_maf(self.data[allele_id]["calls"],
-                                                                                  self.sample_number)
-                        self.data[allele_id]["call_rate"] = self.tricoder.calculate_call_rate(self.data[allele_id]["calls"],
-                                                                                              self.sample_number)
+                        self.data[allele_id]["maf"] = tricoder.calculate_maf(self.data[allele_id]["calls"],
+                                                                             self.sample_number)
+                        self.data[allele_id]["call_rate"] = tricoder.calculate_call_rate(self.data[allele_id]["calls"],
+                                                                                         self.sample_number)
 
                         if len(self.data[allele_id]["calls"]) != 2:
                             raise(ValueError("Error. Genotype of", allele_id, "does not contain two alleles.",
                                   "Check if starting row for data is correctly specified."))
+
+                        self.snp_number += 1
 
                         allele_index = 1
 
@@ -214,22 +340,15 @@ class DartWriter:
 
         self.fasta_path = None
 
-        self.from_major_homozygous = ("1", "0")
-        self.from_minor_homozygous = ("0", "1")
-        self.from_heterozygous = ("1", "1")
-        self.from_missing = ("-", "-")
+        self.from_homozygous_major = dart_control.raw.homozygous_major
+        self.from_homozygous_minor = dart_control.raw.homozygous_minor
+        self.from_heterozygous = dart_control.raw.heterozygous
+        self.from_missing = dart_control.raw.missing
 
-        self.to_major_homozygous = ("A", "A")
-        self.to_minor_homozygous = ("B", "B")
+        self.to_homozygous_major = ("A", "A")
+        self.to_homozygous_minor = ("B", "B")
         self.to_heterozygous = ("A", "B")
         self.to_missing = ("-9", "-9")
-
-        self.tricoder = Tricoder()
-
-        self.encoding_scheme = {self.from_major_homozygous: self.to_major_homozygous,
-                                self.from_minor_homozygous: self.to_minor_homozygous,
-                                self.from_heterozygous: self.to_heterozygous,
-                                self.from_missing: self.to_missing}
 
     def write_fasta(self, path=os.getcwd(), filtered=False):
 
@@ -243,10 +362,6 @@ class DartWriter:
             seqs = [SeqRecord(Seq(data["allele_seq_ref"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
                     for snp_id, data in self.qc.snps_total.items()]
             file_name += "_Total.fasta"
-
-        print("\n---------------------------------------------------------------------------------")
-        print("Writing", len(seqs), "sequences to file (.fasta): ", file_name)
-        print("---------------------------------------------------------------------------------")
 
         self.fasta_path = os.path.join(path, file_name)
 
@@ -287,10 +402,6 @@ class DartWriter:
 
             out_head = self.raw.header + head
 
-            print("\n---------------------------------------------------------------------------------")
-            print("Writing", n, "SNPs to file (DArT): ", out_file)
-            print("---------------------------------------------------------------------------------")
-
             with open(out_file, 'w') as outfile:
                 dart_writer = csv.writer(outfile, delimiter=sep)
 
@@ -317,23 +428,22 @@ class DartWriter:
 
                     dart_writer.writerows([allele_one, allele_two])
 
-        ### PLINK Format ###
+        ### PLINK and STRUCTURE Format ###
 
         elif mode == 'plink' or 'structure':
 
-            # Reformat Data to One-Row PLINK or STRUCTURE
+            # Inititate Tricoder and get the encoding scheme for translating calls from DArT
+
+            tricoder = Tricoder()
+            tricoder.get_encoding_scheme(self)
 
             # Zip SNPs by Allele ID
 
             snp_rows = [list(zip(out_data[allele_id]["calls"][0], out_data[allele_id]["calls"][1]))
                         for allele_id in order]
 
-            print("SNP by Rows:", len(snp_rows))
-
             # Decode SNP Rows
-            snp_rows_decoded = self.tricoder.decode(snp_rows, encoding_dict=self.encoding_scheme)
-
-            print("SNP by Rows decoded:", len(snp_rows_decoded))
+            snp_rows_decoded = tricoder.decode(snp_rows)
 
             # Turn into Numpy Array
             snp_rows_numpy = numpy.asarray(snp_rows_decoded)
@@ -341,18 +451,18 @@ class DartWriter:
             # Transpose Array
             snps_by_sample = snp_rows_numpy.transpose(1, 0, 2)
 
-            print("SNP by sample:", len(snps_by_sample))
-
             genotypes = [sample.flatten().tolist() for sample in snps_by_sample]
-
-            print("SNP by sample:", len(genotypes))
 
             names = self.raw.sample_names
 
             try:
                 pops = [self.raw.meta[name] for name in names]
             except KeyError:
-                KeyError("Sample names from DArT file do not correspond to sample names from meta data file.")
+                raise(KeyError("Sample names from DArT file do not correspond to sample names from meta data file."))
+
+            # Remove all whitespace from names, since it messes with PLINK
+            names = ["_".join(name.split()) for name in names]
+            pops = ["_".join(pop.split()) for pop in pops]
 
             if mode == 'plink':
 
@@ -378,7 +488,7 @@ class DartWriter:
                     ped_data.append(new_row)
 
                 with open(ped_file, 'w') as ped_out:
-                    ped_writer = csv.writer(ped_out, delimiter='\t')
+                    ped_writer = csv.writer(ped_out, delimiter=' ')
                     ped_writer.writerows(ped_data)
 
                 # MAP Formatting
@@ -386,7 +496,7 @@ class DartWriter:
                 map_data = [["0", snp_id, "0", "0"] for snp_id in out_data.keys()]
 
                 with open(map_file, 'w') as map_out:
-                    ped_writer = csv.writer(map_out, delimiter='\t')
+                    ped_writer = csv.writer(map_out, delimiter=' ')
                     ped_writer.writerows(map_data)
 
             elif mode == "structure":
@@ -405,7 +515,7 @@ class DartWriter:
                     structure_data.append(new_row)
 
                 with open(structure_file, 'w') as str_file:
-                    str_writer = csv.writer(str_file, delimiter='\t')
+                    str_writer = csv.writer(str_file, delimiter=' ')
                     str_writer.writerows(structure_data)
 
 class DartControl:
@@ -451,17 +561,38 @@ class DartControl:
 
         ### Operations ###
 
-        self.tricoder = Tricoder()
-
         self._tmp_path = os.path.join(os.getcwd(), "dart_qc_tmp")
-        os.makedirs(self._tmp_path, exist_ok=True)
+
+        ### Logger ###
+
+        self.starting_parameters = textwrap.dedent("""
+        DART QC
+        ---------------------------------------------
+        DArT Quality Control Pipeline
+        James Cook University
+        ARC Hub for Advanced Prawn Breeding
+        Eike J. Steinig, Jarrod Guppy, Kyall Zenger
+        ---------------------------------------------
+
+
+        Initializing DArT Quality Control
+        ----------------------------------
+
+        Project:  {0}
+        SNPs:     {1}
+        Samples:  {2}
+        """ .format(self.project, self.raw.snp_number, self.raw.sample_number))
+
+        self.log = [self.starting_parameters]
+
+        self.verbose = True
+
+        if self.verbose:
+            print(self.starting_parameters)
 
     def find_duplicate_clones(self):
 
-        """
-        Search for duplicate clone IDs in SNPs and
-
-        """
+        """Search for duplicate clone IDs in SNPs and remove from a copy of the raw data. """
 
         clone_counts = {}
 
@@ -483,12 +614,17 @@ class DartControl:
             for allele_id in v["allele_ids"]:
                 self.snps_duplicate[allele_id] = self.snps_unique.pop(allele_id)
 
-        print("\nSEARCHING FOR DUPLICATES")
-        print("---------------------------------------------------------------------------------")
-        print("Number of duplicated clone IDs:", len(self.clones_duplicate))
-        print("Number of duplicated SNPs:", len(self.snps_duplicate))
-        print("Number of unique SNPs:", len(self.snps_unique))
-        print("---------------------------------------------------------------------------------")
+        clone_msg = textwrap.dedent("""
+        SEARCHING FOR DUPLICATE CLONE IDs
+        ------------------------------------------
+
+        Number of duplicated clone IDs:    {0}
+        Number of duplicated SNPs:         {1}
+        Number of unique SNPs:             {2}
+        """ .format(len(self.clones_duplicate), len(self.snps_duplicate),len(self.snps_unique)))
+
+        if self.verbose:
+            print(clone_msg)
 
     def find_identity_clusters(self, identity=0.95, word_size=10, description_length=0, cdhit_path=None):
 
@@ -501,6 +637,8 @@ class DartControl:
 
         """
 
+        os.makedirs(self._tmp_path, exist_ok=True)
+
         dart_writer = DartWriter(self)
         dart_writer.write_fasta()
 
@@ -512,11 +650,11 @@ class DartControl:
         out_file = os.path.join(self._tmp_path, file_name)
         cluster_file = os.path.join(self._tmp_path, file_name + '.clstr')
 
-        print("\nRUNNING CDHIT-EST")
-        print("---------------------------------------------------------------------------------")
-        call([cdhit_path, "-i", dart_writer.fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
-              "-d", str(description_length)])
-        print("---------------------------------------------------------------------------------")
+        if self.verbose:
+            print("...")
+        with open(os.devnull, "w") as devnull:
+            call([cdhit_path, "-i", dart_writer.fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
+                  "-d", str(description_length)], stdout=devnull)
 
         clstr_reader = DartReader()
         clstr_reader.parse_cdhit(cluster_file)
@@ -525,12 +663,25 @@ class DartControl:
 
         self.cluster_snps = clstr_reader.identity_snps
 
-        print("\nCLUSTERING SEQUENCES BY IDENTITY")
-        print("---------------------------------------------------------------------------------")
-        print("Generated CD-HIT identity clusters of sequences at a threshold of", str(identity*100) + "%.")
-        print("Number of identity clusters:", len(self.cluster_duplicate))
-        print("Number of duplicate identity SNPs:", self.cluster_snps)
-        print("---------------------------------------------------------------------------------")
+        cluster_msg = textwrap.dedent("""
+        CLUSTERING REFERENCE ALLELE SEQUENCES
+        -----------------------------------------------
+
+        CDHIT-EST
+        Threshold: {0}%
+
+        Warning: clusters are non-deterministic and
+        may vary slightly between runs. Please see
+        the manual for CD-HIT.
+
+        Number of identity clusters:            {1}
+        Number of SNPs in identity clusters:    {2}
+        """ .format(identity*100, len(self.cluster_duplicate), self.cluster_snps))
+
+        self.log.append(cluster_msg)
+
+        if self.verbose:
+            print(cluster_msg)
 
     def select_best_identity_seqs(self, selector="maf"):
 
@@ -543,7 +694,7 @@ class DartControl:
 
         before = len(self.snps_total)
 
-        error_msg = "You need to find identity clusters first, then remove sequences."
+        error_msg = "Error. You need to find identity clusters first, then remove sequences."
 
         if not self.cluster_duplicate:
             raise(ValueError(error_msg))
@@ -560,15 +711,22 @@ class DartControl:
                 # Add the identification to the final removed clustered SNPs
                 self.snps_clustered[i] = cluster
 
-        print("\nRETAINING BEST CLUSTERED SEQUENCES")
-        print("---------------------------------------------------------------------------------")
-        print("Total number of SNPs before removing clustered SNPs:", before)
-        print("Number of SNPs found in identity clusters:", self.cluster_snps)
-        print("Number of clustered SNPs retained after selection with", selector.upper() + ":",
-              len(self.cluster_duplicate))
-        print("Number of clustered SNPs removed:", (self.cluster_snps - len(self.cluster_duplicate)))
-        print("Total number of SNPs after removing clustered SNPs:", len(self.snps_total))
-        print("---------------------------------------------------------------------------------")
+        retain_cluster_msg = textwrap.dedent("""
+        RETAINING BEST CLUSTERED SEQUENCES
+        --------------------------------------------------------------
+
+        Retention criterion:                                    {0}
+        Number of SNPs found in identity clusters:              {1}
+        Total number of SNPs before removing clustered SNPs:    {2}
+        Number of clustered SNPs removed:                       {3}
+        Total number of SNPs after removing clustered SNPs:     {4}
+        """ .format(selector.upper(), before, self.cluster_snps, self.cluster_snps - len(self.cluster_duplicate),
+                    len(self.snps_total)))
+
+        self.log.append(retain_cluster_msg)
+
+        if self.verbose:
+            print(retain_cluster_msg)
 
     def select_best_clones(self, selector="maf"):
 
@@ -587,10 +745,19 @@ class DartControl:
             # excluding the best picks.
             self.snps_total[best_snp] = self.snps_duplicate.pop(best_snp)
 
-        print("\nRETAINING BEST DUPLICATES")
-        print("---------------------------------------------------------------------------------")
-        print("Number of total SNPs after inclusion of best duplicate SNPs:", len(self.snps_total))
-        print("---------------------------------------------------------------------------------")
+        retain_clones_msg = textwrap.dedent("""
+        RETAINING BEST DUPLICATE CLONES
+        ----------------------------------
+
+        Retention criterion:     {0}
+        Retained SNPs:           {1}
+        Total unique SNPs:       {2}
+        """ .format(selector.upper(), len(self.clones_duplicate), len(self.snps_total)))
+
+        self.log.append(retain_clones_msg)
+
+        if self.verbose:
+            print(retain_clones_msg)
 
     def _compare_entries(self, ids, selector="maf"):
 
@@ -653,93 +820,21 @@ class DartControl:
 
         after = len(self.snps_filtered)
 
-        print("\nFILTERING SNPs")
-        print("---------------------------------------------------------------------------------")
-        print("Filter", str(self.filter_count) + ":", selector.upper(), comparison, str(threshold), "on", data.upper())
-        print("Removed", before - after, "SNPs from a total of", before, "SNPs, retaining", after, "SNPs.")
-        print("---------------------------------------------------------------------------------")
+        filter_msg = textwrap.dedent("""
+        FILTERING SNPs #{0}
+        ----------------------
 
-class Tricoder:
+        {1} {2} {3} on {4}
 
-    """
-    Class for calculating statistics for genotypes and SNPs. Also contains a variety of helper functions for use
-    in Dart. Do not actually need to be in a class, but keeps the code nice and tidy.
+        Initial:    {6}
+        Removed:    {5}
+        Retained:   {7}
 
-    """
+        ----------------------
+        """ .format(self.filter_count, selector.upper(), comparison, threshold, data.upper(),
+                    before - after, before, after))
 
-    def __init__(self):
+        self.log.append(filter_msg)
 
-        self.missing = '-'
-        self.present = '1'
-        self.absent = '0'
-
-    ### Calculations ###
-
-    def calculate_call_rate(self, calls, sample_number):
-
-        """
-        Calculates call rate across samples for a single SNP. Pass a list with two lists containing
-        calls for A1 and A2.
-
-        """
-
-        geno = list(zip(calls[0], calls[1]))
-
-        return 1 - (geno.count((self.missing, self.missing))/sample_number)
-
-    def calculate_maf(self, calls, sample_number):
-
-        """
-        Calculates minor allele frequency for a single SNP. Pass a list with two lists containing calls for A1 and A2.
-        Returns the minimum allele frequency for processing.
-
-        """
-
-        if sample_number != len(calls[0]) or sample_number != len(calls[1]):
-            print("Warning: Number of samples does not correspond number of allele calls.")
-
-        geno = list(zip(calls[0], calls[1]))
-
-        adjusted_samples = sample_number - geno.count((self.missing, self.missing))
-
-        het_count = geno.count((self.present, self.present))
-
-        allele_one = geno.count((self.present, self.absent)) + (het_count/2)
-        allele_two = geno.count((self.absent, self.present)) + (het_count/2)
-
-        freq_allele_one = allele_one / adjusted_samples
-        freq_allele_two = allele_two / adjusted_samples
-
-        return min(freq_allele_one, freq_allele_two)
-
-    ### SNP Operations ###
-
-    def decode(self, snp_data, encoding_dict):
-
-        """ Decodes DArT encoding to specified format, requires list of zipped, one-row calls for SNPs"""
-
-        decoded_data = []
-        for snp in snp_data:
-            new_snp = []
-            for c in snp:
-                try:
-                    new_snp.append(encoding_dict[c])
-                except KeyError:
-                    print("Could not find appropriate encoding scheme for:", c)
-
-            decoded_data.append(new_snp)
-
-        return decoded_data
-
-    ### Helper Functions ###
-
-    def find_between(self, s, first, last):
-
-        """Finds the substring between two strings."""
-
-        try:
-            start = s.index(first) + len(first)
-            end = s.index(last, start)
-            return s[start:end]
-        except ValueError:
-            return ""
+        if self.verbose:
+            print(filter_msg)
