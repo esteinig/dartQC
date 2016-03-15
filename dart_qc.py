@@ -4,15 +4,60 @@ import os
 import csv
 import time
 import numpy
+import argparse
 import operator
 import textwrap
 
 from subprocess import call
 
 from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from Bio.SeqRecord import SeqRecord
+
+class CommandLine:
+
+    def __init__(self):
+
+        self.parser = argparse.ArgumentParser(description='DArT Quality Control', add_help=True)
+        self.setParser()
+        self.args = self.parser.parse_args()
+
+        self.arg_dict = vars(self.args)
+
+    def setParser(self):
+
+        data_type = self.parser.add_mutually_exclusive_group(required=True)
+
+        ### Required Options Input ###
+
+        data_type.add_argument('-f', "--file", dest='data_file', required=True, type=str,
+                                help="Name of input file from DArT")
+        data_type.add_argument('-c', "--config", dest='config_file', required=False, type=str,
+                                help="Name of configuration file for DartQC")
+
+        ### Output ###
+
+        self.parser.add_argument('-o', dest='output_format', default='plink', required=False, type=str,
+                                 help="Output format, one of: dart, plink, structure")
+
+        ### Population Designations for Output ###
+
+        self.parser.add_argument('-p', '--pop', dest='pop_file', required=False, type=str,
+                                 help="Name of file containing IDs and Populations")
+
+        ### Encoding Schemes ###
+
+        self.parser.add_argument('--major', dest='homozygous_major', default=("1", "0"), required=False, type=tuple,
+                                 help="Homozygous major call encoding in DArT")
+        self.parser.add_argument('--minor', dest='homozygous_minor', default=("0", "1"), required=False, type=tuple,
+                                 help="Homozygous minor call encoding in DArT")
+        self.parser.add_argument('--hetero', dest='heterozygous', default=("1", "1"), required=False, type=tuple,
+                                 help="Heterozygous call encoding in DArT")
+        self.parser.add_argument('--missing', dest='homozygous_minor', default=("-", "-"), required=False, type=tuple,
+                                 help="Homozygous minor encoding in DArT")
+
+
 
 class Tricoder:
 
@@ -96,10 +141,11 @@ class Tricoder:
 
     def get_encoding(self, dart_reader):
 
-        """Gets the encoding scheme for homozygotes and heterozygotes when initiated in function for
-         calculating MAF and Call Rate.
+        """
+        Gets the encoding scheme for homozygotes and heterozygotes when initiated in function for
+        calculating MAF and Call Rate.
 
-         """
+        """
 
         self.homozygous_major = dart_reader.homozygous_major
         self.homozygous_minor = dart_reader.homozygous_minor
@@ -153,6 +199,7 @@ class DartReader:
 
         self._data_row = 7              # Start of Sequences / Data
         self._sample_row = 5            # Sample Identification
+        self._pop_row = None
 
         # Column numbers (non-pythonic) in Excel Spreadsheet
 
@@ -183,6 +230,8 @@ class DartReader:
 
         self.meta = {}
         self.meta_head = []
+
+        self.pops = []                                      # IMPLEMENT POP READER
 
         self._id_meta = 1
         self._pop_meta = 2
@@ -263,6 +312,9 @@ class DartReader:
 
                 if row_index <= self._data_row-2:  # Don't include description header
                     self.header.append(row)
+
+                if self._pop_row is not None and row_index == self._pop_row:  # Add populations if in DArT (for Shannon)
+                    self.pops = row[self._sample_column-1:]
 
                 if row_index == self._sample_row:
                     self.sample_names = row[self._sample_column-1:]
@@ -455,10 +507,14 @@ class DartWriter:
 
             names = self.raw.sample_names
 
-            try:
-                pops = [self.raw.meta[name] for name in names]
-            except KeyError:
-                raise(KeyError("Sample names from DArT file do not correspond to sample names from meta data file."))
+            if self.raw.meta:
+                try:
+                    pops = [self.raw.meta[name] for name in names]
+                except KeyError:
+                    raise(KeyError("Sample names from DArT file do not correspond to sample names from meta data file."))
+            else:
+                # Placeholder
+                pops = ["PopEye" for name in names]
 
             # Remove all whitespace from names, since it messes with PLINK
             names = ["_".join(name.split()) for name in names]
