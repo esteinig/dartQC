@@ -93,7 +93,7 @@ def exampleQC():
     dart_qc.filter_snps(data="total", selector="call_rate", threshold=0.70, comparison="<=")
     dart_qc.filter_snps(data="filtered", selector="maf", threshold=0.02, comparison="<=")
     
-    dart_qc.filter_snps(data="filtered", selector="average_read_count_red", threshold=50, comparison="<=")
+    dart_qc.filter_snps(data="filtered", selector="average_read_count_ref", threshold=50, comparison="<=")
     
     dart_writer = DartWriter(dart_qc)
     dart_writer.write_snps(mode='dart)
