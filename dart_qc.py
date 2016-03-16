@@ -596,8 +596,8 @@ class DartWriter:
         log_file = self.raw.project + "_dartQC_" + self.time + ".log"
 
         with open(log_file, 'w') as logfile:
-            writer = csv.writer(logfile, delimiter= ' ')
-            writer.writerows(self.log)
+            for line in self.log:
+                logfile.write(line)
 
     def write_fasta(self, filtered=False):
 
@@ -628,7 +628,7 @@ class DartWriter:
 
         """
 
-        out_file = os.path.join(path, self.qc.project + self.time + "_dartQC")
+        out_file = os.path.join(path, self.qc.project + "_" + self.time + "_dartQC")
 
         if filtered:
             n = len(self.qc.snps_filtered)
@@ -979,11 +979,10 @@ class DartControl:
         ----------------------------------------------------------
 
         Retention criterion:                                    {0}
-        Number of SNPs found in identity clusters:              {1}
-        Total number of SNPs before removing clustered SNPs:    {2}
-        Number of clustered SNPs removed:                       {3}
-        Total number of SNPs after removing clustered SNPs:     {4}
-        """ .format(selector.upper(), before, self.cluster_snps, self.cluster_snps - len(self.cluster_duplicate),
+        Total number of SNPs before removing clustered SNPs:    {1}
+        Number of clustered SNPs removed:                       {2}
+        Total number of SNPs after removing clustered SNPs:     {3}
+        """ .format(selector.upper(), before, self.cluster_snps - len(self.cluster_duplicate),
                     len(self.snps_total)))
 
         self.log.append(retain_cluster_msg)
