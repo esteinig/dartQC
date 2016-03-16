@@ -25,9 +25,6 @@ def main():
     # Reader
     dart_data = DartReader()
 
-    if commands["config_file"]:
-        commands = dart_data.read_config()
-
     dart_data.project = commands["project"]
 
     # Reader Data Rows + Columns
@@ -84,13 +81,10 @@ class CommandLine:
 
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(description='DartQC Pipeline', add_help=True)
+        self.parser = argparse.ArgumentParser(description='DartQC Pipeline v.0.1', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args(['-i', "Report-DKo16-2049.csv", '--project', 'KoalaCommandLine',
-                                            '-p', "maf", '--data-row', "9", '--sample-row', "8",
-                                            '--rep-col', "18", '--call-col', "19", '--maf', "0.05", '--call', "0.8",
-                                            '--identity-selector', 'call_rate', '--sequence-identity', '0.95'])
+        self.args = self.parser.parse_args()
         self.arg_dict = vars(self.args)
 
         self.error_check()
@@ -105,8 +99,6 @@ class CommandLine:
 
         data_type.add_argument('-i', "--input", dest='data_file', default='', required=False, type=str,
                                 help="Name of input file for raw calls")
-        data_type.add_argument('-c', "--config", dest='config_file', default='', required=False, type=str,
-                                help="Name of configuration file for DartQC")
 
         ### Input Formats and Types ###
 
@@ -130,14 +122,14 @@ class CommandLine:
 
         ### Encoding Schemes ###
 
-        self.parser.add_argument('--major', dest='homozygous_major', default=("1", "0"), required=False, type=tuple,
+        self.parser.add_argument('--major', dest='homozygous_major', default="10", required=False, type=tuple,
                                  help="Homozygous major call encoding")
-        self.parser.add_argument('--minor', dest='homozygous_minor', default=("0", "1"), required=False, type=tuple,
+        self.parser.add_argument('--minor', dest='homozygous_minor', default="01", required=False, type=tuple,
                                  help="Homozygous minor call encoding")
-        self.parser.add_argument('--hetero', dest='heterozygous', default=("1", "1"), required=False, type=tuple,
+        self.parser.add_argument('--hetero', dest='heterozygous', default="11", required=False, type=tuple,
                                  help="Heterozygous call encoding")
-        self.parser.add_argument('--missing', dest='missing', default=("-", "-"), required=False, type=tuple,
-                                 help="Homozygous minor encoding")
+        self.parser.add_argument('--missing', dest='missing', default="--", required=False, type=tuple,
+                                 help="Missing call encoding")
 
         ### Data Input ###
 
@@ -189,10 +181,6 @@ class CommandLine:
             if not os.path.isfile(command["data_file"]):
                 raise FileNotFoundError
 
-        if command["config_file"]:
-            if not os.path.isfile(command["config_file"]):
-                raise FileNotFoundError
-
         if command["pop_file"]:
             if not os.path.isfile(command["pop_file"]):
                 raise FileNotFoundError
@@ -219,10 +207,6 @@ class CommandLine:
         for value in [command["clone_selector"], command["identity_selector"]]:
             if value not in ["maf", "rep", "call_rate"]:
                 raise ValueError("Clone and identity selctors must be one of 'call_rate', 'maf' or 'rep'.")
-
-        ################# Write Config File ####################################
-
-
 
 class Tricoder:
 
@@ -465,7 +449,7 @@ class DartReader:
 
     def read_data(self, file, mode='double', marker='snp'):
 
-        """" Read data in double row format. """
+        """"Read data in double row format"""
 
         reader_msg = textwrap.dedent("""
         DART QC v.0.1
@@ -572,11 +556,7 @@ class DartReader:
 
 class DartWriter:
 
-    """
-
-    Class for writing output from DartQC.
-
-    """
+    """Class for writing output from DartQC"""
 
     def __init__(self, dart_control):
 
