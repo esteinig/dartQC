@@ -56,14 +56,14 @@ def main():
     dart_qc.select_best_clones(selector=commands["clone_selector"])
 
     # Sequence Clusters with CD-HIT
-    if commands["sequence_identity"]:
-        dart_qc.find_identity_clusters()
+    if commands["seq_identity"] > 0:
+        dart_qc.find_identity_clusters(identity=commands["seq_identity"])
         dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
 
     # Filters
     dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
     dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
-    dart_qc.filter_snps(data="filtered", selector="average_replication", threshold=commands["rep"], comparison="<=")
+    dart_qc.filter_snps(data="filtered", selector="rep", threshold=commands["rep"], comparison="<=")
 
     # DArT Writer
     dart_writer = DartWriter(dart_qc)
@@ -83,7 +83,10 @@ class CommandLine:
         self.parser = argparse.ArgumentParser(description='DArT Quality Control Pipeline', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args()
+        self.args = self.parser.parse_args(['-i', "Report-DKo16-2049.csv", '--project', 'KoalaCommandLine',
+                                            '-p', "populations_ID_Koala.csv", '--data-row', "9", '--sample-row', "8",
+                                            '--rep-col', "18", '--call-col', "19", '--maf', "0.05", '--call', "0.8",
+                                            '--identity-selector', 'call_rate', '--sequence-identity', '0.95'])
         self.arg_dict = vars(self.args)
 
         self.error_check()
@@ -96,9 +99,9 @@ class CommandLine:
 
         ### Required Options Input ###
 
-        data_type.add_argument('-i', "--input", dest='data_file', required=True, type=str,
+        data_type.add_argument('-i', "--input", dest='data_file', default='', required=False, type=str,
                                 help="Name of input file for DArT Data")
-        data_type.add_argument('-c', "--config", dest='config_file', required=True, type=str,
+        data_type.add_argument('-c', "--config", dest='config_file', default='', required=False, type=str,
                                 help="Name of configuration file for DartQC")
 
         ### Input Formats and Types ###
@@ -129,7 +132,7 @@ class CommandLine:
                                  help="Homozygous minor call encoding in DArT Data")
         self.parser.add_argument('--hetero', dest='heterozygous', default=("1", "1"), required=False, type=tuple,
                                  help="Heterozygous call encoding in DArT Data")
-        self.parser.add_argument('--missing', dest='homozygous_minor', default=("-", "-"), required=False, type=tuple,
+        self.parser.add_argument('--missing', dest='missing', default=("-", "-"), required=False, type=tuple,
                                  help="Homozygous minor encoding in DArT Data")
 
         ### Data Input ###
@@ -158,18 +161,18 @@ class CommandLine:
         self.parser.add_argument('--rep', dest='rep', default=0.95, required=False, type=float,
                                  help="Filter markers by average replication (<=) from DArT")
 
-        self.parser.add_argument('--sequence-identity', dest='seq_identity', default=1.0, required=True, type=float,
+        self.parser.add_argument('--sequence-identity', dest='seq_identity', default=0.95, required=False, type=float,
                                  help="Filter reference allele sequences by identity threshold (>=) using CDHIT-EST")
         self.parser.add_argument('--clone-selector', dest='clone_selector', default="maf", required=False, type=str,
-                                 help="Select best duplicate clones by filter (call, maf, rep)")
+                                 help="Select best duplicate clones by filter (call_rate, maf, rep)")
         self.parser.add_argument('--identity-selector', dest='identity_selector', default="maf", required=False, type=str,
-                                 help="Select best clustered sequences by filter (call, maf, rep)")
+                                 help="Select best clustered sequences by filter (call_rate, maf, rep)")
 
         ### Other ###
 
         self.parser.add_argument('-v', "--verbose", dest='verbose', action='store_false', default=True,
                                 help="Verbose output of computation and result summaries")
-        self.parser.add_argument('-p', '--project', dest='project', default="DartData", required=False, type=str,
+        self.parser.add_argument('--project', dest='project', default="DartData", required=False, type=str,
                                  help="Name of quality control project for file output")
 
     def error_check(self):
@@ -178,10 +181,17 @@ class CommandLine:
 
         command = self.arg_dict
 
-        if not os.path.isfile(command["data_file"]) or \
-           not os.path.isfile(command["config_file"]) or \
-           not os.path.isfile(command["pop_file"]):
-            raise FileNotFoundError
+        if command["data_file"]:
+            if not os.path.isfile(command["data_file"]):
+                raise FileNotFoundError
+
+        if command["config_file"]:
+            if not os.path.isfile(command["config_file"]):
+                raise FileNotFoundError
+
+        if command["pop_file"]:
+            if not os.path.isfile(command["pop_file"]):
+                raise FileNotFoundError
 
         if command["data_format"] not in ["double", "single"]:
             raise ValueError("Format must be either 'single' or 'double'.")
@@ -193,7 +203,7 @@ class CommandLine:
             raise ValueError("Output format for population analysis must be either 'plink' or 'structure'.")
 
         for value in [command["homozygous_major"], command["homozygous_minor"],
-                      command["heterozygous"], command["homozygous_missing"]]:
+                      command["heterozygous"], command["missing"]]:
             for v in value:
                 if type(v) is not str:
                     raise TypeError("Allele encodings must be strings, this is not the case in:", str(value), '.')
@@ -203,8 +213,8 @@ class CommandLine:
                 raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
 
         for value in [command["clone_selector"], command["identity_selector"]]:
-            if value not in ["maf", "rep", "call"]:
-                raise ValueError("Clone and identity selctors must be one of 'call', 'maf' or 'rep'.")
+            if value not in ["maf", "rep", "call_rate"]:
+                raise ValueError("Clone and identity selctors must be one of 'call_rate', 'maf' or 'rep'.")
 
         ################# Write Config File ####################################
 
@@ -464,7 +474,7 @@ class DartReader:
         DArT Quality Control Pipeline
         James Cook University
         ARC Hub for Advanced Prawn Breeding
-        Eike J. Steinig, Jarrod Guppy, David Jones & Kyall Zenger
+        Eike Steinig, Jarrod Guppy, David Jones & Kyall Zenger
         ----------------------------------------------------------
 
         READING DART DATA
@@ -532,7 +542,7 @@ class DartReader:
                                  "average_pic": row[self._average_pic-1],
                                  "average_read_count_ref": float(row[self._read_count_ref_column-1]),
                                  "average_read_count_snp": float(row[self._read_count_snp_column-1]),
-                                 "average_replication": float(row[self._replication_average-1]),
+                                 "rep": float(row[self._replication_average-1]),
                                  "calls": [row[self._call-1:]]}  # Add allele 1
 
                         self.data[allele_id] = entry
@@ -681,7 +691,7 @@ class DartWriter:
                                   entry["call_rate_dart"], entry["one_ratio_ref"], entry["one_ratio_snp"],
                                   entry["freq_homozygous_ref"], entry["freq_homozygous_snp"], entry["freq_heterozygous"],
                                   entry["pic_ref"], entry["pic_snp"], entry["average_pic"], entry["average_read_count_ref"],
-                                  entry["average_read_count_snp"], entry["average_replication"]]
+                                  entry["average_read_count_snp"], entry["rep"]]
 
                     for c in entry["calls"][0]:
                         allele_one.append(c)
@@ -933,9 +943,8 @@ class DartControl:
         CDHIT-EST
         Threshold: {0}%
 
-        Warning: clusters are non-deterministic and
-        may vary slightly between runs. Please see
-        the manual for CD-HIT.
+        Warning: clusters are non-deterministic and may vary
+        between runs. Please see the manual for CD-HIT.
 
         Number of identity clusters:            {1}
         Number of SNPs in identity clusters:    {2}
@@ -958,9 +967,6 @@ class DartControl:
         before = len(self.snps_total)
 
         error_msg = "Error. You need to find identity clusters first, then remove sequences."
-
-        if not self.cluster_duplicate:
-            raise(ValueError(error_msg))
 
         if not self.snps_total:
             raise(ValueError(error_msg))
