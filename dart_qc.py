@@ -22,7 +22,7 @@ def main():
     command_line = CommandLine()
     commands = command_line.arg_dict
 
-    # DArT Reader
+    # Reader
     dart_data = DartReader()
 
     if commands["config_file"]:
@@ -52,7 +52,7 @@ def main():
     if commands["pop_file"]:
         dart_data.read_pops(commands["pop_file"])
 
-    # DArT Quality Control
+    # Quality Control
     dart_qc = DartControl(dart_data)
 
     # Duplicate Clones
@@ -69,7 +69,7 @@ def main():
     dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
     dart_qc.filter_snps(data="filtered", selector="rep", threshold=commands["rep"], comparison="<=")
 
-    # DArT Writer
+    # Writer
     dart_writer = DartWriter(dart_qc)
     dart_writer.write_snps(mode='dart')
     dart_writer.write_snps(mode=commands["output_format"])
@@ -84,7 +84,7 @@ class CommandLine:
 
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(description='DArT Quality Control Pipeline', add_help=True)
+        self.parser = argparse.ArgumentParser(description='DartQC Pipeline', add_help=True)
         self.setParser()
 
         self.args = self.parser.parse_args(['-i', "Report-DKo16-2049.csv", '--project', 'KoalaCommandLine',
@@ -104,16 +104,16 @@ class CommandLine:
         ### Required Options Input ###
 
         data_type.add_argument('-i', "--input", dest='data_file', default='', required=False, type=str,
-                                help="Name of input file for DArT Data")
+                                help="Name of input file for raw calls")
         data_type.add_argument('-c', "--config", dest='config_file', default='', required=False, type=str,
                                 help="Name of configuration file for DartQC")
 
         ### Input Formats and Types ###
 
         self.parser.add_argument('-f', "--format", dest='data_format', default="double", required=False, type=str,
-                                help="Format of alleles (currently only double-row) in DArT Data")
+                                help="Format of alleles (currently only double-row)")
         self.parser.add_argument('-t', "--type", dest='data_type', default="snp", required=False, type=str,
-                                help="Marker type (currently only snp) in DArT Data")
+                                help="Marker type (currently only snp)")
 
         ### Output ###
 
@@ -131,30 +131,30 @@ class CommandLine:
         ### Encoding Schemes ###
 
         self.parser.add_argument('--major', dest='homozygous_major', default=("1", "0"), required=False, type=tuple,
-                                 help="Homozygous major call encoding in DArT Data")
+                                 help="Homozygous major call encoding")
         self.parser.add_argument('--minor', dest='homozygous_minor', default=("0", "1"), required=False, type=tuple,
-                                 help="Homozygous minor call encoding in DArT Data")
+                                 help="Homozygous minor call encoding")
         self.parser.add_argument('--hetero', dest='heterozygous', default=("1", "1"), required=False, type=tuple,
-                                 help="Heterozygous call encoding in DArT Data")
+                                 help="Heterozygous call encoding")
         self.parser.add_argument('--missing', dest='missing', default=("-", "-"), required=False, type=tuple,
-                                 help="Homozygous minor encoding in DArT Data")
+                                 help="Homozygous minor encoding")
 
         ### Data Input ###
 
         self.parser.add_argument('--data-row', dest='data_row', default=7, required=False, type=int,
-                                 help="Row: start of data in DArT Data")
+                                 help="Row: start of data")
         self.parser.add_argument('--sample-row', dest='sample_row', default=6, required=False, type=int,
-                                 help="Row: sample names in DArT Data")
+                                 help="Row: sample names")
         self.parser.add_argument('--id-col', dest='id_col', default=1, required=False, type=int,
-                                 help="Column: allele IDs in DArT Data")
+                                 help="Column: allele IDs")
         self.parser.add_argument('--clone-col', dest='clone_col', default=2, required=False, type=int,
-                                 help="Column: clone IDs in DArT Data")
+                                 help="Column: clone IDs")
         self.parser.add_argument('--seq-col', dest='seq_col', default=3, required=False, type=int,
-                                 help="Column: allele sequences in DArT Data")
+                                 help="Column: allele sequences")
         self.parser.add_argument('--rep-col', dest='rep_col', default=17, required=False, type=int,
-                                 help="Column: average replication statistics in DArT Data")
+                                 help="Column: average replication statistics")
         self.parser.add_argument('--call-col', dest='call_col', default=18, required=False, type=int,
-                                 help="Column: start of allele calls and sample names in DArT Data")
+                                 help="Column: start of allele calls and sample names")
 
         ### Filter ###
 
@@ -163,7 +163,7 @@ class CommandLine:
         self.parser.add_argument('--call', dest='call', default=0.70, required=False, type=float,
                                  help="Filter markers by minor allele frequency (<=)")
         self.parser.add_argument('--rep', dest='rep', default=0.95, required=False, type=float,
-                                 help="Filter markers by average replication (<=) from DArT")
+                                 help="Filter markers by average replication (<=)")
 
         self.parser.add_argument('--sequence-identity', dest='seq_identity', default=0.95, required=False, type=float,
                                  help="Filter reference allele sequences by identity threshold (>=) using CDHIT-EST")
@@ -289,7 +289,7 @@ class Tricoder:
 
     def decode(self, snp_data):
 
-        """ Decodes DArT encoding to specified format, requires list of zipped, one-row calls for SNPs"""
+        """ Decodes raw encoding to specified format, requires list of zipped, one-row calls for SNPs"""
 
         decoded_data = []
         for snp in snp_data:
@@ -339,11 +339,7 @@ class Tricoder:
 
 class DartReader:
 
-    """
-
-    Class for reading data from DArT.
-
-    """
+    """Class for reading raw calls."""
 
     def __init__(self):
 
@@ -351,11 +347,10 @@ class DartReader:
         self.verbose = True
         self.log = []
 
-        # Parsing raw data from DArT
+        # Parsing raw data
 
-        self.raw_file = ''              # File name with raw data from DArT
-        self.data = {}                  # Holds initial unfiltered data from DArT
-
+        self.raw_file = ''              # File name with raw data
+        self.data = {}                  # Holds initial unfiltered data
         self.header = []                # Holds the lines before the actual header for statistics and data
 
         self.sample_names = []
@@ -441,7 +436,7 @@ class DartReader:
 
     def read_pops(self, file, sep=','):
 
-        """ Read file with header and two columns: 1 - ID, 2 - Population. ID must be the same as in DArT Data. """
+        """ Read file with header and two columns: 1 - ID, 2 - Population. ID must be the same as in Data. """
 
         pops_msg = textwrap.dedent("""
         READING POPULATION DATA
@@ -470,12 +465,12 @@ class DartReader:
 
     def read_data(self, file, mode='double', marker='snp'):
 
-        """" Read DArT data in double row format. """
+        """" Read data in double row format. """
 
         reader_msg = textwrap.dedent("""
         DART QC v.0.1
         ----------------------------------------------------------
-        DArT Quality Control Pipeline
+        SNP Quality Control Pipeline
         James Cook University
         ARC Hub for Advanced Prawn Breeding
         Eike Steinig, Jarrod Guppy, David Jones & Kyall Zenger
@@ -579,7 +574,7 @@ class DartWriter:
 
     """
 
-    Class for writing output from DART QC.
+    Class for writing output from DartQC.
 
     """
 
@@ -615,7 +610,7 @@ class DartWriter:
 
     def write_fasta(self, filtered=False):
 
-        file_name = os.path.join(self.qc._tmp_path, self.qc.project + "_DArT_Seqs")
+        file_name = os.path.join(self.qc._tmp_path, self.qc.project + "_Seqs")
 
         if filtered:
             seqs = [SeqRecord(Seq(data["allele_seq_ref"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
@@ -636,7 +631,7 @@ class DartWriter:
         """
         Write the filtered SNPs in various formats:
 
-        1. DArT
+        1. Raw
         2. PLINK
         3. Structure
 
@@ -671,7 +666,7 @@ class DartWriter:
 
         order = sorted(out_data.keys())
 
-        ### DArT Format ###
+        ### Raw Format ###
 
         if mode == "dart":
 
@@ -713,7 +708,7 @@ class DartWriter:
 
         elif mode == 'plink' or 'structure':
 
-            # Inititate Tricoder and get the encoding scheme for translating calls from DArT
+            # Inititate Tricoder and get the encoding scheme for translating calls
 
             tricoder = Tricoder()
             tricoder.get_encoding_scheme(self)
@@ -740,7 +735,7 @@ class DartWriter:
                 try:
                     pops = [self.raw.meta[name] for name in names]
                 except KeyError:
-                    raise(KeyError("Sample names from DArT file do not correspond to sample names from meta data file."))
+                    raise(KeyError("Sample names from data file do not correspond to sample names from meta data file."))
             else:
                 # Placeholder
                 pops = ["PopEye" for name in names]
@@ -805,13 +800,7 @@ class DartWriter:
 
 class DartControl:
 
-    """
-
-    DArT Quality Control Pipeline
-
-    Prototype
-
-    """
+    """Quality Control Pipeline Prototype"""
 
     def __init__(self, dart):
 
@@ -820,7 +809,7 @@ class DartControl:
         self.raw = dart                 # Make the DataReader object accessible for DartWriter
 
         self.project = dart.project
-        self.data = dart.data           # Holds intital unfiltered data from DArT
+        self.data = dart.data           # Holds intital unfiltered data
 
         self.clones_duplicate = {}      # Duplicate clones by clone ID (Key) and Dict: Number / List: SNP IDs (Value)
         self.cluster_duplicate = {}     # Identity clusters (Key) and List: SNP IDs (Value) SNPs
@@ -851,7 +840,7 @@ class DartControl:
         ### Logger ###
 
         initialize_msg = textwrap.dedent("""
-        Initializing DArT Quality Control
+        Initializing Quality Control Module
         ----------------------------------------------------------
 
         Project:  {0}
