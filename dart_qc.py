@@ -24,6 +24,10 @@ def main():
 
     # DArT Reader
     dart_data = DartReader()
+
+    if commands["config_file"]:
+        commands = dart_data.read_config()
+
     dart_data.project = commands["project"]
 
     # Reader Data Rows + Columns
@@ -84,7 +88,7 @@ class CommandLine:
         self.setParser()
 
         self.args = self.parser.parse_args(['-i', "Report-DKo16-2049.csv", '--project', 'KoalaCommandLine',
-                                            '-p', "populations_ID_Koala.csv", '--data-row', "9", '--sample-row', "8",
+                                            '-p', "maf", '--data-row', "9", '--sample-row', "8",
                                             '--rep-col', "18", '--call-col', "19", '--maf', "0.05", '--call', "0.8",
                                             '--identity-selector', 'call_rate', '--sequence-identity', '0.95'])
         self.arg_dict = vars(self.args)
