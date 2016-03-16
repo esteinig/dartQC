@@ -4,6 +4,7 @@ import os
 import csv
 import time
 import numpy
+import shutil
 import argparse
 import operator
 import textwrap
@@ -15,47 +16,197 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.SeqRecord import SeqRecord
 
+def main():
+
+    # Command Line Module
+    command_line = CommandLine()
+    commands = command_line.arg_dict
+
+    # DArT Reader
+    dart_data = DartReader()
+    dart_data.project = commands["project"]
+
+    # Reader Data Rows + Columns
+    dart_data._data_row = commands["data_row"]
+    dart_data._sample_row = commands["sample_row"]
+    dart_data._id = commands["id_col"]
+    dart_data._clone = commands["clone_col"]
+    dart_data._seq = commands["seq_col"]
+    dart_data._replication_average = commands["rep_col"]
+    dart_data._call = commands["call_col"]
+    dart_data._sample_column = commands["call_col"]
+
+    # Reader SNP Encoding
+    dart_data.homozygous_major = commands["homozygous_major"]
+    dart_data.homozygous_minor = commands["homozygous_minor"]
+    dart_data.heterozygous = commands["heterozygous"]
+    dart_data.missing = commands["missing"]
+
+    # Read Data
+    dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
+
+    if commands["pop_file"]:
+        dart_data.read_pops(commands["pop_file"])
+
+    # DArT Quality Control
+    dart_qc = DartControl(dart_data)
+
+    # Duplicate Clones
+    dart_qc.find_duplicate_clones()
+    dart_qc.select_best_clones(selector=commands["clone_selector"])
+
+    # Sequence Clusters with CD-HIT
+    if commands["sequence_identity"]:
+        dart_qc.find_identity_clusters()
+        dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
+
+    # Filters
+    dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
+    dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
+    dart_qc.filter_snps(data="filtered", selector="average_replication", threshold=commands["rep"], comparison="<=")
+
+    # DArT Writer
+    dart_writer = DartWriter(dart_qc)
+    dart_writer.write_snps(mode='dart')
+    dart_writer.write_snps(mode=commands["output_format"])
+    dart_writer.write_log()
+
+    # Cleanup
+    dart_qc.cleanup(keep=commands["keep"])
+
 class CommandLine:
+
+    """ Command Line Parser """
 
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(description='DArT Quality Control', add_help=True)
+        self.parser = argparse.ArgumentParser(description='DArT Quality Control Pipeline', add_help=True)
         self.setParser()
-        self.args = self.parser.parse_args()
 
+        self.args = self.parser.parse_args()
         self.arg_dict = vars(self.args)
 
+        self.error_check()
+
     def setParser(self):
+
+        """Initiate command line parsing module"""
 
         data_type = self.parser.add_mutually_exclusive_group(required=True)
 
         ### Required Options Input ###
 
-        data_type.add_argument('-f', "--file", dest='data_file', required=True, type=str,
-                                help="Name of input file from DArT")
-        data_type.add_argument('-c', "--config", dest='config_file', required=False, type=str,
+        data_type.add_argument('-i', "--input", dest='data_file', required=True, type=str,
+                                help="Name of input file for DArT Data")
+        data_type.add_argument('-c', "--config", dest='config_file', required=True, type=str,
                                 help="Name of configuration file for DartQC")
+
+        ### Input Formats and Types ###
+
+        self.parser.add_argument('-f', "--format", dest='data_format', default="double", required=False, type=str,
+                                help="Format of alleles (currently only double-row) in DArT Data")
+        self.parser.add_argument('-t', "--type", dest='data_type', default="snp", required=False, type=str,
+                                help="Marker type (currently only snp) in DArT Data")
 
         ### Output ###
 
-        self.parser.add_argument('-o', dest='output_format', default='plink', required=False, type=str,
-                                 help="Output format, one of: dart, plink, structure")
+        self.parser.add_argument('-o', '--out', dest='output_format', default='plink', required=False, type=str,
+                                 help="Output format for population analysis files (plink, structure)")
+
+        self.parser.add_argument('-k', '--keep', dest='keep', action='store_true', default=False,
+                                 help="Keep computation output (currently only CD-HIT)")
 
         ### Population Designations for Output ###
 
-        self.parser.add_argument('-p', '--pop', dest='pop_file', required=False, type=str,
+        self.parser.add_argument('-p', '--pop', dest='pop_file', default='', required=False, type=str,
                                  help="Name of file containing IDs and Populations")
 
         ### Encoding Schemes ###
 
         self.parser.add_argument('--major', dest='homozygous_major', default=("1", "0"), required=False, type=tuple,
-                                 help="Homozygous major call encoding in DArT")
+                                 help="Homozygous major call encoding in DArT Data")
         self.parser.add_argument('--minor', dest='homozygous_minor', default=("0", "1"), required=False, type=tuple,
-                                 help="Homozygous minor call encoding in DArT")
+                                 help="Homozygous minor call encoding in DArT Data")
         self.parser.add_argument('--hetero', dest='heterozygous', default=("1", "1"), required=False, type=tuple,
-                                 help="Heterozygous call encoding in DArT")
+                                 help="Heterozygous call encoding in DArT Data")
         self.parser.add_argument('--missing', dest='homozygous_minor', default=("-", "-"), required=False, type=tuple,
-                                 help="Homozygous minor encoding in DArT")
+                                 help="Homozygous minor encoding in DArT Data")
+
+        ### Data Input ###
+
+        self.parser.add_argument('--data-row', dest='data_row', default=7, required=False, type=int,
+                                 help="Row: start of data in DArT Data")
+        self.parser.add_argument('--sample-row', dest='sample_row', default=6, required=False, type=int,
+                                 help="Row: sample names in DArT Data")
+        self.parser.add_argument('--id-col', dest='id_col', default=1, required=False, type=int,
+                                 help="Column: allele IDs in DArT Data")
+        self.parser.add_argument('--clone-col', dest='clone_col', default=2, required=False, type=int,
+                                 help="Column: clone IDs in DArT Data")
+        self.parser.add_argument('--seq-col', dest='seq_col', default=3, required=False, type=int,
+                                 help="Column: allele sequences in DArT Data")
+        self.parser.add_argument('--rep-col', dest='rep_col', default=17, required=False, type=int,
+                                 help="Column: average replication statistics in DArT Data")
+        self.parser.add_argument('--call-col', dest='call_col', default=18, required=False, type=int,
+                                 help="Column: start of allele calls and sample names in DArT Data")
+
+        ### Filter ###
+
+        self.parser.add_argument('--maf', dest='maf', default=0.02, required=False, type=float,
+                                 help="Filter markers by minor allele frequency (<=)")
+        self.parser.add_argument('--call', dest='call', default=0.70, required=False, type=float,
+                                 help="Filter markers by minor allele frequency (<=)")
+        self.parser.add_argument('--rep', dest='rep', default=0.95, required=False, type=float,
+                                 help="Filter markers by average replication (<=) from DArT")
+
+        self.parser.add_argument('--sequence-identity', dest='seq_identity', default=1.0, required=True, type=float,
+                                 help="Filter reference allele sequences by identity threshold (>=) using CDHIT-EST")
+        self.parser.add_argument('--clone-selector', dest='clone_selector', default="maf", required=False, type=str,
+                                 help="Select best duplicate clones by filter (call, maf, rep)")
+        self.parser.add_argument('--identity-selector', dest='identity_selector', default="maf", required=False, type=str,
+                                 help="Select best clustered sequences by filter (call, maf, rep)")
+
+        ### Other ###
+
+        self.parser.add_argument('-v', "--verbose", dest='verbose', action='store_false', default=True,
+                                help="Verbose output of computation and result summaries")
+        self.parser.add_argument('-p', '--project', dest='project', default="DartData", required=False, type=str,
+                                 help="Name of quality control project for file output")
+
+    def error_check(self):
+
+        """Quick error check for input values in Command Line"""
+
+        command = self.arg_dict
+
+        if not os.path.isfile(command["data_file"]) or \
+           not os.path.isfile(command["config_file"]) or \
+           not os.path.isfile(command["pop_file"]):
+            raise FileNotFoundError
+
+        if command["data_format"] not in ["double", "single"]:
+            raise ValueError("Format must be either 'single' or 'double'.")
+
+        if command["data_type"] not in ["dart", "snp"]:
+            raise ValueError("Marker type must be either 'dart' or 'snp'.")
+
+        if command["output_format"] not in ["plink", "structure"]:
+            raise ValueError("Output format for population analysis must be either 'plink' or 'structure'.")
+
+        for value in [command["homozygous_major"], command["homozygous_minor"],
+                      command["heterozygous"], command["homozygous_missing"]]:
+            for v in value:
+                if type(v) is not str:
+                    raise TypeError("Allele encodings must be strings, this is not the case in:", str(value), '.')
+
+        for value in [command["maf"], command["call"], command["rep"], command["seq_identity"]]:
+            if value < 0 or value > 1:
+                raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
+
+        for value in [command["clone_selector"], command["identity_selector"]]:
+            if value not in ["maf", "rep", "call"]:
+                raise ValueError("Clone and identity selctors must be one of 'call', 'maf' or 'rep'.")
+
+        ################# Write Config File ####################################
 
 
 
@@ -183,6 +334,8 @@ class DartReader:
     def __init__(self):
 
         self.project = "Monodon"
+        self.verbose = True
+        self.log = []
 
         # Parsing raw data from DArT
 
@@ -199,7 +352,6 @@ class DartReader:
 
         self._data_row = 7              # Start of Sequences / Data
         self._sample_row = 5            # Sample Identification
-        self._pop_row = None
 
         # Column numbers (non-pythonic) in Excel Spreadsheet
 
@@ -220,7 +372,7 @@ class DartReader:
         self._read_count_ref_column = 15
         self._read_count_snp_column = 16
         self._replication_average = 17
-        self._call_column = 18
+        self._call = 18
         self._sample_column = 18
 
         self.get_clone_id = False
@@ -229,9 +381,6 @@ class DartReader:
         # Meta Data by Individuals
 
         self.meta = {}
-        self.meta_head = []
-
-        self.pops = []                                      # IMPLEMENT POP READER
 
         self._id_meta = 1
         self._pop_meta = 2
@@ -247,8 +396,6 @@ class DartReader:
 
         self.identity_clusters = {}
         self.identity_snps = 0
-
-        # Initiating helper Tricoder and setting
 
     def parse_cdhit(self, file):
 
@@ -282,17 +429,57 @@ class DartReader:
 
         """ Read file with header and two columns: 1 - ID, 2 - Population. ID must be the same as in DArT Data. """
 
+        pops_msg = textwrap.dedent("""
+        READING POPULATION DATA
+        ----------------------------------------------------------
+
+        File:               {0}
+        ID Column:          {1}
+        Population Column:  {2}
+
+        """ .format(os.path.basename(file), self._id_meta, self._pop_meta))
+
+        if self.verbose:
+            print(pops_msg)
+
+        self.log.append(pops_msg)
+
+        meta_head = []
+
         with open(file, 'r') as infile:
             reader = csv.reader(infile, delimiter=sep)
             for row in reader:
-                if self.meta_head:
+                if meta_head:
                     self.meta[row[self._id_meta-1]] = row[self._pop_meta-1]
                 else:
-                    self.meta_head = row
+                    meta_head = row
 
-    def read_double_row(self, file):
+    def read_data(self, file, mode='double', marker='snp'):
 
         """" Read DArT data in double row format. """
+
+        reader_msg = textwrap.dedent("""
+        DART QC v.0.1
+        ----------------------------------------------------------
+        DArT Quality Control Pipeline
+        James Cook University
+        ARC Hub for Advanced Prawn Breeding
+        Eike J. Steinig, Jarrod Guppy, David Jones & Kyall Zenger
+        ----------------------------------------------------------
+
+        READING DART DATA
+        ----------------------------------------------------------
+
+        File: {0}
+        Mode: {1}
+        Type: {2}
+
+        """ .format(os.path.basename(file), mode.capitalize(), marker.upper()))
+
+        if self.verbose:
+            print(reader_msg)
+
+        self.log.append(reader_msg)
 
         self.raw_file = file
 
@@ -312,9 +499,6 @@ class DartReader:
 
                 if row_index <= self._data_row-2:  # Don't include description header
                     self.header.append(row)
-
-                if self._pop_row is not None and row_index == self._pop_row:  # Add populations if in DArT (for Shannon)
-                    self.pops = row[self._sample_column-1:]
 
                 if row_index == self._sample_row:
                     self.sample_names = row[self._sample_column-1:]
@@ -349,7 +533,7 @@ class DartReader:
                                  "average_read_count_ref": float(row[self._read_count_ref_column-1]),
                                  "average_read_count_snp": float(row[self._read_count_snp_column-1]),
                                  "average_replication": float(row[self._replication_average-1]),
-                                 "calls": [row[self._call_column-1:]]}  # Add allele 1
+                                 "calls": [row[self._call-1:]]}  # Add allele 1
 
                         self.data[allele_id] = entry
 
@@ -357,7 +541,7 @@ class DartReader:
                         allele_index = 2
                     else:
                         # Add sequence and calls of second allele and calculate MAF of SNP
-                        self.data[allele_id]["calls"].append(row[self._call_column-1:])
+                        self.data[allele_id]["calls"].append(row[self._call-1:])
                         self.data[allele_id]["allele_seq_snp"] = row[self._seq-1]
                         self.data[allele_id]["snp"] = row[self._snp-1]
 
@@ -387,8 +571,11 @@ class DartWriter:
 
     def __init__(self, dart_control):
 
-        self.qc = dart_control
         self.raw = dart_control.raw
+        self.qc = dart_control
+
+        self.verbose = dart_control.verbose
+        self.log = dart_control.log
 
         self.fasta_path = None
 
@@ -400,11 +587,21 @@ class DartWriter:
         self.to_homozygous_major = ("A", "A")
         self.to_homozygous_minor = ("B", "B")
         self.to_heterozygous = ("A", "B")
-        self.to_missing = ("-9", "-9")
+        self.to_missing = ("0", "0")
 
-    def write_fasta(self, path=os.getcwd(), filtered=False):
+        self.time = time.strftime("%d-%b-%Y_%H:%M:%S")
 
-        file_name = self.qc.project + "_DArT_Seqs"
+    def write_log(self):
+
+        log_file = self.raw.project + "_dartQC_" + self.time + ".log"
+
+        with open(log_file, 'w') as logfile:
+            writer = csv.writer(logfile, delimiter= ' ')
+            writer.writerows(self.log)
+
+    def write_fasta(self, filtered=False):
+
+        file_name = os.path.join(self.qc._tmp_path, self.qc.project + "_DArT_Seqs")
 
         if filtered:
             seqs = [SeqRecord(Seq(data["allele_seq_ref"], IUPAC.unambiguous_dna), id=snp_id, name="", description="")
@@ -415,7 +612,7 @@ class DartWriter:
                     for snp_id, data in self.qc.snps_total.items()]
             file_name += "_Total.fasta"
 
-        self.fasta_path = os.path.join(path, file_name)
+        self.fasta_path = file_name
 
         with open(self.fasta_path, "w") as fasta_file:
             SeqIO.write(seqs, fasta_file, "fasta")
@@ -431,7 +628,7 @@ class DartWriter:
 
         """
 
-        out_file = os.path.join(path, self.qc.project + "_dartQC_" + time.strftime("[%H:%M:%S]"))
+        out_file = os.path.join(path, self.qc.project + self.time + "_dartQC")
 
         if filtered:
             n = len(self.qc.snps_filtered)
@@ -439,6 +636,24 @@ class DartWriter:
         else:
             n = len(self.qc.snps_total)
             out_data = self.qc.snps_total
+
+        writer_msg = textwrap.dedent("""
+        TRANFORMING AND WRITING DATA TO FILE
+        ----------------------------------------------------------
+
+        File:        {0}
+        Mode:        {1}
+        Filtered:    {2}
+
+        Final SNPs:  {3}
+
+        ----------------------------------------------------------
+        """ .format(os.path.basename(out_file), mode.capitalize(), filtered, n))
+
+        if self.verbose:
+            print(writer_msg)
+
+        self.log.append(writer_msg)
 
         order = sorted(out_data.keys())
 
@@ -621,30 +836,21 @@ class DartControl:
 
         ### Logger ###
 
-        self.starting_parameters = textwrap.dedent("""
-        DART QC
-        ---------------------------------------------
-        DArT Quality Control Pipeline
-        James Cook University
-        ARC Hub for Advanced Prawn Breeding
-        Eike J. Steinig, Jarrod Guppy, Kyall Zenger
-        ---------------------------------------------
-
-
+        initialize_msg = textwrap.dedent("""
         Initializing DArT Quality Control
-        ----------------------------------
+        ----------------------------------------------------------
 
         Project:  {0}
         SNPs:     {1}
         Samples:  {2}
         """ .format(self.project, self.raw.snp_number, self.raw.sample_number))
 
-        self.log = [self.starting_parameters]
+        self.log = dart.log
+        self.log.append(initialize_msg)
 
-        self.verbose = True
-
+        self.verbose = dart.verbose
         if self.verbose:
-            print(self.starting_parameters)
+            print(initialize_msg)
 
     def find_duplicate_clones(self):
 
@@ -672,7 +878,7 @@ class DartControl:
 
         clone_msg = textwrap.dedent("""
         SEARCHING FOR DUPLICATE CLONE IDs
-        ------------------------------------------
+        ----------------------------------------------------------
 
         Number of duplicated clone IDs:    {0}
         Number of duplicated SNPs:         {1}
@@ -708,6 +914,7 @@ class DartControl:
 
         if self.verbose:
             print("...")
+
         with open(os.devnull, "w") as devnull:
             call([cdhit_path, "-i", dart_writer.fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
                   "-d", str(description_length)], stdout=devnull)
@@ -721,7 +928,7 @@ class DartControl:
 
         cluster_msg = textwrap.dedent("""
         CLUSTERING REFERENCE ALLELE SEQUENCES
-        -----------------------------------------------
+        ----------------------------------------------------------
 
         CDHIT-EST
         Threshold: {0}%
@@ -769,7 +976,7 @@ class DartControl:
 
         retain_cluster_msg = textwrap.dedent("""
         RETAINING BEST CLUSTERED SEQUENCES
-        --------------------------------------------------------------
+        ----------------------------------------------------------
 
         Retention criterion:                                    {0}
         Number of SNPs found in identity clusters:              {1}
@@ -803,7 +1010,7 @@ class DartControl:
 
         retain_clones_msg = textwrap.dedent("""
         RETAINING BEST DUPLICATE CLONES
-        ----------------------------------
+        ----------------------------------------------------------
 
         Retention criterion:     {0}
         Retained SNPs:           {1}
@@ -878,7 +1085,7 @@ class DartControl:
 
         filter_msg = textwrap.dedent("""
         FILTERING SNPs #{0}
-        ----------------------
+        ----------------------------------------------------------
 
         {1} {2} {3} on {4}
 
@@ -886,7 +1093,7 @@ class DartControl:
         Removed:    {5}
         Retained:   {7}
 
-        ----------------------
+        ----------------------------------------------------------
         """ .format(self.filter_count, selector.upper(), comparison, threshold, data.upper(),
                     before - after, before, after))
 
@@ -894,3 +1101,14 @@ class DartControl:
 
         if self.verbose:
             print(filter_msg)
+
+    def cleanup(self, keep):
+
+        if not keep:
+            if os.path.exists(self._tmp_path):
+                shutil.rmtree(self._tmp_path)
+        else:
+            if os.path.exists(self._tmp_path):
+                base = os.path.dirname(self._tmp_path)
+                new = os.path.join(base, self.project + "_TemporaryFiles" + time.strftime("%d-%b-%Y_%H:%M:%S"))
+                os.rename(self._tmp_path, new)
