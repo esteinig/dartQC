@@ -1,7 +1,7 @@
 ##DartQC
-### Quality Control Pipeline for Diversity Array Technology (DArT) 
+### Quality Control Pipeline
 
-![](https://github.com/esteinig/dartQC/blob/master/dartQC.png)
+![](https://github.com/esteinig/dartQC/blob/master/dart_qc.png)
 
 **Dependencies**
 
@@ -9,7 +9,7 @@ Install in Ubuntu:
 
 `sudo apt-get install python-numpy python-biopython cd-hit`
 
-If you are using this pipeline you are likely doing a bit of Bioinformatics. If you are also using Windows, consider switching to Linux or install a Virtual Machine. This program is *not* compatible with Windows.
+If you are using this pipeline you are likely doing a bit of Bioinformatics. If you are also using Windows, consider switching to Linux or install a Virtual Machine. This program is not compatible with Windows.
 
 * Numpy
 * BioPython
@@ -25,7 +25,7 @@ Parameters:
 ```
 Required:
 
--i, --input           Input file from DArT (.csv) ['']
+-i, --input           Input file with raw calls (.csv) ['']
 
 Defaults:
 
@@ -42,13 +42,13 @@ Defaults:
 --identity-selector   Statistic for sequence identity picks: 'call_rate', 'maf' or 'rep' ['maf']
 --clone-selector      Statistic for duplicate clone picks: 'call_rate', 'maf' or 'rep' ['maf']
 
---major               Homozygous major encoding in DArT, tuple of strings [ ('1', '0') ]
---minor               Homozygous minor encoding in DArT, tuple of strings [ ('0', '1') ]
---hetero              Heterozygous encoding in DArT, tuple of strings [ ('1', '1') ]
---missing             Missing encoding in DArT, tuple of strings [ ('-', '-') ]
+--major               Homozygous major encoding, tuple of strings [ ('1', '0') ]
+--minor               Homozygous minor encoding, tuple of strings [ ('0', '1') ]
+--hetero              Heterozygous encoding, tuple of strings [ ('1', '1') ]
+--missing             Missing encoding, tuple of strings [ ('-', '-') ]
 
---data-row            Row number - start of allele calls in DArT [7]
---sample-row          Row number - sample names in DArT [6]
+--data-row            Row number - start of allele calls [7]
+--sample-row          Row number - sample names [6]
 
 --id-col              Column number - Allele IDs [1]
 --clone-col           Column number - Clone IDs [2]
@@ -56,7 +56,7 @@ Defaults:
 --rep-col             Column number - Average Replication Statistic [17]
 --call-col            Column number - Start of sample names and allele calls [18]
 
---project             Project name for writing output ['DartData']
+--project             Project name for writing output ['Data']
 --verbose             Print results to screen during QC
 --keep                Keep intermediate output files (from CDHIT-EST)
 ```
