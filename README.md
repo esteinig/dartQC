@@ -1,7 +1,7 @@
 ##DartQC
 ### Quality Control Pipeline for Diversity Array Technology (DArT) 
 
-![](https://github.com/esteinig/dartQC/blob/master/img/dartQC.png)
+![](https://github.com/esteinig/dartQC/blob/master/dartQC.png)
 
 **Dependencies**
 
@@ -14,7 +14,7 @@ If you are using this pipeline you are likely doing a bit of Bioinformatics. Do 
 
 Install in Ubuntu: `sudo apt-get install python-numpy python-biopython cd-hit`
 
-**Usage**
+**Command Line Usage**
 
 `python dart_qc.py --help`
 
@@ -61,3 +61,41 @@ Defaults:
 
 **Coding your own QC Pipeline**
 
+```p
+
+# Example QC
+# For all options and data dictionary keys, see annotations in the classes for DartQC
+
+def exampleQC():
+    
+    dart_data = DartReader()
+    dart_data.project = "Koala"
+    dart_data._data_row = 9
+    dart_data._sample_row = 8
+    dart_data._read_count_ref_column = 15
+    dart_data._read_count_snp_column = 16
+    dart_data._replication_count = 18
+    dart_data._sample_column = 19
+    dart_data._call = 19
+
+    dart_data.read_data("koalaInput.csv")
+    dart_data.read_pops("koalaPopulations.csv")
+
+    dart_qc = DartControl(dart_data)
+    
+    dart_qc.find_duplicate_clones()
+    dart_qc.select_best_clones(selector="call_rate")
+    dart_qc.find_identity_clusters()
+    dart_qc.select_best_identity_seqs(selector="maf")
+
+    dart_qc.filter_snps(data="total", selector="call_rate", threshold=0.70, comparison="<=")
+    dart_qc.filter_snps(data="filtered", selector="maf", threshold=0.02, comparison="<=")
+    
+    dart_qc.filter_snps(data="filtered", selector="average_read_count_red", threshold=50, comparison="<=")
+    
+    dart_writer = DartWriter(dart_qc)
+    dart_writer.write_snps(mode='dart)
+    dart_writer.write_snps(mode='plink')
+    dart_writer.write_log()
+    
+```
