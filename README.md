@@ -1,6 +1,8 @@
 ##DartQC
 ### Quality Control Pipeline for Diversity Array Technology (DArT) 
 
+
+
 **Dependencies**
 
 If you are using this pipeline you are likely doing a bit of Bioinformatics. Do not use Windows, switch to Linux / Ubuntu. Seriously.
@@ -9,8 +11,6 @@ If you are using this pipeline you are likely doing a bit of Bioinformatics. Do 
 * BioPython
 * CDHIT-EST
 * Python >= v.3.4
-
-Ubuntu:
 
 `sudo apt-get install python-numpy python-biopython cd-hit`
 
@@ -37,8 +37,8 @@ Defaults:
 --rep                 Filter markers by average replication statistic <= [0.95]
 
 --sequence-identity   Filter reference allele using CDHIT-EST, identity threshold [0.95]
---identity-selector   Statistick for sequence identity picks: 'call_rate', 'maf' or 'rep' ['maf']
---clone-selector      Statistic for removing duplicate clone IDs: 'call_rate', 'maf' or 'rep' ['maf']
+--identity-selector   Statistic for sequence identity picks: 'call_rate', 'maf' or 'rep' ['maf']
+--clone-selector      Statistic for duplicate clone picks: 'call_rate', 'maf' or 'rep' ['maf']
 
 --major               Homozygous major encoding in DArT, tuple of strings [ ('1', '0') ]
 --minor               Homozygous minor encoding in DArT, tuple of strings [ ('0', '1') ]
