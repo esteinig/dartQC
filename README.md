@@ -5,14 +5,16 @@
 
 **Dependencies**
 
-If you are using this pipeline you are likely doing a bit of Bioinformatics. Do not use Windows, switch to Linux / Ubuntu. Seriously.
+Install in Ubuntu: 
+
+`sudo apt-get install python-numpy python-biopython cd-hit`
+
+If you are using this pipeline you are likely doing a bit of Bioinformatics. If you are also using Windows, consider switching to Linux or install a Virtual Machine. This program is *not* compatible with Windows.
 
 * Numpy
 * BioPython
 * CDHIT-EST
 * Python >= v.3.4
-
-Install in Ubuntu: `sudo apt-get install python-numpy python-biopython cd-hit`
 
 **Command Line Usage**
 
