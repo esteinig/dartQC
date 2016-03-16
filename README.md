@@ -1,7 +1,7 @@
 ##DartQC
 ### Quality Control Pipeline for Diversity Array Technology (DArT) 
 
-
+![https://github.com/esteinig/dartQC/blob/master/img/dartQC.png]
 
 **Dependencies**
 
@@ -12,7 +12,7 @@ If you are using this pipeline you are likely doing a bit of Bioinformatics. Do 
 * CDHIT-EST
 * Python >= v.3.4
 
-`sudo apt-get install python-numpy python-biopython cd-hit`
+*Ubuntu*: `sudo apt-get install python-numpy python-biopython cd-hit`
 
 **Usage**
 
