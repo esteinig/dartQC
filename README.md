@@ -23,7 +23,7 @@ Parameters:
 ```
 Required:
 
--i, --input     Input file from DArT (.csv) ['']
+-i, --input           Input file from DArT (.csv) ['']
 
 Defaults:
 
