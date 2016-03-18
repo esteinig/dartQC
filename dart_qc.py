@@ -20,60 +20,139 @@ def main():
 
     # Command Line Module
     command_line = CommandLine()
+
     commands = command_line.arg_dict
 
-    # Reader
-    dart_data = DartReader()
+    if commands["config_file"]:
 
-    dart_data.project = commands["project"]
+        dart_data = DartReader()
 
-    # Reader Data Rows + Columns
-    dart_data._data_row = commands["data_row"]
-    dart_data._sample_row = commands["sample_row"]
-    dart_data._id = commands["id_col"]
-    dart_data._clone = commands["clone_col"]
-    dart_data._seq = commands["seq_col"]
-    dart_data._replication_average = commands["rep_col"]
-    dart_data._call = commands["call_col"]
-    dart_data._sample_column = commands["call_col"]
+        dart_data.read_config(commands["config_file"])
 
-    # Reader SNP Encoding
-    dart_data.homozygous_major = commands["homozygous_major"]
-    dart_data.homozygous_minor = commands["homozygous_minor"]
-    dart_data.heterozygous = commands["heterozygous"]
-    dart_data.missing = commands["missing"]
+        commands = dart_data.config_dict
 
-    # Read Data
-    dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
+        dart_data.project = commands["project"]
 
-    if commands["pop_file"]:
-        dart_data.read_pops(commands["pop_file"])
+        # Reader Data Rows + Columns
+        dart_data._data_row = commands["data_row"]
+        dart_data._sample_row = commands["sample_row"]
+        dart_data._id = commands["id_col"]
+        dart_data._clone = commands["clone_col"]
+        dart_data._seq = commands["seq_col"]
+        dart_data._snp = commands["snp_col"]
+        dart_data._snp_position = commands["snp_pos_col"]
+        dart_data._call_rate_dart = commands["call_rate_dart_col"]
+        dart_data._one_ratio_ref = commands["one_ratio_ref_col"]
+        dart_data._one_ratio_snp = commands["one_ratio_snp_col"]
+        dart_data._freq_homozygous_ref = commands["freq_homozygous_ref_col"]
+        dart_data._freq_homozygous_snp = commands["freq_homozygous_snp_col"]
+        dart_data._freq_heterozygous = commands["freq_heterozygous_col"]
+        dart_data._pic_ref = commands["pic_ref_col"]
+        dart_data._pic_snp = commands["pic_snp_col"]
+        dart_data._average_pic = commands["average_pic_col"]
+        dart_data._read_count_ref_column = commands["average_read_count_ref_col"]
+        dart_data._read_count_snp_column = commands["average_read_count_snp_col"]
+        dart_data._replication_average = commands["rep_col"]
+        dart_data._call = commands["call_col"]
+        dart_data._sample_column = commands["call_col"]
 
-    # Quality Control
-    dart_qc = DartControl(dart_data)
+        dart_data.homozygous_major = commands["homozygous_major"]
+        dart_data.homozygous_minor = commands["homozygous_minor"]
+        dart_data.heterozygous = commands["heterozygous"]
+        dart_data.missing = commands["missing"]
 
-    # Duplicate Clones
-    dart_qc.find_duplicate_clones()
-    dart_qc.select_best_clones(selector=commands["clone_selector"])
+        dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
 
-    # Sequence Clusters with CD-HIT
-    if commands["seq_identity"] > 0:
-        dart_qc.find_identity_clusters(identity=commands["seq_identity"])
-        dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
+        if commands["pop_file"]:
+            dart_data.read_pops(commands["pop_file"])
 
-    # Filters
-    dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
-    dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
-    dart_qc.filter_snps(data="filtered", selector="rep", threshold=commands["rep"], comparison="<=")
+        # Quality Control
+        dart_qc = DartControl(dart_data)
 
-    # Writer
-    dart_writer = DartWriter(dart_qc)
-    dart_writer.write_snps(mode='dart')
-    dart_writer.write_snps(mode=commands["output_format"])
-    dart_writer.write_log()
+        # Duplicate Clones
+        dart_qc.find_duplicate_clones()
+        dart_qc.select_best_clones(selector=commands["clone_selector"])
 
-    # Cleanup
-    dart_qc.cleanup(keep=commands["keep"])
+        # Sequence Clusters with CD-HIT
+        if commands["seq_identity"] > 0:
+            dart_qc.find_identity_clusters(identity=commands["seq_identity"])
+            dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
+
+        # Filters
+        print(commands['maf'])
+        print(type(commands['maf']))
+
+        dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
+        dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
+        dart_qc.filter_snps(data="filtered", selector="rep", threshold=commands["rep"], comparison="<=")
+
+        # Writer
+        dart_writer = DartWriter(dart_qc)
+        dart_writer.write_snps(mode='dart')
+        dart_writer.write_snps(mode=commands["output_format"])
+        dart_writer.write_log()
+
+        # Cleanup
+        dart_qc.cleanup(keep=commands["keep"])
+
+    else:
+
+        # Command Line Operation
+
+        command_line.error_check()
+
+        # Reader
+        dart_data = DartReader()
+
+        dart_data.project = commands["project"]
+
+        # Reader Data Rows + Columns
+        dart_data._data_row = commands["data_row"]
+        dart_data._sample_row = commands["sample_row"]
+        dart_data._id = commands["id_col"]
+        dart_data._clone = commands["clone_col"]
+        dart_data._seq = commands["seq_col"]
+        dart_data._replication_average = commands["rep_col"]
+        dart_data._call = commands["call_col"]
+        dart_data._sample_column = commands["call_col"]
+
+        # Reader SNP Encoding
+        dart_data.homozygous_major = commands["homozygous_major"]
+        dart_data.homozygous_minor = commands["homozygous_minor"]
+        dart_data.heterozygous = commands["heterozygous"]
+        dart_data.missing = commands["missing"]
+
+        # Read Data
+        dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
+
+        if commands["pop_file"]:
+            dart_data.read_pops(commands["pop_file"])
+
+        # Quality Control
+        dart_qc = DartControl(dart_data)
+
+        # Duplicate Clones
+        dart_qc.find_duplicate_clones()
+        dart_qc.select_best_clones(selector=commands["clone_selector"])
+
+        # Sequence Clusters with CD-HIT
+        if commands["seq_identity"] > 0:
+            dart_qc.find_identity_clusters(identity=commands["seq_identity"])
+            dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
+
+        # Filters
+        dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
+        dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
+        dart_qc.filter_snps(data="filtered", selector="rep", threshold=commands["rep"], comparison="<=")
+
+        # Writer
+        dart_writer = DartWriter(dart_qc)
+        dart_writer.write_snps(mode='dart')
+        dart_writer.write_snps(mode=commands["output_format"])
+        dart_writer.write_log()
+
+        # Cleanup
+        dart_qc.cleanup(keep=commands["keep"])
 
 class CommandLine:
 
@@ -84,10 +163,12 @@ class CommandLine:
         self.parser = argparse.ArgumentParser(description='DartQC Pipeline v.0.1', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args()
+        self.args = self.parser.parse_args(['-c', 'config_test.csv', '--project', 'KoalaCommandLine',
+                                            '-p', "populations_ID_Koala.csv", '--data-row', "9", '--sample-row', "8",
+                                            '--rep-col', "18", '--call-col', "19", '--maf', "0.05", '--call', "0.8",
+                                            '--identity-selector', 'call_rate', '--sequence-identity', '0.95',
+                                            '--major', '10'])
         self.arg_dict = vars(self.args)
-
-        self.error_check()
 
     def setParser(self):
 
@@ -99,6 +180,8 @@ class CommandLine:
 
         data_type.add_argument('-i', "--input", dest='data_file', default='', required=False, type=str,
                                 help="Name of input file for raw calls")
+        data_type.add_argument('-c', "--config", dest='config_file', default='', required=False, type=str,
+                                help="Name of configuration input file")
 
         ### Input Formats and Types ###
 
@@ -129,7 +212,7 @@ class CommandLine:
         self.parser.add_argument('--hetero', dest='heterozygous', default="11", required=False, type=tuple,
                                  help="Heterozygous call encoding")
         self.parser.add_argument('--missing', dest='missing', default="--", required=False, type=tuple,
-                                 help="Missing call encoding")
+                                 help="Homozygous minor encoding")
 
         ### Data Input ###
 
@@ -179,11 +262,15 @@ class CommandLine:
 
         if command["data_file"]:
             if not os.path.isfile(command["data_file"]):
-                raise FileNotFoundError
+                raise FileNotFoundError("Could not find file:", command["data_file"])
 
         if command["pop_file"]:
             if not os.path.isfile(command["pop_file"]):
-                raise FileNotFoundError
+                raise FileNotFoundError("Could not find file:", command["pop_file"])
+
+        if command["config_file"]:
+            if not os.path.isfile(command["config_file"]):
+                raise FileNotFoundError("Could not find file:", command["config_file"])
 
         if command["data_format"] not in ["double", "single"]:
             raise ValueError("Format must be either 'single' or 'double'.")
@@ -198,7 +285,7 @@ class CommandLine:
                       command["heterozygous"], command["missing"]]:
             for v in value:
                 if type(v) is not str:
-                    raise TypeError("Allele encodings must be strings, this is not the case in:", str(value), '.')
+                    raise TypeError("Allele encodings must be strings, this is not the case in:", value, '.')
 
         for value in [command["maf"], command["call"], command["rep"], command["seq_identity"]]:
             if value < 0 or value > 1:
@@ -282,7 +369,7 @@ class Tricoder:
                 try:
                     new_snp.append(self.encoding_scheme[c])
                 except KeyError:
-                    print("Could not find appropriate encoding scheme for:", c)
+                    raise KeyError
 
             decoded_data.append(new_snp)
 
@@ -385,10 +472,133 @@ class DartReader:
         self.heterozygous = ("1", "1")
         self.missing = ("-", "-")
 
+        # Configuration File
+
+        self.config_dict = {}
+
         # Parsing CD HIT
 
         self.identity_clusters = {}
         self.identity_snps = 0
+
+    def read_config(self, file):
+
+        """ Reads and processes the configuration file """
+
+        with open(file, 'r') as config_file:
+            reader = csv.reader(config_file)
+
+            for row in reader:
+                if not row[0].startswith("#"):
+                    self.config_dict[row[0]] = row[1]
+
+        self._process_config()
+
+    def _process_config(self):
+
+        """Process input from configuration file and perform small error check """
+
+        # Check if all necessary key are present:
+
+        required = ["project", "data_file", "data_format", "data_type", "pop_file", "output_format",
+                    "maf", "call", "rep", "seq_identity", "identity_selector", "clone_selector",
+                    "one_ratio_ref", "one_ratio_snp", "freq_homozygous_ref", "freq_homozygous_snp", "pic_ref",
+                    "pic_snp", "average_pic", "average_read_count_ref", "average_read_count_snp",
+                    "data_row", "sample_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
+                    "call_rate_dart_col", "one_ratio_ref_col", "one_ratio_snp_col", "freq_homozygous_ref_col",
+                    "freq_homozygous_snp_col", "freq_heterozygous_col", "pic_ref_col", "pic_snp_col",
+                    "average_pic_col", "average_read_count_ref_col", "average_read_count_snp_col", "rep_col",
+                    "call_col", "homozygous_major", "homozygous_minor", "heterozygous", "missing", "verbose", "keep"]
+
+        for key in required:
+            if key not in self.config_dict.keys():
+                raise KeyError("Not all parameters are present in configuration file, please"
+                               "see the Guthub repository for dartQC.")
+
+        processed_dict = {}
+
+        for key, value in self.config_dict.items():
+
+            # Float Values
+
+            if key in ["maf", "call", "rep", "seq_identity", "one_ratio_ref", "one_ratio_snp", "freq_homozygous_ref",
+                       "freq_homozygous_snp", "pic_ref", "pic_snp", "average_pic", "average_read_count_ref",
+                       "average_read_count_snp"]:
+
+                try:
+                    floaty_value = float(value)
+                    processed_dict[key] = floaty_value
+                except ValueError:
+                    print(value, "for", key, "cannot be converted to a float.")
+
+            # Int Values
+
+            elif key in ["data_row", "sample_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
+                         "call_rate_dart_col", "one_ratio_ref_col", "one_ratio_snp_col", "freq_homozygous_ref_col",
+                         "freq_homozygous_snp_col", "freq_heterozygous_col", "pic_ref_col", "pic_snp_col",
+                         "average_pic_col", "average_read_count_ref_col", "average_read_count_snp_col", "rep_col",
+                         "call_col"]:
+                try:
+                    intelligent_value = int(value)
+                    processed_dict[key] = intelligent_value
+                except ValueError:
+                    print(value, "for", key, "cannot be converted to an integer.")
+
+            # Tuples
+
+            elif key in ["homozygous_major", "homozygous_minor", "heterozygous", "missing"]:
+
+                processed_dict[key] = tuple(value)
+
+            # Convert to absent File
+
+            elif key in ["data_file", "pop_file"]:
+                if value == '-':
+                    value = ''
+                processed_dict[key] = value
+            else:
+                processed_dict[key] = value
+
+        # Error Checks
+
+        for key, value in processed_dict.items():
+
+            if key == "data_file" and value:
+                if not os.path.isfile(value):
+                    raise FileNotFoundError("Could not find file:", value)
+
+            if key == 'pop_file' and value:
+                if not os.path.isfile(value):
+                    raise FileNotFoundError("Could not find file:", value)
+
+            if key == "data_format" and value not in ["double", "single"]:
+                raise ValueError("Format must be either 'single' or 'double'.")
+
+            if key == "data_type" and value not in ["dart", "snp"]:
+                raise ValueError("Marker type must be either 'dart' or 'snp'.")
+
+            if key == "output_format" and value not in ["plink", "structure"]:
+                raise ValueError("Output format for population analysis must be either 'plink' or 'structure'.")
+
+            if key in ["homozygous_major", "homozygous_minor", "heterozygous", "missing"]:
+                if len(value) != 2:
+                    raise ValueError("Length of allele encodings 2, one for each allele (i.e. '10'), "
+                                     "not (in final tuple):", value)
+                for v in value:
+                    if type(v) is not str:
+                        raise TypeError("Allele encodings must be strings, this is not the case in:", str(value), '.')
+
+            # Add other parameters!
+
+            if key in ["maf", "call", "rep", "seq_identity"]:
+                if value < 0 or value > 1:
+                    raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
+
+            if key in ["clone_selector", "identity_selector"]:
+                if value not in ["maf", "rep", "call_rate"]:
+                    raise ValueError("Clone and identity selectors must be one of 'call_rate', 'maf' or 'rep'.")
+
+        self.config_dict = processed_dict
 
     def parse_cdhit(self, file):
 
@@ -1090,3 +1300,4 @@ class DartControl:
                 base = os.path.dirname(self._tmp_path)
                 new = os.path.join(base, self.project + "_TemporaryFiles" + time.strftime("%d-%b-%Y_%H:%M:%S"))
                 os.rename(self._tmp_path, new)
+
