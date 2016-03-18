@@ -1,7 +1,9 @@
 ##DartQC
 ### Quality Control Pipeline
 
-![](https://github.com/esteinig/dartQC/blob/master/dart_qc.png)
+<p align="center">
+ <img src="https://github.com/esteinig/dartQC/blob/master/dart_qc.png">
+</p>
 
 **Dependencies**
 
