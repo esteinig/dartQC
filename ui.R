@@ -1,5 +1,5 @@
 library(shiny)
-
+library(shinyFiles)
 library(shinydashboard)
 
 shinyUI(
@@ -39,9 +39,9 @@ shinyUI(
                                         br(),
                                         hr(),
                                         h2('Data'),
-                                        fileInput("data_file", NULL, multiple=F),
+                                        shinyFilesButton("data_file", label="DataFile", title="Data", multiple=FALSE),
                                         h2('Populations'),
-                                        fileInput("pop_file", NULL, multiple=F),
+                                        shinyFilesButton("pop_file", label="Population File", title="Populations", multiple=FALSE),
                                         hr(),
                                         br(),
                                         div(textInput("project", "Project", "Dart"),  style="text-align:center"),
@@ -74,10 +74,13 @@ shinyUI(
                                      h2('Rows'),
                                      numericInput('id_row', "Sample IDs", value = 7, min = 1),
                                      numericInput('data_row', "Start of Allele Data", value = 8, min = 1),
-                                     h2('Columns'),
+                                     h2('Primary Columns'),
                                      numericInput('id_col', "Allele IDs", value = 1, min = 1),
                                      numericInput('clone_col', "Clone IDs", value = 2, min = 1),
                                      numericInput('seq_col', 'Allele Sequences', value = 3, min = 1),
+                                     numericInput('rep_col', 'Average Replication',value = 17, min = 1),
+                                     numericInput('call_col', 'Start of Allele Calls', value = 18, min = 1),
+                                     h2("Secondary Columns"),
                                      numericInput('snp_col', 'SNP', value = 4, min = 1),
                                      numericInput('snp_pos_col', 'SNP Position', value = 5, min = 1),
                                      numericInput('call_rate_dart', 'Call Rate', value = 6, min = 1),
@@ -90,9 +93,7 @@ shinyUI(
                                      numericInput('pic_snp_col', 'PIC SNP', value = 13, min = 1),
                                      numericInput('average_pic_col', 'Average PIC', value = 14, min = 1),
                                      numericInput('average_read_count_ref_col', 'Average Read Count REF', value = 15, min = 1),
-                                     numericInput('average_read_count_snp_col', 'Average Read Count SNP', value = 16, min = 1),
-                                     numericInput('rep_col', 'Average Replication',value = 17, min = 1),
-                                     numericInput('call_col', 'Start of Allele Calls', value = 18, min = 1)
+                                     numericInput('average_read_count_snp_col', 'Average Read Count SNP', value = 16, min = 1)
                                  )
                           ),
                           
@@ -150,7 +151,11 @@ shinyUI(
                              numericInput("rep", "Replication Average (<=)", value=0.95, min=0, max=1),
                              br(),
                              hr(),
-                             br()
+                             br(),
+                             h3("System"),
+                             br(),
+                             textInput("python_path", "Path to Python 3", value="/home/esteinig/anaconda3/bin/python")
+                             
                              
                              
                          )

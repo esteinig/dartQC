@@ -4,17 +4,23 @@ library(shinydashboard)
 
 shinyServer(function(input, output, session) {
   
+  base.path = c('~')
+  names(base.path) = 'Home'
+  
+  shinyFileChoose(input, 'data_file', root=base.path, session=session)
+  shinyFileChoose(input, 'pop_file', root=base.path, session=session)
+  
   # Function to construct Configuration File
   
-  get.config <- function(){
+  get.config <- function(data.path, pop.path){
     
     config.list = list(
       
       "project" = input$project,
-      "data_file" = input$data_file$datapath,
+      "data_file" = data.path$datapath,
       "data_format" = input$data_format,
       "data_type" = input$data_type,
-      "pop_file" = input$pop_file$datapath,
+      "pop_file" = pop.path$datapath,
       "output_format" = input$output_format,
       "maf" = input$maf,
       "call" = input$call,
@@ -62,23 +68,25 @@ shinyServer(function(input, output, session) {
     print(names(config.list))
     print(unlist(config.list))
     
-    config.df <- data.frame(parameter=names(config.list), value=as.vector(unlist(config.list)))
-    
-    print(config.df)
-    
   }
   
   observeEvent(input$run_qc, {
+    
+    data.path = parseFilePaths(base.path, input$data_file)
+    pop.path = parseFilePaths(base.path, input$pop_file)
+    
+    print(data.path)
+    print(pop.path)
     
     withProgress({
       
       incProgress(1)
       
-      config.list <- get.config()
+      config.list <- get.config(data.path, pop.path)
       
       incProgress(1)
       
-      #out <- system2("python", "dartQC.py", stdout = TRUE, stderr = TRUE)
+      out <- system2(input$python_path, "dartQC.py", stdout = TRUE, stderr = TRUE)
       
       incProgress(1)
       
@@ -86,8 +94,8 @@ shinyServer(function(input, output, session) {
     
     output$log <- renderUI({
       
-      #text <- paste(out, collapse = "<br/>")
-      #HTML(text)
+      text <- paste(out, collapse = "<br/>")
+      HTML(text)
       
     })
     
