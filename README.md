@@ -7,9 +7,9 @@
 
 **Tutorials**
 
-*[Tutorial 1 - Command Line]()
-*[Tutorial 2 - Code DartQC in Python]()
-*[Tutorial 3 - Shiny UI for R]()
+* [Tutorial 1 - Command Line]()
+* [Tutorial 2 - Code DartQC in Python]()
+* [Tutorial 3 - Shiny UI for R]()
 
 **Dependencies**
 
