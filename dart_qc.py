@@ -36,6 +36,7 @@ def main():
         # Reader Data Rows + Columns
         dart_data._data_row = commands["data_row"]
         dart_data._sample_row = commands["sample_row"]
+        dart_data._pop_row = commands["pop_row"]
         dart_data._id = commands["id_col"]
         dart_data._clone = commands["clone_col"]
         dart_data._seq = commands["seq_col"]
@@ -50,8 +51,8 @@ def main():
         dart_data._pic_ref = commands["pic_ref_col"]
         dart_data._pic_snp = commands["pic_snp_col"]
         dart_data._average_pic = commands["average_pic_col"]
-        dart_data._read_count_ref_column = commands["average_read_count_ref_col"]
-        dart_data._read_count_snp_column = commands["average_read_count_snp_col"]
+        dart_data._read_count_ref = commands["average_read_count_ref_col"]
+        dart_data._read_count_snp = commands["average_read_count_snp_col"]
         dart_data._replication_average = commands["rep_col"]
         dart_data._call = commands["call_col"]
         dart_data._sample_column = commands["call_col"]
@@ -63,7 +64,8 @@ def main():
 
         dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
 
-        if commands["pop_file"]:
+        # Overwrites Pops from DartReader
+        if commands["pop_row"] > 0 and commands["pop_file"]:
             dart_data.read_pops(commands["pop_file"])
 
         # Quality Control
@@ -79,8 +81,6 @@ def main():
             dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
 
         # Filters
-        print(commands['maf'])
-        print(type(commands['maf']))
 
         dart_qc.filter_snps(data="total", selector="maf", threshold=commands["maf"], comparison="<=")
         dart_qc.filter_snps(data="filtered", selector="call_rate", threshold=commands["call"], comparison="<=")
@@ -91,6 +91,7 @@ def main():
         dart_writer.write_snps(mode='dart')
         dart_writer.write_snps(mode=commands["output_format"])
         dart_writer.write_log()
+        dart_writer.write_results()
 
         # Cleanup
         dart_qc.cleanup(keep=commands["keep"])
@@ -109,6 +110,7 @@ def main():
         # Reader Data Rows + Columns
         dart_data._data_row = commands["data_row"]
         dart_data._sample_row = commands["sample_row"]
+        dart_data._pop_row = commands["pop_row"]
         dart_data._id = commands["id_col"]
         dart_data._clone = commands["clone_col"]
         dart_data._seq = commands["seq_col"]
@@ -125,7 +127,8 @@ def main():
         # Read Data
         dart_data.read_data(commands["data_file"], commands["data_format"], commands["data_type"])
 
-        if commands["pop_file"]:
+        # Overwrites Pops from DartReader
+        if commands["pop_row"] > 0 and commands["pop_file"]:
             dart_data.read_pops(commands["pop_file"])
 
         # Quality Control
@@ -163,11 +166,7 @@ class CommandLine:
         self.parser = argparse.ArgumentParser(description='DartQC Pipeline v.0.1', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args(['-c', 'config_test.csv', '--project', 'KoalaCommandLine',
-                                            '-p', "populations_ID_Koala.csv", '--data-row', "9", '--sample-row', "8",
-                                            '--rep-col', "18", '--call-col', "19", '--maf', "0.05", '--call', "0.8",
-                                            '--identity-selector', 'call_rate', '--sequence-identity', '0.95',
-                                            '--major', '10'])
+        self.args = self.parser.parse_args()
         self.arg_dict = vars(self.args)
 
     def setParser(self):
@@ -179,80 +178,82 @@ class CommandLine:
         ### Required Options Input ###
 
         data_type.add_argument('-i', "--input", dest='data_file', default='', required=False, type=str,
-                                help="Name of input file for raw calls")
+                                help="Name of input file for raw calls ['']")
         data_type.add_argument('-c', "--config", dest='config_file', default='', required=False, type=str,
-                                help="Name of configuration input file")
+                                help="Name of configuration input file ['']")
 
         ### Input Formats and Types ###
 
         self.parser.add_argument('-f', "--format", dest='data_format', default="double", required=False, type=str,
-                                help="Format of alleles (currently only double-row)")
+                                help="Format of alleles (currently only double-row) [double]")
         self.parser.add_argument('-t', "--type", dest='data_type', default="snp", required=False, type=str,
-                                help="Marker type (currently only snp)")
+                                help="Marker type (currently only snp) [snp]")
 
         ### Output ###
 
         self.parser.add_argument('-o', '--out', dest='output_format', default='plink', required=False, type=str,
-                                 help="Output format for population analysis files (plink, structure)")
+                                 help="Output format for population analysis files (plink, structure) [plink]")
 
         self.parser.add_argument('-k', '--keep', dest='keep', action='store_true', default=False,
-                                 help="Keep computation output (currently only CD-HIT)")
+                                 help="Keep computation output (currently only CD-HIT) [False]")
 
         ### Population Designations for Output ###
 
         self.parser.add_argument('-p', '--pop', dest='pop_file', default='', required=False, type=str,
-                                 help="Name of file containing IDs and Populations")
+                                 help="Name of file containing IDs and Populations ['']")
 
         ### Encoding Schemes ###
 
         self.parser.add_argument('--major', dest='homozygous_major', default="10", required=False, type=tuple,
-                                 help="Homozygous major call encoding")
+                                 help="Homozygous major call encoding [10]")
         self.parser.add_argument('--minor', dest='homozygous_minor', default="01", required=False, type=tuple,
-                                 help="Homozygous minor call encoding")
+                                 help="Homozygous minor call encoding [01]")
         self.parser.add_argument('--hetero', dest='heterozygous', default="11", required=False, type=tuple,
-                                 help="Heterozygous call encoding")
+                                 help="Heterozygous call encoding [11]")
         self.parser.add_argument('--missing', dest='missing', default="--", required=False, type=tuple,
-                                 help="Homozygous minor encoding")
+                                 help="Homozygous minor encoding [--]")
 
         ### Data Input ###
 
         self.parser.add_argument('--data-row', dest='data_row', default=7, required=False, type=int,
-                                 help="Row: start of data")
+                                 help="Row: start of data [7]")
         self.parser.add_argument('--sample-row', dest='sample_row', default=6, required=False, type=int,
-                                 help="Row: sample names")
+                                 help="Row: sample names [6]")
+        self.parser.add_argument('--pop-row', dest='pop_row', default=0, required=False, type=int,
+                                 help="Row: sample populations [0]")
         self.parser.add_argument('--id-col', dest='id_col', default=1, required=False, type=int,
-                                 help="Column: allele IDs")
+                                 help="Column: allele IDs [1]")
         self.parser.add_argument('--clone-col', dest='clone_col', default=2, required=False, type=int,
-                                 help="Column: clone IDs")
+                                 help="Column: clone IDs [2]")
         self.parser.add_argument('--seq-col', dest='seq_col', default=3, required=False, type=int,
-                                 help="Column: allele sequences")
+                                 help="Column: allele sequences [3]")
         self.parser.add_argument('--rep-col', dest='rep_col', default=17, required=False, type=int,
-                                 help="Column: average replication statistics")
+                                 help="Column: average replication statistics [17]")
         self.parser.add_argument('--call-col', dest='call_col', default=18, required=False, type=int,
-                                 help="Column: start of allele calls and sample names")
-
+                                 help="Column: start of allele calls and sample names [18]")
         ### Filter ###
 
         self.parser.add_argument('--maf', dest='maf', default=0.02, required=False, type=float,
-                                 help="Filter markers by minor allele frequency (<=)")
+                                 help="Filter markers by minor allele frequency (<=) [0.02]")
         self.parser.add_argument('--call', dest='call', default=0.70, required=False, type=float,
-                                 help="Filter markers by minor allele frequency (<=)")
+                                 help="Filter markers by minor allele frequency (<=) [0.70]")
         self.parser.add_argument('--rep', dest='rep', default=0.95, required=False, type=float,
-                                 help="Filter markers by average replication (<=)")
+                                 help="Filter markers by average replication (<=) [0.95]")
 
         self.parser.add_argument('--sequence-identity', dest='seq_identity', default=0.95, required=False, type=float,
-                                 help="Filter reference allele sequences by identity threshold (>=) using CDHIT-EST")
+                                 help="Filter reference allele sequences by identity threshold (>=)"
+                                      " using CDHIT-EST [0.95]")
         self.parser.add_argument('--clone-selector', dest='clone_selector', default="maf", required=False, type=str,
-                                 help="Select best duplicate clones by filter (call_rate, maf, rep)")
+                                 help="Select best duplicate clones by filter (call_rate, maf, rep) [maf]")
         self.parser.add_argument('--identity-selector', dest='identity_selector', default="maf", required=False, type=str,
-                                 help="Select best clustered sequences by filter (call_rate, maf, rep)")
+                                 help="Select best clustered sequences by filter (call_rate, maf, rep) [maf]")
 
         ### Other ###
 
         self.parser.add_argument('-v', "--verbose", dest='verbose', action='store_false', default=True,
-                                help="Verbose output of computation and result summaries")
+                                help="Verbose output of computation and result summaries [True]")
         self.parser.add_argument('--project', dest='project', default="DartData", required=False, type=str,
-                                 help="Name of quality control project for file output")
+                                 help="Name of quality control project for file output [DartData]")
 
     def error_check(self):
 
@@ -432,6 +433,7 @@ class DartReader:
 
         self._data_row = 7              # Start of Sequences / Data
         self._sample_row = 5            # Sample Identification
+        self._pop_row = 0               # Sample Populations
 
         # Column numbers (non-pythonic) in Excel Spreadsheet
 
@@ -449,8 +451,8 @@ class DartReader:
         self._pic_ref = 12
         self._pic_snp = 13
         self._average_pic = 14
-        self._read_count_ref_column = 15
-        self._read_count_snp_column = 16
+        self._read_count_ref = 15
+        self._read_count_snp = 16
         self._replication_average = 17
         self._call = 18
         self._sample_column = 18
@@ -481,6 +483,45 @@ class DartReader:
         self.identity_clusters = {}
         self.identity_snps = 0
 
+    def set_options(self, project="DartQC", verbose=True, homozygous_major=("1", "0"), homozygous_minor=("0", "1"),
+                    heterozygous=("1", "1"), missing=("-", "-"), pop_row=0, sample_row=5, data_start_row=7,
+                    id_col=1, clone_col=2, seq_col=3, snp_col=4, snp_position_col=5, call_rate_col=6,
+                    one_ratio_ref_col=7, one_ratio_snp_col=8, freq_homozygous_ref_col=9, freq_homozygous_snp_col=10,
+                    freq_heterozygous_col=11, pic_ref_col=12, pic_snp_col=13, pic_average=14, read_count_ref_col=15,
+                    read_count_snp_col=16, rep_average_col=17, call_start_col=18, sample_start_col=18):
+
+        self.project = project
+        self.verbose = verbose
+
+        self._data_row = data_start_row
+        self._sample_row = sample_row
+        self._pop_row = pop_row
+
+        self.homozygous_major = homozygous_major
+        self.homozygous_minor = homozygous_minor
+        self.heterozygous = heterozygous
+        self.missing = missing
+
+        self._id = id_col
+        self._clone = clone_col
+        self._seq = seq_col
+        self._snp = snp_col
+        self._snp_position = snp_position_col
+        self._call_rate_dart = call_rate_col
+        self._one_ratio_ref = one_ratio_ref_col
+        self._one_ratio_snp = one_ratio_snp_col
+        self._freq_homozygous_ref = freq_homozygous_ref_col
+        self._freq_homozygous_snp = freq_homozygous_snp_col
+        self._freq_heterozygous = freq_heterozygous_col
+        self._pic_ref = pic_ref_col
+        self._pic_snp = pic_snp_col
+        self._average_pic = pic_average
+        self._read_count_ref = read_count_ref_col
+        self._read_count_snp = read_count_snp_col
+        self._replication_average = rep_average_col
+        self._call = call_start_col
+        self._sample_column = sample_start_col
+
     def read_config(self, file):
 
         """ Reads and processes the configuration file """
@@ -498,13 +539,13 @@ class DartReader:
 
         """Process input from configuration file and perform small error check """
 
-        # Check if all necessary key are present:
+        # Check if all necessary keys are present:
 
         required = ["project", "data_file", "data_format", "data_type", "pop_file", "output_format",
                     "maf", "call", "rep", "seq_identity", "identity_selector", "clone_selector",
                     "one_ratio_ref", "one_ratio_snp", "freq_homozygous_ref", "freq_homozygous_snp", "pic_ref",
                     "pic_snp", "average_pic", "average_read_count_ref", "average_read_count_snp",
-                    "data_row", "sample_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
+                    "data_row", "sample_row", "pop_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
                     "call_rate_dart_col", "one_ratio_ref_col", "one_ratio_snp_col", "freq_homozygous_ref_col",
                     "freq_homozygous_snp_col", "freq_heterozygous_col", "pic_ref_col", "pic_snp_col",
                     "average_pic_col", "average_read_count_ref_col", "average_read_count_snp_col", "rep_col",
@@ -533,7 +574,7 @@ class DartReader:
 
             # Int Values
 
-            elif key in ["data_row", "sample_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
+            elif key in ["data_row", "sample_row", "pop_row", "id_col", "clone_col", "seq_col", "snp_col", "snp_pos_col",
                          "call_rate_dart_col", "one_ratio_ref_col", "one_ratio_snp_col", "freq_homozygous_ref_col",
                          "freq_homozygous_snp_col", "freq_heterozygous_col", "pic_ref_col", "pic_snp_col",
                          "average_pic_col", "average_read_count_ref_col", "average_read_count_snp_col", "rep_col",
@@ -698,6 +739,8 @@ class DartReader:
             allele_id = None
             allele_index = 1
 
+            pops = []
+
             for row in reader:
 
                 if row_index <= self._data_row-2:  # Don't include description header
@@ -707,7 +750,10 @@ class DartReader:
                     self.sample_names = row[self._sample_column-1:]
                     self.sample_number = len(self.sample_names)
 
-                # Data Rows, read from specified row and only if it contains data in fields
+                if row_index == self._pop_row:
+                    pops = row[self._sample_column-1:]
+
+                # Data Rows, read from specified row and only if it contains data in at least one field (remove empties)
                 if row_index >= self._data_row and any(row):
 
                     # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
@@ -733,8 +779,8 @@ class DartReader:
                                  "pic_ref": row[self._pic_ref-1],
                                  "pic_snp": row[self._pic_snp-1],
                                  "average_pic": row[self._average_pic-1],
-                                 "average_read_count_ref": float(row[self._read_count_ref_column-1]),
-                                 "average_read_count_snp": float(row[self._read_count_snp_column-1]),
+                                 "average_read_count_ref": float(row[self._read_count_ref-1]),
+                                 "average_read_count_snp": float(row[self._read_count_snp-1]),
                                  "rep": float(row[self._replication_average-1]),
                                  "calls": [row[self._call-1:]]}  # Add allele 1
 
@@ -763,6 +809,12 @@ class DartReader:
                         allele_index = 1
 
                 row_index += 1
+
+        # Check if reader picked up populations, if not generate generic names:
+        if not pops:
+            pops = ["Pop" for i in range(self.sample_number)]
+
+        self.meta = dict(zip(self.sample_names, pops))
 
 class DartWriter:
 
@@ -798,6 +850,38 @@ class DartWriter:
             for line in self.log:
                 logfile.write(line)
 
+    def write_results(self):
+
+        """ Write result file for Shiny Application in R """
+
+        result_file = "user_results.csv"
+
+        results = [["Category", "Results"],
+                   ["identity", self.qc.cluster_snps - len(self.qc.cluster_duplicate)],
+                   ["identity.clusters", len(self.qc.cluster_duplicate)],
+                   ["total", self.raw.snp_number],
+                   ["retained", len(self.qc.snps_filtered)],
+                   ["clones", len(self.qc.snps_duplicate)]]
+
+        try:
+            results.append(["maf", self.qc.filter_log["maf"]])
+        except KeyError:
+            results.append(["maf", 0])
+
+        try:
+            results.append(["call", self.qc.filter_log["call_rate"]])
+        except KeyError:
+            results.append(["call", 0])
+
+        try:
+            results.append(["rep", self.qc.filter_log["rep"]])
+        except KeyError:
+            results.append(["rep", 0])
+
+        with open(result_file, "w") as outfile:
+            writer = csv.writer(outfile)
+            writer.writerows(results)
+
     def write_fasta(self, filtered=False):
 
         file_name = os.path.join(self.qc._tmp_path, self.qc.project + "_Seqs")
@@ -819,7 +903,7 @@ class DartWriter:
     def write_snps(self, path=os.getcwd(), mode="dart", filtered=True, sep=','):
 
         """
-        Write the filtered SNPs in various formats:
+        Write the filtered SNPs in the following formats:
 
         1. Raw
         2. PLINK
@@ -837,7 +921,7 @@ class DartWriter:
             out_data = self.qc.snps_total
 
         writer_msg = textwrap.dedent("""
-        TRANFORMING AND WRITING DATA TO FILE
+        WRITING DATA TO FILE
         ----------------------------------------------------------
 
         File:        {0}
@@ -863,7 +947,7 @@ class DartWriter:
             out_file += '.csv'
 
             head = [["AlleleID", "CloneID", "AlleleSequence", "SNP", "SnpPosition", "CallRate", "OneRatioRef", "OneRatioSnp",
-                     "FreqHomRef", "FreqHomSnp", "FreqHets",	"PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp",
+                     "FreqHomRef", "FreqHomSnp", "FreqHets", "PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp",
                      "RepAvg"] + self.raw.sample_names]
 
             out_head = self.raw.header + head
@@ -925,7 +1009,7 @@ class DartWriter:
                 try:
                     pops = [self.raw.meta[name] for name in names]
                 except KeyError:
-                    raise(KeyError("Sample names from data file do not correspond to sample names from meta data file."))
+                    raise(KeyError("Sample names from input could not be found for mapping Populations."))
             else:
                 # Placeholder
                 pops = ["PopEye" for name in names]
@@ -1042,8 +1126,11 @@ class DartControl:
         self.log.append(initialize_msg)
 
         self.verbose = dart.verbose
+
         if self.verbose:
             print(initialize_msg)
+
+        self.filter_log = {}
 
     def find_duplicate_clones(self):
 
@@ -1076,7 +1163,7 @@ class DartControl:
         Number of duplicated clone IDs:    {0}
         Number of duplicated SNPs:         {1}
         Number of unique SNPs:             {2}
-        """ .format(len(self.clones_duplicate), len(self.snps_duplicate),len(self.snps_unique)))
+        """ .format(len(self.clones_duplicate), len(self.snps_duplicate), len(self.snps_unique)))
 
         if self.verbose:
             print(clone_msg)
@@ -1092,7 +1179,7 @@ class DartControl:
 
         """
 
-        os.makedirs(self._tmp_path, exist_ok=True)
+        os.makedirs(self._tmp_path)
 
         dart_writer = DartWriter(self)
         dart_writer.write_fasta()
@@ -1286,6 +1373,7 @@ class DartControl:
                     before - after, before, after))
 
         self.log.append(filter_msg)
+        self.filter_log[selector] = before - after
 
         if self.verbose:
             print(filter_msg)
@@ -1298,6 +1386,5 @@ class DartControl:
         else:
             if os.path.exists(self._tmp_path):
                 base = os.path.dirname(self._tmp_path)
-                new = os.path.join(base, self.project + "_TemporaryFiles" + time.strftime("%d-%b-%Y_%H:%M:%S"))
+                new = os.path.join(base, self.project + "_TemporaryFiles_" + time.strftime("%d-%b-%Y_%H:%M:%S"))
                 os.rename(self._tmp_path, new)
-
