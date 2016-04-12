@@ -1388,3 +1388,5 @@ class DartControl:
                 base = os.path.dirname(self._tmp_path)
                 new = os.path.join(base, self.project + "_TemporaryFiles_" + time.strftime("%d-%b-%Y_%H:%M:%S"))
                 os.rename(self._tmp_path, new)
+
+main()
