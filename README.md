@@ -87,8 +87,9 @@ def exampleQC():
     
     dart_data = DartReader()
     dart_data.project = "Koala"
-    dart_data.set_options(project="Koala", data_start_row=9, sample_row=8, read_count_ref_col=15, read_count_snp_col=16,
-                          rep_average_col=18, sample_start_col=19, call_start_col=19)
+    dart_data.set_options(project="Koala", data_start_row=9, sample_row=8,
+                          read_count_ref_col=15, read_count_snp_col=16, rep_average_col=18,
+                          sample_start_col=19, call_start_col=19)
     
     dart_data.read_data("koalaInput.csv")
     dart_data.read_pops("koalaPopulations.csv")
