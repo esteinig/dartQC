@@ -5,18 +5,30 @@
  <img src="https://github.com/esteinig/dartQC/blob/master/dart_qc.png">
 </p>
 
+**Tutorials**
+
+* [Tutorial 1 - Command Line]()
+* [Tutorial 2 - Code DartQC in Python]()
+* [Tutorial 3 - Shiny UI for R]()
+
 **Dependencies**
 
-Install in Ubuntu: 
-
-`sudo apt-get install python-numpy python-biopython cd-hit`
-
-If you are using this pipeline you are likely doing a bit of Bioinformatics. If you are also using Windows, consider switching to Linux or install a Virtual Machine. This program is not compatible with Windows.
-
+* Python >= v.3.4
 * Numpy
 * BioPython
 * CDHIT-EST
-* Python >= v.3.4
+
+I highly recommend the [Anaconda](https://www.continuum.io/downloads) installer for a clean and accessible manager for Python. 
+
+If you are using this pipeline you are likely doing a bit of Bioinformatics. If you are using Windows, consider switching to Linux or install a Virtual Machine.
+
+Install in Anaconda:
+
+`conda install biopython`
+
+Install in Ubuntu: 
+
+`sudo apt-get install cd-hit`
 
 **Command Line Usage**
 
@@ -27,14 +39,15 @@ Parameters:
 ```
 Required:
 
--i, --input           Input file with raw calls (.csv) ['']
+-i, --input           Comma-delimited input file with raw calls (.csv) ['']
 
 Defaults:
 
--f, --format          Row format, currently only double-row ['double']
+-f, --format          Row format, currently only double-row format ['double']
 -t, --type            Marker type, currently only SNPs ['snp']
 -o, --out             Output file type, one of: 'plink' or 'structure' ['plink']
--p, --pop             File specifying ID and Population (two columns with header, comma-delimited) ['']
+-p, --pop             File specifying ID and Population (two columns with header, comma-delimited), 
+                      see below for specification of populations in input file ['']
 
 --maf                 Filter markers by minor allele frequency <= [0.02]
 --call                Filter markers by call rate <= [0.70]
@@ -51,6 +64,7 @@ Defaults:
 
 --data-row            Row number - start of allele calls [7]
 --sample-row          Row number - sample names [6]
+--pop-row             Row number - population names, zero for generic 'Pop' [0]
 
 --id-col              Column number - Allele IDs [1]
 --clone-col           Column number - Clone IDs [2]
@@ -68,20 +82,15 @@ Defaults:
 ```p
 
 # Example QC
-# For all options and data dictionary keys, see annotations in the classes for DartQC
 
 def exampleQC():
     
     dart_data = DartReader()
     dart_data.project = "Koala"
-    dart_data._data_row = 9
-    dart_data._sample_row = 8
-    dart_data._read_count_ref_column = 15
-    dart_data._read_count_snp_column = 16
-    dart_data._replication_count = 18
-    dart_data._sample_column = 19
-    dart_data._call = 19
-
+    dart_data.set_options(project="Koala", data_start_row=9, sample_row=8,
+                          read_count_ref_col=15, read_count_snp_col=16, rep_average_col=18,
+                          sample_start_col=19, call_start_col=19)
+    
     dart_data.read_data("koalaInput.csv")
     dart_data.read_pops("koalaPopulations.csv")
 
@@ -94,7 +103,6 @@ def exampleQC():
 
     dart_qc.filter_snps(data="total", selector="call_rate", threshold=0.70, comparison="<=")
     dart_qc.filter_snps(data="filtered", selector="maf", threshold=0.02, comparison="<=")
-    
     dart_qc.filter_snps(data="filtered", selector="average_read_count_ref", threshold=50, comparison="<=")
     
     dart_writer = DartWriter(dart_qc)
