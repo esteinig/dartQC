@@ -5,7 +5,9 @@
 
 This more extensive workshop tutorial is meant to walk you through some of the steps of setting up an analysis environment and running *DartQC*. Mainly, this will involve setting up a Virtual Machine running Linux (Ubuntu), installation of dependencies and the (inevitable) pitfalls of running the program. Please do not attempt to install *DartQC* under Windows, unless you are rather experienced. It is much easier, faster and more worthwhile in the long run to set up a VM.
 
+---
 ####1. Virtual Machine running Ubuntu
+---
 
 Alright let's get started! Since you are likely using Windows as a primary OS, we need to install a virtual computer that runs a Linux OS. Ubuntu is one of many flavours of Linux, but has very goofd support, functionality and is closest to what you are used to under Windows.
 
@@ -25,7 +27,9 @@ Now, just a couple of things to look out for when you set it up for the first ti
 
 Good job, now that you have the machine running, fire it up and log into your account, we will get to the good stuff now! 
 
+---
 ####2. Installing DartQC and Dependencies
+---
 
 #####DartQC
 
@@ -62,7 +66,9 @@ The last thing we need is the sequence clustering package [CD-HIT](http://bioinf
 
 `sudo apt-get install cd-hit`
 
+---
 #####Dependency Checks and Troubleshoots
+---
 
 It's good practice to check if everything is in order, let's first have a look if we are using the right Python installation in the OS:
 
@@ -77,11 +83,11 @@ cd ~
 gedit .bashrc
 ```
 
-At the end of the file, we now add the path to Anaconda's Python to the beginning and attach the original `$PATH` to the end - you can add additional paths by seperating them with a semicolon:
+At the end of the file, we now add the path (replace `esteinig` with your user name, you can get the current directory path with `pwd`) to Anaconda's Python to the beginning and attach the original `$PATH` to the end:
 
 `export PATH="/home/esteinig/Anaconda3/bin:$PATH"`
 
-Save and exit the file, don't forget to reload the file:
+You can add additional paths by seperating them with a semicolon. Save and exit the file, don't forget to reload the file or re-open the Terminal:
 
 `source .bashrc`
 
@@ -99,9 +105,35 @@ If no errors are returned, you are good to go after one last check for CDHIT-EST
 
 `cdhit-est`
 
-####Running DartQC
+**Extra: Add DartQC to `$PATH`**
 
+Now that you know how it works, you can also add the script itself to your $PATH, simply:
 
+```
+cd ~
+gedit .bashrc
+```
+
+Add with your path with your username to the document:
+
+```
+export PATH="$PATH:/home/esteinig/dartQC"
+```
+
+Load the document or re-open the Terminal, then make the script executable:
+
+```
+source .bashrc
+chmod 755 /home/esteinig/dartQC/dart_qc.py 
+```
+
+Now you can call the script from any directory in your Terminal!
+
+---
+####3. Running DartQC
+---
+
+Alright
 
 
 
