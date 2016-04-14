@@ -105,16 +105,18 @@ If no errors are returned, you are good to go after one last check for CDHIT-EST
 
 `cdhit-est`
 
-**Extra: Add DartQC to `$PATH`**
+---
+#####Adding DartQC to `$PATH`
+---
 
-Now that you know how it works, you can also add the script itself to your $PATH, simply:
+Now that you know how it works, you can also add the script itself to your `$PATH`, simply:
 
 ```
 cd ~
 gedit .bashrc
 ```
 
-Add with your path with your username to the document:
+Add with your username replaced to the document:
 
 ```
 export PATH="$PATH:/home/esteinig/dartQC"
@@ -127,13 +129,103 @@ source .bashrc
 chmod 755 /home/esteinig/dartQC/dart_qc.py 
 ```
 
-Now you can call the script from any directory in your Terminal!
+Now you can call the script from any directory in your Terminal:
+
+`dart_qc.py --help`
+
+Woop, woop.
 
 ---
-####3. Running DartQC
+####3. Running DartQC from the Command Line
 ---
 
-Alright
+Alright, let's get started - the first thing is to convert your Excel sheet to a comma-delimited file (`.csv`). At the moment, the input is limited to the double-row format and SNPs.
+
+Get an overview of the options on the main page of this repository or type:
+
+`python dart_qc.py --help`
+
+#####Usage and Pitfalls
+
+The main thing to look out for is how your data file is structured - since we wil likely see changes in the files or people want to use previous versions, the important parameters for calculations can be specified by the user, with defaults indicated in square brackets. The counting is non-pythonic, i.e. first line in the data file is line 1. **Make sure you have the correct column and row designations, error checks are not possible for variable format input!** If you do run into errors, check the error messages first, most of the time they should indicate what is wrong and usually it is related to the input format or specifications of options.
+
+```
+--data-row            Row number - start of allele calls [7]
+--sample-row          Row number - sample names [6]
+--pop-row             Row number - population names, zero for generic 'Pop' [0]
+
+--id-col              Column number - Allele IDs [1]
+--clone-col           Column number - Clone IDs [2]
+--seq-col             Column number - Sequences [3]
+--rep-col             Column number - Average Replication Statistic [17]
+--call-col            Column number - Start of sample names and allele calls [18]
+```
+
+AlleleIDs must be unique, and sometimes are already given by the clone ID including the SNP, such as:
+
+`15900384|F|0--14:T>G`
+
+The clone IDs can (and should be) non-unique, in this case simply:
+
+`15900384`
+
+Currently, the double row format has a weird encoding of the alleles, where:
+
+```
+1 0   =   Homozygous Major
+1 1   =   Heterozygous
+0 1   =   Homozygous Minor
+```
+
+You can change these depending on your file format version with:
+
+```
+--major               Homozygous major encoding, bi-allelic string ["10"]
+--minor               Homozygous minor encoding, bi-allelic string ["01"]
+--hetero              Heterozygous encoding, bi-allelic string ["11"]
+--missing             Missing encoding, bi-allelic string ["--"]
+```
+
+If you have populations encoded in the file, you can give the row number to extract, otherwise generic name `Pop` is assigned to the ouput files - you can also specify a separate population file, which contains two columns with headers: `ID` and `Population`, where your `ID` must match the ones present in the data file.
+
+Removing duplicate clones or identical sequences with CDHIT will retain one sequence for each duplicate or cluster, according to the best statistic, you can change these with:
+
+```
+--identity-selector   Statistic for sequence identity picks: 'call_rate', 'maf' or 'rep' ['maf']
+--clone-selector      Statistic for duplicate clone picks: 'call_rate', 'maf' or 'rep' ['maf']
+```
+
+The filters run in the order of minor allele frequency, call rate and replication average - if you want to deactivate a filter, you need to set it to -1.
+
+--maf                 Filter markers by minor allele frequency <= [0.02]
+--call                Filter markers by call rate <= [0.70]
+--rep                 Filter markers by average replication statistic <= [0.95]
+
+
+Let's look at some examples:
+
+#####Examples for DartQC
+
+```
+# Default:
+
+dart_qc.py -i monodon.csv --project Monodon
+
+# Set different filters, deactivate Average Replication Filter:
+
+dart_qc.py -i monodon.csv --project Monodon --maf 0.5 --call 0.2 --rep -1
+
+# Set different selectors for duplicate picks:
+
+dart_qc.py -i monodon.csv --project Monodon --maf 0.5 --call 0.2 --rep -1 --clone-selector call_rate --identity-selector maf
+
+# Input file with different format:
+
+dart_qc.py -i koala.csv --project Koala --data-row 5 --sample-row 4 --pop-row 3 --id-col 2 --clone-col 1
+```
+
+Well done, this should cover the basics - you will usually notice in your output files if something has gone majorly wrong, it is always good to check the output for any program and see if it makes sense!
+
 
 
 
