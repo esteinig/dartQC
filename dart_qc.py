@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 __author__ = 'esteinig'
 
 import os
@@ -166,7 +168,7 @@ class CommandLine:
         self.parser = argparse.ArgumentParser(description='DartQC Pipeline v.0.1', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args()
+        self.args = self.parser.parse_args(['-c', 'config_test.csv'])
         self.arg_dict = vars(self.args)
 
     def setParser(self):
@@ -289,8 +291,9 @@ class CommandLine:
                     raise TypeError("Allele encodings must be strings, this is not the case in:", value, '.')
 
         for value in [command["maf"], command["call"], command["rep"], command["seq_identity"]]:
-            if value < 0 or value > 1:
-                raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
+            if value != -1:
+                if value < 1 or value > 1:
+                    raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
 
         for value in [command["clone_selector"], command["identity_selector"]]:
             if value not in ["maf", "rep", "call_rate"]:
@@ -1373,7 +1376,7 @@ class DartControl:
                     before - after, before, after))
 
         self.log.append(filter_msg)
-        self.filter_log[selector] = before - after
+        self.filter_log[selector] = before
 
         if self.verbose:
             print(filter_msg)
