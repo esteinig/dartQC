@@ -62,12 +62,46 @@ The last thing we need is the sequence clustering package [CD-HIT](http://bioinf
 
 `sudo apt-get install cd-hit`
 
-#####Dependency Checks
+#####Dependency Checks and Troubleshoots
 
 It's good practice to check if everything is in order, let's first have a look if we are using the right Python installation in the OS:
 
 `python --version`
 
-This will likely return the pre-installed Python 2.7 - if we want to run the correct version, we need to either add it to 
+If Anaconda has not added the new version automatically, this will likely return the pre-installed Python 2.7. If we want to run the correct version, we need to either use the complete path to the program or add it to the system variable `$PATH`. The latter tells your command line where to look for things when you execute them from the Terminal.
+
+We first need to go to the home directory and open a file called `.bashrc` with a text editor - this file essentially loads settings for the command line, so that whenever you open it up, you will have your specified `$PATH`:
+
+```
+cd ~
+gedit .bashrc
+```
+
+At the end of the file, we now add the path to Anaconda's Python to the beginning and attach the original `$PATH` to the end - you can add additional paths by seperating them with a semicolon:
+
+`export PATH="/home/esteinig/Anaconda3/bin:$PATH"`
+
+Save and exit the file, don't forget to reload the file:
+
+`source .bashrc`
+
+Now check the path and version and run Python 3. Within Python, try importing Bio (BioPython):
+
+```
+which python
+python --version
+python
+import Bio
+quit()
+```
+
+If no errors are returned, you are good to go after one last check for CDHIT-EST:
+
+`cdhit-est`
+
+####Running DartQC
+
+
+
 
 
