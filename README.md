@@ -5,6 +5,10 @@
  <img src="https://github.com/esteinig/dartQC/blob/master/dart_qc.png">
 </p>
 
+**Workshop @ JCU**
+
+* [Workshop Tutorial](https://github.com/esteinig/dartQC/blob/master/workshop.md)
+
 **Tutorials**
 
 * [Tutorial 1 - Command Line]()
