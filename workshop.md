@@ -3,7 +3,7 @@
 
 ####Tutorial
 
-This more extensive workshop tutorial is meant to walk you through some of the steps of setting up an analysis environment and running *DartQC*. Mainly, this will involve setting up a Virtual Machine running Linux (Ubuntu), installation of dependencies and the (inevitable) pitfalls of running the program. Please do not attempt to install *DartQC* under Windows, unless you are rather experienced. It is much easier, faster and more worthwhile in the long run to set up a VM.
+This workshop tutorial is meant to walk you through some of the steps of setting up an analysis environment and running *DartQC*. Mainly, this will involve setting up a Virtual Machine running Linux (Ubuntu), installation of dependencies and the (inevitable) pitfalls of running the program. Please do not attempt to install *DartQC* under Windows, unless you are rather experienced. It is much easier, faster and more worthwhile in the long run to set up a VM.
 
 ---
 ####1. Virtual Machine running Ubuntu
@@ -134,6 +134,8 @@ Now you can call the script from any directory in your Terminal:
 `dart_qc.py --help`
 
 Woop, woop.
+
+*If you update your local repository with `pull`, you need to make the script executable again!*
 
 ---
 ####3. Running DartQC from the Command Line
