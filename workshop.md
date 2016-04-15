@@ -190,7 +190,7 @@ You can change these depending on your file format version with:
 
 If you have populations encoded in the file, you can give the row number to extract, otherwise generic name `Pop` is assigned to the ouput files - you can also specify a separate population file, which contains two columns with headers: `ID` and `Population`, where your `ID` must match the ones present in the data file.
 
-Removing duplicate clones or identical sequences with CDHIT will retain one sequence for each duplicate or cluster, according to the best statistic, you can change these with:
+CD-HIT will remove duplicate clones or identical sequences and retain one sequence for each duplicate or cluster, according to the best statistic - you can change these with:
 
 ```
 --identity-selector   Statistic for sequence identity picks: 'call_rate', 'maf' or 'rep' ['maf']
@@ -199,12 +199,13 @@ Removing duplicate clones or identical sequences with CDHIT will retain one sequ
 
 The filters run in the order of minor allele frequency, call rate and replication average - if you want to deactivate a filter, you need to set it to -1.
 
+```
 --maf                 Filter markers by minor allele frequency <= [0.02]
 --call                Filter markers by call rate <= [0.70]
 --rep                 Filter markers by average replication statistic <= [0.95]
+```
 
-
-Let's look at some examples:
+Finally, let's look at some examples:
 
 #####Examples for DartQC
 
@@ -226,7 +227,7 @@ dart_qc.py -i monodon.csv --project Monodon --maf 0.5 --call 0.2 --rep -1 --clon
 dart_qc.py -i koala.csv --project Koala --data-row 5 --sample-row 4 --pop-row 3 --id-col 2 --clone-col 1
 ```
 
-Well done, this should cover the basics - you will usually notice in your output files if something has gone majorly wrong, it is always good to check the output for any program and see if it makes sense!
+Well done, this should cover the basics - you will usually notice in your output files if something has gone majorly wrong, it is always good to check the output for any program and see if it makes sense! I will add some more information on how to code your own pipeline next week.
 
 
 
