@@ -292,7 +292,7 @@ class CommandLine:
 
         for value in [command["maf"], command["call"], command["rep"], command["seq_identity"]]:
             if value != -1:
-                if value < 1 or value > 1:
+                if value < 0 or value > 1:
                     raise ValueError("Filter and identity thresholds must be larger >= 0 and <= 1.")
 
         for value in [command["clone_selector"], command["identity_selector"]]:
