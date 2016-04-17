@@ -168,7 +168,7 @@ class CommandLine:
         self.parser = argparse.ArgumentParser(description='DartQC Pipeline v.0.1', add_help=True)
         self.setParser()
 
-        self.args = self.parser.parse_args(['-c', 'config_test.csv'])
+        self.args = self.parser.parse_args()
         self.arg_dict = vars(self.args)
 
     def setParser(self):
