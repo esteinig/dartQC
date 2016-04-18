@@ -35,11 +35,15 @@ Good job, now that you have the machine running, fire it up and log into your ac
 
 Let's get started by opening the command line or Terminal with `Ctrl` + `Alt` + `T`.
 
-GitHub is an excellent way for developers of programs, but also for users since you can very easily stay up-to-date with changes in a repository. This is best achieved with the command-line functionality of `git`, so we wil linstall it now with:
+GitHub is an excellent way for developers of programs, but also for users since you can very easily stay up-to-date with changes in a repository. This is best achieved with the command-line functionality of `git`, so we will install it now with:
 
 `sudo apt-get install git`
 
-Now, make sure you are in your home directory and clone this repository - this will download all files onto your local system:
+Now, make sure you are in your home directory:
+
+`cd ~`
+
+... and clone this repository - this will download all files onto your local system:
 
 `git clone https://github.com/esteinig/dartQC.git`
 
