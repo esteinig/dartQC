@@ -31,7 +31,7 @@ Good job, now that you have the machine running, fire it up and log into your ac
 ####2. Installing DartQC and Dependencies
 ---
 
-*These instruction work only for Ubuntu, and are incompatible Mac OSX*
+*These instruction work only for Ubuntu, and are incompatible with Mac OSX!*
 
 #####DartQC
 
@@ -95,7 +95,7 @@ At the end of the file, we now add the path (replace `esteinig` with your user n
 
 `export PATH="/home/esteinig/Anaconda3/bin:$PATH"`
 
-You can add additional paths by seperating them with a semicolon. Save and exit the file, don't forget to reload the file or re-open the Terminal:
+You can add additional directory paths by separation with a semicolon. Save and exit the file, don't forget to reload the file or re-open the Terminal:
 
 `source .bashrc`
 
@@ -124,7 +124,7 @@ cd ~
 gedit .bashrc
 ```
 
-Add with your username replaced to the document:
+Add with your username replaced add to the document:
 
 ```
 export PATH="$PATH:/home/esteinig/dartQC"
