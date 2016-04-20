@@ -53,6 +53,8 @@ If you want to keep up-to-date, all you now need is to navigate to the program's
 
 `git pull`
 
+Keep this directory clean and do not use it as a working directory - we will set up access to the pipeline from anywhere on your system later.
+
 #####Dependencies
 
 Alright, we now have the program on our system. It is written in Python 3 and since we are working with sequence data and clustering, we need some additional packages and install CD-HIT. 
