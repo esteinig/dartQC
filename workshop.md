@@ -31,6 +31,8 @@ Good job, now that you have the machine running, fire it up and log into your ac
 ####2. Installing DartQC and Dependencies
 ---
 
+*These instruction work only for Ubuntu, and are incompatible Mac OSX*
+
 #####DartQC
 
 Let's get started by opening the command line or Terminal with `Ctrl` + `Alt` + `T`.
