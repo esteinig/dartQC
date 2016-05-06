@@ -953,7 +953,9 @@ class DartWriter:
                      "FreqHomRef", "FreqHomSnp", "FreqHets", "PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp",
                      "RepAvg"] + self.raw.sample_names]
 
-            out_head = self.raw.header + head
+            header = [["*" for i in range(17)] + h[self.raw._call-1:] for h in self.raw.header]
+
+            out_head = header + head
 
             with open(out_file, 'w') as outfile:
                 dart_writer = csv.writer(outfile, delimiter=sep)
