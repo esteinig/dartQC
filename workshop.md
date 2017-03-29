@@ -1,12 +1,12 @@
-###DartQC Workshop 
+### DartQC Workshop 
 ---
 
-####Tutorial
+#### Tutorial
 
 This workshop tutorial is meant to walk you through some of the steps of setting up an analysis environment and running *DartQC*. Mainly, this will involve setting up a Virtual Machine running Linux (Ubuntu), installation of dependencies and the (inevitable) pitfalls of running the program. Please do not attempt to install *DartQC* under Windows, unless you are rather experienced. It is much easier, faster and more worthwhile in the long run to set up a VM.
 
 ---
-####1. Virtual Machine running Ubuntu
+#### 1. Virtual Machine running Ubuntu
 ---
 
 Alright let's get started! Since you are likely using Windows as a primary OS, we need to install a virtual computer that runs a Linux OS. Ubuntu is one of many flavours of Linux, but has very goofd support, functionality and is closest to what you are used to under Windows.
@@ -28,12 +28,12 @@ Now, just a couple of things to look out for when you set it up for the first ti
 Good job, now that you have the machine running, fire it up and log into your account, we will get to the good stuff now! 
 
 ---
-####2. Installing DartQC and Dependencies
+#### 2. Installing DartQC and Dependencies
 ---
 
 *These instruction work only for Ubuntu, and are incompatible with Mac OSX!*
 
-#####DartQC
+##### DartQC
 
 Let's get started by opening the command line or Terminal with `Ctrl` + `Alt` + `T`.
 
@@ -55,7 +55,7 @@ If you want to keep up-to-date, all you now need is to navigate to the program's
 
 Keep this directory clean and do not use it as a working directory - we will set up access to the pipeline from anywhere on your system later.
 
-#####Dependencies
+##### Dependencies
 
 Alright, we now have the program on our system. It is written in Python 3 and since we are working with sequence data and clustering, we need some additional packages and install CD-HIT. 
 
@@ -75,7 +75,7 @@ The last thing we need is the sequence clustering package [CD-HIT](http://bioinf
 `sudo apt-get install cd-hit`
 
 ---
-#####Dependency Checks and Troubleshoots
+##### Dependency Checks and Troubleshoots
 ---
 
 It's good practice to check if everything is in order, let's first have a look if we are using the right Python installation in the OS:
@@ -114,7 +114,7 @@ If no errors are returned, you are good to go after one last check for CDHIT-EST
 `cdhit-est`
 
 ---
-#####Adding DartQC to `$PATH`
+##### Adding DartQC to `$PATH`
 ---
 
 Now that you know how it works, you can also add the script itself to your `$PATH`, simply:
@@ -155,7 +155,7 @@ Get an overview of the options on the main page of this repository or type:
 
 `python dart_qc.py --help`
 
-#####Usage and Pitfalls
+##### Usage and Pitfalls
 
 The main thing to look out for is how your data file is structured - since we wil likely see changes in the files or people want to use previous versions, the important parameters for calculations can be specified by the user, with defaults indicated in square brackets. The counting is non-pythonic, i.e. first line in the data file is line 1. **Make sure you have the correct column and row designations, error checks are not possible for variable format input!** If you do run into errors, check the error messages first, most of the time they should indicate what is wrong and usually it is related to the input format or specifications of options.
 
@@ -215,7 +215,7 @@ The filters run in the order of minor allele frequency, call rate and replicatio
 
 Finally, let's look at some examples:
 
-#####Examples for DartQC
+##### Examples for DartQC
 
 ```
 # Default:
