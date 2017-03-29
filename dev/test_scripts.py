@@ -27,9 +27,8 @@ def test_preprocessing():
 
     # Reading initial double-row read calls with settings adjusted t input file format:
     dart_reader = DartReader()
-    dart_reader.set_options(project="PrawnFinal", clone_col=1, id_col=2, sample_row=6, data_start_row=7,
-                            out_path="./PrawnFinal")
-    dart_reader.read_double_row(file="./PrawnFinal/prawn_data_double.csv", split_clone=True)
+    dart_reader.set_options(project="PrawnFinal", clone_col=1, id_col=2, sample_row=7, data_start_row=8)
+    dart_reader.read_double_row(file="./prawn_data_double.csv", split_clone=True)
     data, attributes = dart_reader.get_data()
 
     # Read the read call data into the Preprocessor:
@@ -40,7 +39,7 @@ def test_preprocessing():
                    call_start_col=33, sample_start_col=33)
 
     # Reading the raw read counts:
-    pp.read_count_data("./PrawnFinal/prawn_read_counts.csv")
+    pp.read_count_data("./prawn_read_counts.csv")
 
     # Set all calls to missing < threshold (sum of minor and major read counts for SNP)
     pp.filter_read_counts(threshold=0)
@@ -87,8 +86,8 @@ def test_filtering():
 
     # Reading the data from JSON after Preprocessing:
     dart_reader = DartReader()
-    data, attributes = dart_reader.read_json(data_file="./PrawnFinal/prawns_pp_5_data.json",
-                                             attribute_file="./PrawnFinal/prawns_pp_5_attr.json")  # CHANGE PREPROCESSING FILE NAME
+    data, attributes = dart_reader.read_json(data_file="./prawns_pp_0_data.json",
+                                             attribute_file="./prawns_pp_0_attr.json")
 
     # Initializing MarkerModule, which handles filtering:
 
@@ -110,7 +109,9 @@ def test_filtering():
                                              ("read_count_ref", 0)
                                              ])
 
-    # Initializing redundancy module:
+    # Need CD-HIT (cdhit-est) in PATH
+    # Ubuntu: sudo apt install cd-hit
+    # Initializing redundancy module
     rm = RedundancyModule(data=data, attributes=attributes)
 
     # Indexing duplicate and identity clusters:
@@ -124,5 +125,5 @@ def test_filtering():
     sm = SummaryModule(data=data, attributes=attributes)
     sm.write_snp_summary(summary_parameters=["maf", "call_rate", "rep_average", "read_count_ref"])
 
-test_preprocessing()
+#test_preprocessing()
 test_filtering()

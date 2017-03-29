@@ -364,7 +364,7 @@ class RedundancyModule(QualityControl):
 
     def _run_cdhit(self, fasta_path, identity=0.95, word_size=10, description_length=0, cdhit_path=None):
 
-        """ Run CDHIT-EST for sequences  """
+        """ Run CDHIT-EST for sequences, install with sudo apt install cd-hit on Ubuntu """
 
         print(self.messages.get_cdhit_message(identity))
 

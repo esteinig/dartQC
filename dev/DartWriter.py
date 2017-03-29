@@ -1,6 +1,7 @@
 import os
 import csv
 import numpy
+import json
 
 
 class DartWriter:
@@ -73,8 +74,8 @@ class DartWriter:
 
     def write_json(self, file_name, data_indent=0, attribute_indent=4):
 
-        data_file = os.path.join(self.attributes["out_path"], file_name + "_data.json")
-        attribute_file = os.path.join(self.attributes["out_path"], file_name + "_attr.json")
+        data_file = os.path.abspath(os.path.join(self.attributes["out_path"], file_name + "_data.json"))
+        attribute_file = os.path.abspath(os.path.join(self.attributes["out_path"], file_name + "_attr.json"))
 
         with open(data_file, "w") as data_out:
             json.dump(self.data, data_out, indent=data_indent)
