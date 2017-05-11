@@ -238,5 +238,17 @@ dart_qc.py -i koala.csv --project Koala --data-row 5 --sample-row 4 --pop-row 3 
 Well done, this should cover the basics - you will usually notice in your output files if something has gone majorly wrong, it is always good to check the output for any program and see if it makes sense! I will add some more information on how to code your own pipeline next week.
 
 
+# Windows
 
+1. Download and install cygwin with the following packages included: 
+    * make: The GNU version of the 'make' utility
+    * gcc-core: GNU Compiler Collection (C, OpenMP)
+    * gcc-g++: GNU Compiler Collection (C++)     
+1. Download and unzip the [CD-HIT source code](https://github.com/weizhongli/cdhit)
+1. Open the cygwin terminal and CD to the parent CD-HIT source code folder
+1. Run command: make
+1. Add the Cygwin/bin path (eg. c:\cygwin64\bin;) to the windows path environment variable (this is very common, google it)
 
+Now all we need to do is add the path to the cd-hit-est.exe file into the python script cdhit_path variable(s).
+
+Note:  The cd-hit-est.exe should run directly from cmd once it is setup correctly (you shouldn't need to run through the cygwin terminal, if this isn't working the path variable probably isn't correct - try restarting the cmd window too)
