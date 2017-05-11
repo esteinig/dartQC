@@ -6,3 +6,5 @@ logs/*
 out/*
 out
 __pycache__
+testData
+testData/*

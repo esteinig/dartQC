@@ -3,6 +3,9 @@ from DartReader import *
 from DartWriter import *
 from DartModules import *
 
+import Configuration
+
+
 
 def test_preprocessing():
 
@@ -27,8 +30,8 @@ def test_preprocessing():
 
     # Reading initial double-row read calls with settings adjusted t input file format:
     dart_reader = DartReader()
-    dart_reader.set_options(project="PrawnFinal", clone_col=1, id_col=2, sample_row=7, data_start_row=8)
-    dart_reader.read_double_row(file="./prawn_data_double.csv", split_clone=True)
+    dart_reader.set_options(project="PrawnFinal", clone_col=1, id_col=2, sample_row=7, data_start_row=8, out_path="testData")
+    dart_reader.read_double_row(file="./testData/prawn_data_double.csv", split_clone=True)
     data, attributes = dart_reader.get_data()
 
     # Read the read call data into the Preprocessor:
@@ -39,7 +42,7 @@ def test_preprocessing():
                    call_start_col=33, sample_start_col=33)
 
     # Reading the raw read counts:
-    pp.read_count_data("./prawn_read_counts.csv")
+    pp.read_count_data("./testData/prawn_read_counts.csv")
 
     # Set all calls to missing < threshold (sum of minor and major read counts for SNP)
     pp.filter_read_counts(threshold=0)
@@ -86,8 +89,8 @@ def test_filtering():
 
     # Reading the data from JSON after Preprocessing:
     dart_reader = DartReader()
-    data, attributes = dart_reader.read_json(data_file="./prawns_pp_0_data.json",
-                                             attribute_file="./prawns_pp_0_attr.json")
+    data, attributes = dart_reader.read_json(data_file=".//testData//prawns_pp_0_data.json",
+                                             attribute_file=".//testData//prawns_pp_0_attr.json")
 
     # Initializing MarkerModule, which handles filtering:
 
@@ -116,7 +119,7 @@ def test_filtering():
 
     # Indexing duplicate and identity clusters:
     rm.remove_duplicates(selector_list=["maf", "read_count_ref"])
-    rm.remove_clusters(selector_list=["maf", "read_count_ref"])
+    rm.remove_clusters(selector_list=["maf", "read_count_ref"], cdhit_path=Configuration.CDHIT_PATH)
 
     # Export data with duplicates and clustered SNPs removed:
     data, attributes = rm.get_data(duplicates=True, clusters=True)
@@ -125,5 +128,5 @@ def test_filtering():
     sm = SummaryModule(data=data, attributes=attributes)
     sm.write_snp_summary(summary_parameters=["maf", "call_rate", "rep_average", "read_count_ref"])
 
-#test_preprocessing()
+# test_preprocessing()
 test_filtering()

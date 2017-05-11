@@ -13,6 +13,10 @@ from Bio.SeqRecord import SeqRecord
 
 from DartMessages import DartMessages
 
+import time
+
+from subprocess import run
+
 
 class SummaryModule:
 
@@ -379,6 +383,12 @@ class RedundancyModule(QualityControl):
         with open(os.devnull, "w") as devnull:
             call([cdhit_path, "-i", fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
                   "-d", str(description_length)], stdout=devnull)
+            # print("CD Hit result: " + str(retVal))
+            # run(["C:\\Users\\jc229483\\Desktop\\Repositories\\DartQC\\cdhit.bat"], shell=True)
+            # cmdCall = cdhit_path + " -i " + fasta_path + " -o " + out_file + " -c " + str(identity) + " -n " + str(word_size) + " -d " + str(description_length)
+            # print("CD Hit call: " + cmdCall)
+            # time.sleep(10)
+            # os.system(cmdCall)
 
         return cluster_path
 
