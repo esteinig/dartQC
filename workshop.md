@@ -240,6 +240,9 @@ Well done, this should cover the basics - you will usually notice in your output
 
 # Windows
 
+1. Download and install Python 3 
+1. Download and install Anaconda
+1. Use the Anaconda Navigator to install numpy and biopython
 1. Download and install cygwin with the following packages included: 
     * make: The GNU version of the 'make' utility
     * gcc-core: GNU Compiler Collection (C, OpenMP)
@@ -249,6 +252,7 @@ Well done, this should cover the basics - you will usually notice in your output
 1. Run command: make
 1. Add the Cygwin/bin path (eg. c:\cygwin64\bin;) to the windows path environment variable (this is very common, google it)
 
-Now all we need to do is add the path to the cd-hit-est.exe file into the python script cdhit_path variable(s).
+Now all we need to do is add the path to the cd-hit-est.exe file into the python script cdhit_path variables (rm.remove_clusters(..., cdhit_path=<cdhit path>).
 
 Note:  The cd-hit-est.exe should run directly from cmd once it is setup correctly (you shouldn't need to run through the cygwin terminal, if this isn't working the path variable probably isn't correct - try restarting the cmd window too)
+
