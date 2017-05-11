@@ -142,7 +142,7 @@ def main():
 
         # Sequence Clusters with CD-HIT
         if commands["seq_identity"] > 0:
-            dart_qc.find_identity_clusters(identity=commands["seq_identity"])
+            dart_qc.find_identity_clusters(identity=commands["seq_identity"], cdhit_path=commands["cdhit"])
             dart_qc.select_best_identity_seqs(selector=commands["identity_selector"])
 
         # Filters
@@ -249,6 +249,9 @@ class CommandLine:
                                  help="Select best duplicate clones by filter (call_rate, maf, rep) [maf]")
         self.parser.add_argument('--identity-selector', dest='identity_selector', default="maf", required=False, type=str,
                                  help="Select best clustered sequences by filter (call_rate, maf, rep) [maf]")
+        
+        self.parser.add_argument("--cdhit", dest="cdhit", default="cdhit-est", required=False, type=str,
+                                 help="cdhit exec (cdhit-est))
 
         ### Other ###
 
