@@ -1,20 +1,7 @@
 ## DartQC
 ### Quality Control Pipeline
 
-Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. I made the data input less flexible than before, aiming to provide a user-friendly input for basic quality control. If you need to filter on parameters provided by DArT, please contact me. 
-
-Currently dartQC integrates:
-
-- preprocessing using raw and called SNPs from DArT
-- basic filters:
-  - minor allele frequency
-  - replication average
-  - hardy-weinberg
-  - call rate
-- redundancy filtering:
-  - duplicate clones
-  - sequence similarity
-- output for PLINK
+Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. 
 
 This is roughly what's going on:
 
@@ -22,26 +9,93 @@ This is roughly what's going on:
  <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
 </p>
 
+Currently dartQC integrates:
+
+- preprocessing using raw and called SNPs from DArT
+- basic filters:
+  - `minor allele frequency`
+  - `replication average`
+  - `hardy-weinberg`
+  - `call rate`
+- redundancy filtering:
+  - `duplicate clones`
+  - `sequence similarity`
+- output for PLINK
+
 #### Dependencies
 
-- Python 3.5
-- Conda
+DartQC is written for local Unix systems or JCU's HPC. It relies on the package and environment manager [Conda]() with a code base in Python.
+
+- Python > 3.5
+- Miniconda or Anaconda for Python 3
+
+Briefly:
+
+```
+wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
 
 #### How to use DartQC
 
-This section provides a brief guide of how to install and use the pipeline components. This assumes you are using a Bash shell on a local Linux system or the HPC. There may be some trouble on Zodiac (JCU's HPC) which may still be using TCSH as default login shell. If you are unsure follow the provided guide.
+This section provides a brief guide of how to install and use the pipeline components. This assumes you are using a Bash shell on a local Unix system or the JCU's HPC (Zodiac). There may be some trouble on Zodiac due to the default login shell (TCSH instead of Bash). If you are unsure follow the guide to setting up on JCU's [Zodiac]().
 
-#### Installation
+1. [Install DartQC]()
+2. [Preparation]()
+3. [Preprocessing]()
+4. [Filtering]()
+5. [DartQC on Zodiac]()
 
-Install by cloning this repository and installing the virtual environment that will take care of installing all other library dependencies, as well as CD-HIT.
+#### Tasks
+
+DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-git clone https://github.com/esteinig/dartQC
-conda env create -f ./dartQC/env/dartqc.yaml
+# global options
+dartqc --help
+
+# task options
+dartqc prepare --help
+dartqc process --help
+dartqc filter -- help
 ```
 
-#### Data Preparation
+Global arguments are specified *before* the command for a task, like this:
 
-Essentially, you need to make sure the pipeline knows where to find the right data. This is done via a configuration file (JON) which tells the program the indices (non-pythonic, starting from 1) of necessary columns and rows for raw and call data sets. You can either provide a manually curated scheme file (`--call_scheme` or `--raw_scheme`) or attempt to guess the format from the file via the command `prepare`.
+**`dartqc`**`--prefix example --output_path ./example`**`prepare`**`--file example_data.csv`
+
+
+#### Quick Start
+
+Example workflow without pre-processing:
+
+```
+source activate dartqc
+
+dartqc -p example -o ./example prepare --file example.csv
+dartqc -p example -o ./example filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
+
+source deactivate
+```
+
+Example workflow with pre-processing:
+
+```
+source activate dartqc
+
+dartqc -p example -o ./example prepare --file calls.csv
+dartqc -p example -o ./example prepare --file raw.csv
+
+dartqc -p example -o ./example process --calls calls.csv --call_scheme calls_scheme.json --raw raw.csv --raw_scheme raw_scheme.json --read_threshold 7
+
+dartqc -p example -o ./example filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
+
+source deactivate
+```
+
+### Contact
+
+If you find any bugs, please submit an issue for this repository on GitHub.
+
 
 
