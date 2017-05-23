@@ -1,20 +1,7 @@
 ## DartQC
 ### Quality Control Pipeline
 
-Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. Currently dartQC integrates:
-
-- preprocessing using raw and called SNPs from DArT
-- basic filters:
-  - `minor allele frequency`
-  - `replication average`
-  - `hardy-weinberg`
-  - `call rate`
-- redundancy filtering:
-  - `duplicate clones`
-  - `sequence similarity`
-- output for PLINK
-
-This is roughly what's going on:
+Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC.
 
 <p align="center">
  <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
@@ -24,14 +11,8 @@ This is roughly what's going on:
 
 DartQC is written for local Unix systems or JCU's HPC. It relies on the package and environment manager [Conda]() with a code base in Python.
 
-- Python > 3.5
 - Miniconda or Anaconda for Python 3
 
-Briefly:
-
-```
-wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
 #### How to use DartQC
