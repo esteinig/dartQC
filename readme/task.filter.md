@@ -5,9 +5,9 @@ Main task to filter SNPs in DartQC.
 Inputs are either the call data and scheme files with `--calls` and `--call_scheme` or the directory containing the project's (global option `--project`) pre-processed files with `--preprocessed`.
 
 The following filters remove SNPs:
-- `--maf` <= minor allele frequence, default is None
+- `--maf` <= minor allele frequency, default is None
 - `--call_rate` <= call rate of SNP, default is None
-- `--hwe` >= p-value of Hardy-Weinberg Equilibrium, default is None
+- `--hwe` <= p-value of Hardy-Weinberg Equilibrium, default is None
 - `--rep` <= replicatation average provided by DArT, default is None
 
 The following filters apply redundancy tests after filtering SNPs:
