@@ -1,5 +1,3 @@
-# Install DartQC
-
 ## Unix system with Python 3
 
 Requires Python Packacke Index (PyPI) installer `pip`, bundled with the latest versions for Python 3 (`pip3`). Once you have installed the program, run `dartqc install` to check for `conda`. If not present, the install task will download `miniconda` and install to `$HOME/miniconda`. Either way, the install task then installs the virtual environment `dartqc.yaml` for DartQC.
