@@ -44,7 +44,7 @@ source activate dartqc
 # CSV
 dartqc.py prepare --file example.csv
 # Excel
-dartqc.py prepare --file example.xlsx --sheet example.data
+dartqc.py prepare --file example.xlsx --sheet double_row_snps
 
 dartqc.py filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
 
