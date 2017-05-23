@@ -2,7 +2,7 @@
 
 ## Unix system with Python 3
 
-Requires Python Packacke Index (PyPI) installer `pip`, bundled with the latest versions for Python 3 (`pip3`). Once you have installed the program, run `dartqc install` to check for `conda`. If not present, the install task will download `miniconda` and install to `$HOME/miniconda`. Either way, the install task then installs the virtual environment for DartQC.
+Requires Python Packacke Index (PyPI) installer `pip`, bundled with the latest versions for Python 3 (`pip3`). Once you have installed the program, run `dartqc install` to check for `conda`. If not present, the install task will download `miniconda` and install to `$HOME/miniconda`. Either way, the install task then installs the virtual environment `dartqc.yaml` for DartQC.
 
 ```
 pip3 install dartqc
@@ -11,7 +11,7 @@ dartqc install
 
 ## JCU's HPC (Zodiac)
 
-JCU's HPC needs a manual installation, since the default Python is 2.6 and does not come with an installer for PyPI.
+JCU's HPC needs a manual installation, since the system-wide default Python 2.6 does not come with an installer for PyPI.
 
 Please note that activating the conda environment requires a Bash shell instead of the default shell on HPC (TCSH). You can check what shell you are using and if return is `-tcsh`:
 
