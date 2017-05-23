@@ -28,27 +28,31 @@ This section provides a brief guide of how to install and use the pipeline compo
 DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-dartqc --help
+dartqc.py --help
 
-dartqc prepare --help
-dartqc process --help
-dartqc filter -- help
+dartqc.py prepare --help
+dartqc.py process --help
+dartqc.py filter -- help
 ```
 
 Global arguments are specified *before* the command for a task, like this:
 
-**`dartqc`**`--prefix example --output_path ./example`**`prepare`**`--file example_data.csv`
+**`dartqc.py`**`--prefix example --output_path ./example`**`prepare`**`--file example_data.csv`
 
 
 #### Quick Start
 
-Example workflow without pre-processing:
+Example workflow without pre-processing from Excel or CSV:
 
 ```
 source activate dartqc
 
-dartqc -p example -o ./example prepare --file example.csv
-dartqc -p example -o ./example filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
+# CSV
+dartqc.py prepare --file example.csv
+# Excel
+dartqc.py prepare --file example.xlsx --sheet example.data
+
+dartqc.py filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
 
 source deactivate
 ```
@@ -58,12 +62,12 @@ Example workflow with pre-processing:
 ```
 source activate dartqc
 
-dartqc -p example -o ./example prepare --file calls.csv
-dartqc -p example -o ./example prepare --file raw.csv
+dartqc.py prepare --file calls.csv
+dartqc.py prepare --file raw.csv
 
-dartqc -p example -o ./example process --calls calls.csv --call_scheme calls_scheme.json --raw raw.csv --raw_scheme raw_scheme.json --read_threshold 7
+dartqc.py filter -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_threshold 7
 
-dartqc -p example -o ./example filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
+dartqc.py filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
 
 source deactivate
 ```
