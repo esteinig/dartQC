@@ -11,7 +11,7 @@ dartqc install
 
 JCU's HPC needs a manual installation, since the system-wide default Python 2.6 does not come with an installer for PyPI.
 
-Please note that activating the conda environment requires a Bash shell instead of the default shell on HPC (TCSH). You can check what shell you are using and if return is `-tcsh`:
+Please note that activating the conda environment requires a Bash shell instead of the default shell on HPC (TCSH). You can check what shell you are using and activate Bash by:
 
 ```
 echo $0      # if -tcsh
