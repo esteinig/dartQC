@@ -8,9 +8,9 @@ This tasks runs a pre-processing step on the call data, given raw read counts th
 
 Example: SNP with ID `123144124` has 3 total counts for Allele 1 and 4 total counts for Allele 2, their sum is `3 + 4 = 7` and is therefore silenced at default threshold of 10.
 
-Output is the data and its attributes as JSON: `project_data.json` and `project_attr.json`. These files can be passed into the `filter` task using the flag `--processed`.
+Output is the data and its attributes as JSON: `project_data.json` and `project_attr.json`. These files can be passed into task [`filter`](https://github.com/esteinig/dartQC/blob/master/readme/task.filter.md) using the flag `--processed`.
 
-Make sure you have generated the scheme files for both raw and call data manually or with `prepare`.
+Make sure you have generated the scheme files for both raw and call data manually or with task [`prepare`](https://github.com/esteinig/dartQC/blob/master/readme/task.prepare.md).
 
 ---
 
