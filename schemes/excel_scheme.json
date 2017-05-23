@@ -1,0 +1,14 @@
+{
+  "clone_column": [
+    "CloneID"
+  ],
+  "allele_column": [
+    "AlleleID"
+  ],
+  "sequence_column": [
+    "AlleleSequence"
+  ],
+  "replication_column": [
+    "RepAvg"
+  ]
+}

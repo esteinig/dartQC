@@ -1,0 +1,9 @@
+{
+  "clone_column": 1,
+  "allele_column": 2,
+  "sequence_column": 3,
+  "replication_column": 17,
+  "data_column": 33,
+  "sample_row": 4,
+  "data_row": 7
+}
