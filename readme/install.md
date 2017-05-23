@@ -1,8 +1,24 @@
 ## Install DartQC
 
-At the moment, installation is a manual process but a stable version will eventually be on PyPI or Conda. 
+Please note that activating the conda environment requires a Bash shell instead of the default shell on HPC (TCSH). You can check what shell you are using and if return is `-tcsh`:
 
-Clone this repository and setup the Conda virtual environment that contains Python dependencies and CD-HIT from BioConda:
+```
+echo $0      # if -tcsh
+/bin/bash    # enter bash shell
+ ```
+ 
+#### How do I install the dependencies?
+
+Dependencies (Python, CD-HIT) are handled by the package and environment manager Conda. You don't have to do anything except installing `miniconda`:
+
+```
+wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+#### How do I install DartQC?
+
+Clone this repository and setup the virtual environment that contains Python dependencies and CD-HIT from BioConda:
 
 ```
 cd ~
@@ -12,11 +28,12 @@ conda env create -f ~/dartQC/env/dartqc.yaml
 
 #### How do I run the script?
 
+Before you run the script, you need to activate the virtual environment. I can be deactivated after you are done with the command `source deactivate`.
+
 ```
 source activate dartqc
 ~/dartQC/dartqc.py --help
 ```
-
 
 #### How do I add a directory to the system's `PATH`?
 
@@ -31,7 +48,7 @@ source ~/.bashrc
 
 #### How do I execute the script from anywhere on the system?
 
-You can then sym-link the script to `bin` and use it from anywhere on your system. For example if `~/bin` is in `PATH`:
+You can then sym-link the script to `bin` and use it from anywhere on your system without typing the full path to the script. For example if `~/bin` is in `PATH`:
 
 ```
 ln -s ~/dartQC/dartqc.py ~/bin
@@ -39,5 +56,3 @@ ln -s ~/dartQC/dartqc.py ~/bin
 source activate dartqc
 dartqc.py --help
 ```
-
-Please note that activating the conda environment requires a Bash shell instead of the default shell on HPC (TCSH).
