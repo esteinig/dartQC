@@ -3,12 +3,6 @@
 
 Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. 
 
-This is roughly what's going on:
-
-<p align="center">
- <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
-</p>
-
 Currently dartQC integrates:
 
 - preprocessing using raw and called SNPs from DArT
@@ -21,6 +15,12 @@ Currently dartQC integrates:
   - `duplicate clones`
   - `sequence similarity`
 - output for PLINK
+
+This is roughly what's going on:
+
+<p align="center">
+ <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
+</p>
 
 #### Dependencies
 
