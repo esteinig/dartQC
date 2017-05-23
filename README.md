@@ -7,20 +7,14 @@ Command line pipeline to facilitate quality control of SNP data from Diversity A
  <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
 </p>
 
-#### Dependencies
-
-DartQC is written for local Unix systems or JCU's HPC. It relies on the package and environment manager [Conda]() with a code base in Python
-
-- Miniconda or Anaconda for Python 3
-
 #### How to use DartQC
 
 This section provides a brief guide of how to install and use the pipeline components. This assumes you are using a Bash shell on a local Unix system or the JCU's HPC (Zodiac). There may be some trouble on Zodiac due to the default login shell (TCSH instead of Bash). If you are unsure follow the guide to setting up on JCU's [Zodiac]().
 
 1. [Install DartQC]()
-2. [Preparation]()
-3. [Preprocessing]()
-4. [Filtering]()
+2. [Task: prepare]()
+3. [Task: process]()
+4. [Task: filter]()
 5. [DartQC on Zodiac]()
 
 #### Tasks
