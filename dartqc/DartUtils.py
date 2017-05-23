@@ -24,7 +24,8 @@ class Installer:
 
         self._install_env()
 
-    def _check(self):
+    @staticmethod
+    def _check():
 
         try:
             check_output(["conda", "--version"])
@@ -118,7 +119,8 @@ class CommandLine:
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="raw_scheme", help="path to raw scheme json file")
 
-        process_parser.add_argument("--raw_threshold", default=10, type=int, required=False, dest="raw_read_threshold",
+        process_parser.add_argument("--read_sum", "--reads", default=10, type=int, required=False,
+                                    dest="raw_read_threshold",
                                     help="silence call if ref and snp allele raw read sum < threshold")
 
         process_parser.add_argument("--calls", "-c", default="calls.csv", type=lambda p: os.path.abspath(p),
