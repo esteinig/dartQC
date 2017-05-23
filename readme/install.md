@@ -28,7 +28,7 @@ conda env create -f ~/dartQC/env/dartqc.yaml
 
 #### How do I run the script?
 
-Before you run the script, you need to activate the virtual environment. I can be deactivated after you are done with the command `source deactivate`.
+Before you run the script, you need to activate the virtual environment. It can be deactivated after you are done with the command `source deactivate`.
 
 ```
 source activate dartqc
