@@ -9,11 +9,9 @@ Command line pipeline to facilitate quality control of SNP data from Diversity A
 
 #### Dependencies
 
-DartQC is written for local Unix systems or JCU's HPC. It relies on the package and environment manager [Conda]() with a code base in Python.
+DartQC is written for local Unix systems or JCU's HPC. It relies on the package and environment manager [Conda]() with a code base in Python
 
 - Miniconda or Anaconda for Python 3
-
-```
 
 #### How to use DartQC
 
