@@ -2,7 +2,7 @@
 
 This task's main function is to generate a scheme file, so that subsequent modules know where to find the right rows and columns in the input data `--file`.  **Input is the double-row format for SNPs by DArT**. 
 
-Executing this task will attempt to guess which rows and columns the data are in and output a JSON. You can also specify a sheet name with `--sheet`, which will convert an Excel sheet from `--file` to CSV. This task needs to be run for both raw and called read files to generate both `--raw_scheme` and `--call_scheme`, if you are later using the task `process`.
+Executing this task will attempt to guess which rows and columns the data are in and output a JSON. You can also specify a sheet name with `--sheet`, which will convert an Excel sheet from `--file` to CSV. This task needs to be run for both raw and called read files to generate both `--raw_scheme` and `--call_scheme`, if you are later using the task [`process`](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md).
 
 ---
 
@@ -50,7 +50,7 @@ You can also reate your own manual file if the task fails to prepare the right f
 }
 ```
 
-This file can then be specified in tasks `process` and `filter` via `--raw_scheme` or `--call_scheme`.
+This file can then be specified in tasks [`process`](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md) and [`filter`](https://github.com/esteinig/dartQC/blob/master/readme/task.filter.md) via `--raw_scheme` or `--call_scheme`.
 
 ### Data Scheme: Assumptions
 
