@@ -15,7 +15,7 @@ The following filters apply redundancy tests after filtering SNPs:
 - `--clusters`: cluster SNP `AlleleSequence` with nucleotide CD-HIT and pick one SNP per cluster by highest MAF, default False
 - `--identity`: nucleotide identity by which to cluster with CD-HIT, default is 0.95 (95%)
 
-Output are: `project_filtered.ped`, `project_filtered.map, `project_filtered_data.json`,  `project_filtered_attr.json`
+Output are: `project_filtered.ped`, `project_filtered.map`, `project_filtered_data.json`,  `project_filtered_attr.json`
 
 ---
 
