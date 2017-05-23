@@ -1,6 +1,6 @@
 # Task: Filter
 
-Main task to filter the data in DartQC.
+Main task to filter SNPs in DartQC.
 
 Inputs are either the call data and scheme files with `--calls` and `--call_scheme` or the directory containing the project's (global option `--project`) pre-processed files with `--preprocessed`.
 
