@@ -34,8 +34,9 @@ source ~/.bashrc
 You can then sym-link the script to `bin` and use it from anywhere on your system. For example if `~/bin` is in `PATH`:
 
 ```
-echo $PATH
 ln -s ~/dartQC/dartqc.py ~/bin
+
+source activate dartqc
 dartqc.py --help
 ```
 
