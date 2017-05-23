@@ -1,9 +1,7 @@
 ## DartQC
 ### Quality Control Pipeline
 
-Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. 
-
-Currently dartQC integrates:
+Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC. Currently dartQC integrates:
 
 - preprocessing using raw and called SNPs from DArT
 - basic filters:
