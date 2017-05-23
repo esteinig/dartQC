@@ -1,7 +1,7 @@
 ## DartQC
 ### Quality Control Pipeline
 
-Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is written to be user-friendly and executable on the HPC.
+Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is a re-qrite of the original scripts aiming to be somewhat more user-friendly and executable on a HPC.
 
 <p align="center">
  <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png">
@@ -28,10 +28,8 @@ This section provides a brief guide of how to install and use the pipeline compo
 DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-# global options
 dartqc --help
 
-# task options
 dartqc prepare --help
 dartqc process --help
 dartqc filter -- help
