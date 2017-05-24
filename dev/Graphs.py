@@ -15,17 +15,22 @@ class Graphs:
 
         x = range(len(y))
         width = .5
+
+        # Add the graph data
         rects1 = ax.bar(x, y, width, color="blue")
 
+        # Make the labels look nicer.
         ax.set_title(title, fontdict={'weight': 'bold', 'size': 'large'})
         ax.set_xticklabels(xTickLabels, fontdict={'style': 'italic'}, rotation=45)
         ax.set_xlabel(xLabel, fontdict={'weight': 'bold'})
         ax.set_ylabel(yLabel, fontdict={'weight': 'bold'})
         ax.set_xticks(x)
 
+        # Make the x-axis labels light up correctly
         for tick in ax.xaxis.get_majorticklabels():
             tick.set_horizontalalignment("right")
 
+        # Save the graph to file
         pyplot.savefig(outFile, bbox_inches='tight')
 
     @staticmethod
@@ -35,19 +40,23 @@ class Graphs:
         fig.set_size_inches(6, 3)
 
         width = .5
+        # Add the graph data
         rects1 = ax.scatter(x, y, width, color="blue")
 
+        # Make the labels look nicer.
         ax.set_title(title, fontdict={'weight': 'bold', 'size': 'large'})
         ax.set_xlabel(xLabel, fontdict={'weight': 'bold'})
         ax.set_ylabel(yLabel, fontdict={'weight': 'bold'})
         # ax.set_xticks(x)
 
+        # Set the x axis labels
         if (xTickLabels is not None):
             ax.set_xticklabels(xTickLabels, fontdict={'style': 'italic'})
 
         # for tick in ax.xaxis.get_majorticklabels():
         #     tick.set_horizontalalignment("right")
 
+        # Save the graph to file
         pyplot.savefig(outFile, bbox_inches='tight')
 
     # (Graph 1) Distribution of total read count per individual
@@ -106,6 +115,7 @@ class Graphs:
 
         start = time.time()
 
+        # Find the average reads per SNP
         counts = {k: v["calls"] for (k, v) in read_data.items()}
 
         countsArray = numpy.asarray(list(counts.values()))
@@ -113,6 +123,7 @@ class Graphs:
         numSamples = numpy.shape(countsArray)[1]
         avgReadsPerSNP = (readsPerSNP / numSamples).tolist()
 
+        # Convert actual values to a count of SNP's in each percentage range
         yData = [0, 0, 0, 0, 0, 0, 0, 0]
         for count in avgReadsPerSNP:
             if count <= 5:
@@ -148,6 +159,7 @@ class Graphs:
 
         start = time.time()
 
+        # Find the call rates per SNP
         calls = [v["calls"] for (k, v) in data.items()]
         callsArray = numpy.asarray(list(calls))
 
@@ -157,6 +169,7 @@ class Graphs:
 
         callRatePerSNP = [pos / tot for pos, tot in zip(positiveCalls, totCalls)]
 
+        # Convert actual call rates into counts in each percentage range.
         yData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         for count in callRatePerSNP:
             if count <= .50:
@@ -197,6 +210,7 @@ class Graphs:
 
         start = time.time()
 
+        # Find the call rates per individual
         calls = [v["calls"] for (k, v) in data.items()]
         individCalls = list(zip(*calls))
         callsArray = numpy.asarray(list(individCalls))
@@ -207,6 +221,7 @@ class Graphs:
 
         callRatePerSNP = [pos / tot for pos, tot in zip(positiveCalls, totCalls)]
 
+        # Convert to counts within eac call rate percentage range.
         yData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         for count in callRatePerSNP:
             if count <= .50:
@@ -247,6 +262,7 @@ class Graphs:
                        "0.2 to 0.3", "0.3 to 0.4", "0.4 to 0.5", "greater than 0.5"]
         start = time.time()
 
+        # Conver the actual MAF data into counts within the graphs ranges
         yData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         for (k, maf) in snpMAF.items():
             if maf <= .01:
@@ -296,8 +312,10 @@ class Graphs:
 
         start = time.time()
 
+        # Get the repeatability averages
         repAvgs = [v["rep_average"] for (k, v) in data.items()]
 
+        # Convert to counts within each graph range
         yData = [0, 0, 0, 0, 0, 0, 0]
         for count in repAvgs:
             if count <= .9:
@@ -332,6 +350,7 @@ class Graphs:
 
         freqHetz = [v["freq_heterozygous"] for (k, v) in data.items()]
 
+        # Convert into counts within each graph range
         yData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         for count in freqHetz:
             if float(count) < .10:
