@@ -35,17 +35,19 @@ class Installer:
 
     def _install_miniconda(self):
 
-        stamp("Did not detect Conda. Installing miniconda for Python 3.")
+        stamp("Could not detect Conda. Installing Miniconda for Python 3.")
 
         try:
             stamp("Downloading and installing...")
             with open("install.log", "w") as err_file:
                 check_output(["wget", self.miniconda_url, "&&", "bash", self.miniconda_install,
                               "-b", "-p", "$HOME/miniconda"], stderr=err_file)
-                stamp("Success. Removing installer for miniconda...")
+                stamp("Success. Removing installer for Miniconda...")
                 os.remove(os.path.join(os.getcwd(), self.miniconda_install))
+                if os.path.exists("install.log"):
+                    os.remove("install.log")
         except CalledProcessError:
-            stamp("Could not install miniconda, please see install.log and README.")
+            stamp("Could not install Miniconda, please see install.log and README.")
 
         try:
             stamp("Adding $HOME/miniconda to PATH.")
@@ -54,8 +56,10 @@ class Installer:
                      stderr=err_file)
                 stamp("Done. Testing...")
                 self._check()
+                if os.path.exists("install.log"):
+                    os.remove("install.log")
         except CalledProcessError:
-            stamp("Could not install miniconda, please see install.log and README.")
+            stamp("Could not install Miniconda, please see install.log and README.")
 
     def _install_env(self):
 
@@ -63,8 +67,9 @@ class Installer:
             with open("install.log", "w") as err_file:
                 stamp("Installing environment for DartQC...")
                 check_output(["conda", "env", "create", "--name", "dartqc", "--file", self.env], stderr=err_file)
-
             stamp("Installed environment, activate with: source activate dartqc")
+            if os.path.exists("install.log"):
+                os.remove("install.log")
         except CalledProcessError:
             stamp("Could not install environment, please see install.log and README.")
 
