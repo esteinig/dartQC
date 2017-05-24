@@ -113,7 +113,7 @@ class CommandLine:
         process_parser.add_argument("--raw", "-r", type=lambda p: os.path.abspath(p), required=True,
                                     dest="raw_file", help="path to raw read file")
 
-        process_parser.add_argument("--raw_scheme", default=os.path.join(self.base_path, "schemes", "raw_scheme.json"),
+        process_parser.add_argument("--raw_scheme", default="raw_scheme.json",
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="raw_scheme", help="path to raw scheme json file")
 
@@ -124,7 +124,7 @@ class CommandLine:
         process_parser.add_argument("--calls", "-c", default="calls.csv", type=lambda p: os.path.abspath(p),
                                     required=False, dest="call_file", help="path to called read file")
 
-        process_parser.add_argument("--call_scheme", default=os.path.join(self.base_path, "schemes", "call_scheme.json"),
+        process_parser.add_argument("--call_scheme", default="call_scheme.json",
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="call_scheme", help="path to call scheme json file")
 
@@ -138,8 +138,7 @@ class CommandLine:
 
         filter_parser.add_argument("--calls", "-c", default="calls.csv", type=lambda p: os.path.abspath(p),
                                    required=False, dest="call_file", help="path to called read file")
-
-        filter_parser.add_argument("--call_scheme", default=os.path.join(self.base_path, "schemes", "call_scheme.json"),
+        filter_parser.add_argument("--call_scheme", default="call_scheme.json",
                                    type=lambda p: os.path.abspath(p), required=False,
                                    dest="call_scheme", help="path to call scheme json file")
 

@@ -17,11 +17,20 @@ class DartPreparator:
 
     def __init__(self, file_path, output_name="dartqc", output_path=os.getcwd(), excel_sheet=""):
 
-        self.base_path = os.path.dirname(
-            os.path.dirname(
-                os.path.realpath(__file__)))
-
-        self.config_file = os.path.join(self.base_path, "schemes", "excel_scheme.json")
+        self.config = {
+            "clone_column": [
+                "CloneID"
+            ],
+            "allele_column": [
+                "AlleleID"
+            ],
+            "sequence_column": [
+                "AlleleSequence"
+            ],
+            "replication_column": [
+                "RepAvg"
+            ]
+        }
 
         self.file_path = file_path
         self.output_name = output_name
@@ -44,7 +53,6 @@ class DartPreparator:
         if self.excel_sheet:
             self._convert_excel()
 
-        self._read_config()
         self._read_csv()
         self._get_row_indices()
         self._get_column_indices()
@@ -64,11 +72,6 @@ class DartPreparator:
         data_xls.to_csv(outfile, encoding='utf-8', index=False)
 
         self.file_path = outfile
-
-    def _read_config(self):
-
-        with open(self.config_file, "r") as infile:
-            self.config = json.load(infile)
 
     def _read_csv(self):
 

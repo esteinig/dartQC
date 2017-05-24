@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from distutils.core import setup
 
 
 def readme():
@@ -14,5 +14,6 @@ setup(name='dartqc',
       license='MIT',
       packages=["dartqc"],
       scripts=['bin/dartqc'],
-      include_package_data=True,
+      package_dir={"dartqc": "dartqc"},
+      package_data={"dartqc": "env/dartqc.yaml"},
       zip_safe=False)
