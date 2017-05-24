@@ -3,7 +3,7 @@
 import os
 
 from dartqc.DartUtils import stamp, CommandLine, Installer
-
+import pkg_resources
 
 def main():
 
@@ -16,7 +16,8 @@ def main():
         exit(0)
 
     if args["subparser"] == "install":
-        Installer()
+        stamp([f for f in pkg_resources.resource_listdir('', '')
+              if f.endswith('.json')])
         exit(0)
 
     from dartqc.DartWriter import DartWriter
@@ -77,6 +78,9 @@ def _filter_dart(args):
     else:
         data, attributes = _read_dart(args)
 
+    # Insert summary module here for before filtering snapshot of data (including parameters)
+    # otherwise find summary of modules in attributes (removed, retained)
+
     data, attributes = _filter_mind(args, data, attributes)
 
     data, attributes = _filter_monomorphic(args, data, attributes)
@@ -92,31 +96,26 @@ def _filter_monomorphic(args, data, attributes):
 
     from dartqc.DartModules import PopulationModule
 
-    if args["mono"] is not None:
-        stamp("Initialising Population Module to remove SNPs that are monomorphic in",
-              args["mono"], "populations")
-        pm = PopulationModule(data=data, attributes=attributes)
-        pm.filter_data(args["mono"], parameter="mono")
+    if args["pop_file"] is None:
+        stamp("Cannot load Population Module, no population file specified.")
+        return data, attributes
 
-        # Single threshold use only:
-        data, attributes = pm.get_data(args["mono"], parameter="mono")
+    if args["mono"] is not None:
+        pm = PopulationModule(data=data, attributes=attributes)
+        data, attributes = pm.get_data(args["mono"], comparison=args["mono_comp"])
 
     return data, attributes
 
 
 def _filter_mind(args, data, attributes):
 
-    from dartqc.DartModules import PopulationModule
+    from dartqc.DartModules import SampleModule
 
     if args["mind"][0] is not None:
-        stamp("Initialising Population Module...")
-        stamp("Removing samples with missing data >", args["mind"][0])
+        im = SampleModule(data, attributes)
 
-        pm = PopulationModule(data=data, attributes=attributes)
-        pm.filter_data(args["mind"], parameter="mind")
-
-        # Single threshold use only:
-        data, attributes = pm.get_data(args["mind"][0], parameter="mind")
+        # Not recalculating as MIND before SNP Module
+        data, attributes = im.filter_data(mind=args["mind"], recalculate=False)
 
     return data, attributes
 

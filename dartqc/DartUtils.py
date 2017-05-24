@@ -95,8 +95,6 @@ class CommandLine:
 
         install_parser = subparsers.add_parser("install")
 
-
-
         install_parser.set_defaults(subparser='install')
 
         prepare_parser = subparsers.add_parser("prepare")
@@ -158,6 +156,8 @@ class CommandLine:
                                    dest="mind", help="filter samples > missingness per sample")
         filter_parser.add_argument("--mono", default=None,
                                    dest="mono", help="filter samples monomorphic in <mono> populations ('all', int)")
+        filter_parser.add_argument("--mono_comparison", default="==",
+                                   dest="mono_comp", help="filter samples monomorphic in >=, <=, == populations ('==')")
 
         filter_parser.add_argument("--split_clones", default="", type=str, dest="split_clones",
                                    help="split clone ids on this character")

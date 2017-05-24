@@ -280,14 +280,12 @@ class DartReader:
 
     def get_data(self):
 
-        samples = {k: {"pop": v} for (k, v) in self.meta.items()}
-
         attributes = {
 
             "project": self.project,
             "sample_size": self.sample_size,
             "sample_names": self.sample_names,
-            "samples": samples,
+            "pops": self.meta,
             "missing": self._dart_qc_encoding[self.missing],
             "heterozygous": self._dart_qc_encoding[self.heterozygous],
             "homozygous_minor": self._dart_qc_encoding[self.homozygous_minor],

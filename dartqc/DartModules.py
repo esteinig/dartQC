@@ -4,6 +4,7 @@ import os
 import shutil
 from subprocess import call
 
+import pandas
 import numpy
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
@@ -11,6 +12,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from scipy import stats
 
+from dartqc.DartUtils import stamp
 from dartqc.DartMessages import DartMessages
 
 
@@ -110,14 +112,11 @@ class PopulationModule(QualityControl):
 
         self.name = "population"
 
-        self.samples = attributes["samples"]                  # Dictionary of individual parameters by name, unique.
-        self.sample_names = attributes["sample_names"]        # List of ordered unique names, same order as calls for SNPs
+        self.pops = attributes["pops"]
+        self.sample_names = attributes["sample_names"]  # List of ordered unique names, same order as calls for SNPs
 
-        self.populations = {}                                 # Dictionary of populations and list of sample indices
-        self.monomorphics = {}
-        self.genotypes = numpy.asarray([[]])
-
-        self.filters = {"mind": {}, "mono": {}}                 # Filters for removing: Samples(Mind), SNPs (Mono)
+        self.populations = {}                           # Dictionary of populations and list of member indices
+        self.monomorphics = {}                          # Dictionary of populations and list of mono SNPs for key pop
 
         self.attributes["modules"][self.name] = {}
 
@@ -133,164 +132,84 @@ class PopulationModule(QualityControl):
             "states": {}  # States are other parameters of interest not necessary results or settings.
         }
 
-    def get_data(self, threshold=None, parameter="mind", recalculate=True):
+    def get_data(self, mono="all", comparison="=="):
 
-        """
-        Get filtered data either for missingness per individual or monomorphic SNPs per Population, e.g.
-        Samples < 0.7 MIND or SNP monomorphic in 3 populations
-        """
+        stamp("Initialised Population Module")
 
-        if threshold is None:
+        if mono is None:
+            stamp("No filter specified, returning data.")
             return self.data, self.attributes
 
-        self.attributes["modules"][self.name]["settings"] = {
-            "parameter": parameter,
-            "value": threshold,
-            "recalculate": recalculate  # After missingness per individual, not monomorphic SNPs
+        stamp("Indexing monomorphic SNPs in each population")
+        self._calculate_monomorphics()
+
+        for pop, indices in self.populations.items():
+            stamp("There are", len(indices), "sample in population", pop)
+
+        for pop, monomorphs in self.monomorphics.items():
+            stamp("There are", len(monomorphs), "monomorphic SNPs in population", pop)
+
+        # If threshold is string 'all', set to all populations.
+
+        stamp("Filtering SNPs that are monomorphic in", mono, "populations.")
+
+        if mono == "all":
+            mono = len(self.populations)
+
+        if comparison == "==":
+            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] == mono}
+        elif comparison == ">=":
+            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] >= mono}
+        elif comparison == "<=":
+            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] <= mono}
+        else:
+            raise ValueError("Comparison must be one of: <=, >=, ==")
+
+        stamp("Filtered", len(filtered_data), "SNPs.")
+
+        attributes = self._log_monomorphic(self.attributes, filtered_data, mono)
+
+        return filtered_data, attributes
+
+    def _log_monomorphic(self, attributes, filtered_data, mono):
+
+        attributes["modules"][self.name]["settings"] = {
+            "parameter": "mono",
+            "value": mono,
         }
 
-        if parameter == "mind":
-
-            filtered_data = {}
-            for snp, data in self.data.items():
-                calls = [snp_call for i, snp_call in enumerate(data["calls"])
-                         if i not in self.filters["mind"][threshold]]
-                filtered_data[snp]["calls"] = calls
-
-            # Adjust attribute file, and log the thresholds:
-
-            self._adjust_attributes(threshold=threshold, parameter=parameter)
-
-            # Re-calculate statistics for SNPs, except Monomorphic (need Fix):
-            if recalculate:
-                marker = SNPModule(filtered_data, self.attributes)
-                filtered_data, attributes = marker.get_data(threshold=None)
-            else:
-                attributes = self.attributes
-
-            return filtered_data, attributes
-
-        elif parameter == "mono":
-
-            # If threshold is string 'all', set to all populations.
-
-            if threshold == "all":
-                threshold = len(self.populations)
-
-            data = {k: v for (k, v) in self.data.items() if v["mono"] != threshold}
-
-            self._log_monomorphic(data, threshold, parameter)
-
-            return data, self.attributes
-
-    def _log_monomorphic(self, data, threshold, parameter):
-
-        self.attributes["modules"][self.name]["results"][parameter] = {
-            "pops": threshold,  # snp monomorphic in n pops
+        attributes["modules"][self.name]["results"] = {
             "before": len(self.data),
-            "after": len(data),
-            "removed": len(self.data) - len(data)
+            "after": len(filtered_data),
+            "removed": len(self.data) - len(filtered_data)
         }
 
-        self.attributes["modules"][self.name]["states"][parameter] = {
+        attributes["modules"][self.name]["states"] = {
             "monomorphic": self.monomorphics
         }
 
-    def _adjust_attributes(self, threshold, parameter):
-
-        self.attributes["modules"][self.name]["results"][parameter] = {
-            "value": threshold,
-            "removed_samples": len(self.filters["mind"][threshold])
-        }
-
-        self.attributes["modules"][self.name]["states"][parameter] = {
-            "sample_names_original": self.attributes["sample_names"],
-            "samples_original": self.attributes["samples"],
-            "sample_size_original": self.attributes["samples"]
-        }
-
-        self.attributes["sample_names"] = [name for i, name in enumerate(self.sample_names)
-                                           if i not in self.filters["mind"][threshold]]
-
-        self.attributes["samples"] = {k: v for (k, v) in self.samples.items()
-                                      if k in self.attributes["sample_names"]}
-
-        self.attributes["sample_size"] -= len(self.filters["mind"][threshold])
-
-    def filter_data(self, thresholds, parameter="mind", comparison=">"):
-
-        """
-        Create the filter dictionary with missingness per individual > threshold, or monomorphic in number of
-        populations == threshold...
-
-        """
-
-        self._calculate_mind()
-        self._calculate_monomorphics()
-
-        for threshold in thresholds:
-
-            if parameter == "mind":
-                if comparison == ">":
-                    filtered = [self.sample_names.index(name) for name, data in self.samples.items()
-                                if data["mind"] > threshold]
-                elif comparison == "<=":
-                    filtered = [self.sample_names.index(name) for name, data in self.samples.items()
-                                if data["mind"] <= threshold]
-                elif comparison == "==":
-                    filtered = [self.sample_names.index(name) for name, data in self.samples.items()
-                                if data["mind"] == threshold]
-                try:
-                    self.filters["mind"][threshold] = filtered
-                except KeyError:
-                    self.filters["mind"] = {threshold: filtered}
-
-            elif parameter == "mono":
-                filtered = [snp for snp, data in self.data.items() if data["mono"] == threshold]
-
-                try:
-                    self.filters["mono"][threshold] = filtered
-                except KeyError:
-                    self.filters["mono"] = {threshold: filtered}
+        return attributes
 
     def _get_sample_indices(self):
 
         """
-        Make a dictionary from the individual parameters and ordered name list to get indices of samples for each
-        population.
+        For each population get indices of sample names.
 
         """
 
-        for name, parameters in self.samples.items():
+        for name, pop in self.pops.items():
             name_index = self.sample_names.index(name)
-            if parameters["pop"] not in self.populations:
-                self.populations[parameters["pop"]] = [name_index]
+            if pop not in self.populations:
+                self.populations[pop] = [name_index]
             else:
-                self.populations[parameters["pop"]].append(name_index)
-
-    def _transform(self):
-
-        """ Sort the markers alphabetically and transform the data to a genotype array (row per individual) """
-
-        snp_order = sorted(self.data.keys())                # SNPs are ordered alphabetically.
-
-        snp_rows = [self.data[allele_id]["calls"] for allele_id in snp_order]
-
-        return numpy.asarray(snp_rows).transpose()       # Same order as input names and populations.
-
-    def _calculate_mind(self):
-
-        """
-        Calculate rate of missing markers per individual and add to individual dictionary.
-        """
-
-        genotypes = self._transform()
-
-        for i in range(len(genotypes)):
-            missing = genotypes[i].tolist().count(self.missing)/len(genotypes[i])
-            self.samples[self.sample_names[i]]["mind"] = missing
+                self.populations[pop].append(name_index)
 
     def _calculate_monomorphics(self):
+
+        """
+        For each
+        :return:
+        """
 
         for pop in self.populations.keys():
             self.monomorphics[pop] = []
@@ -299,29 +218,125 @@ class PopulationModule(QualityControl):
             number = 0
             for pop, indices in self.populations.items():
 
-                calls = set([snp_call for i, snp_call in enumerate(data["calls"])
+                # For each SNP get the unique set of calls that is not missing and belongs to the population (pop)
+                calls = set([snp_call for i, snp_call in self._iterate_call_indices(data["calls"])
                              if i in indices and snp_call != self.missing])
+
+                # If all calls in this set are the same (i.e. 1, 2 or 0) then
+                # declare SNP monomorphic for this population
+
                 if len(calls) == 1:
                     self.monomorphics[pop].append(snp)
                     number += 1
+
+                # Repeat for each population
+
+            # When done, add the total number of population the SNP
+            # is monomorphic to the data for this SNP
+
             self.data[snp]["mono"] = number
 
-    def _calculate_maf(self, calls):
+    @staticmethod
+    def _iterate_call_indices(calls):
+
+        for i, snp_call in enumerate(calls):
+            yield i, snp_call
+
+
+class SampleModule(QualityControl):
+
+    def __init__(self, data, attributes):
+
+        QualityControl.__init__(self, data, attributes)
+
+        self.name = "individual"
+
+        self.attributes["modules"][self.name] = {}
+
+        self._set_log()
+
+        stamp("Inititating Sample Module.")
+
+    def _set_log(self):
+
+        self.attributes["modules"][self.name] = {
+            "results": {},
+            "settings": {},
+            "states": {}  # States are other parameters of interest not necessary results or settings.
+        }
+
+    def filter_data(self, mind=0.2, recalculate=True):
 
         """
-        Calculates minor allele frequency for a single SNP. Pass a one-row format list (zip on double-row)
-        of allele calls. Returns the minimum allele frequency for processing.
+        Re-write with Pandas
         """
 
-        adjusted_samples = self.sample_size - calls.count(self.missing)
-        het_count = calls.count(self.heterozygous)
-        try:
-            freq_allele_one = (calls.count(self.homozygous_major) + (het_count/2)) / adjusted_samples
-            freq_allele_two = (calls.count(self.homozygous_minor) + (het_count/2)) / adjusted_samples
-        except ZeroDivisionError:
-            return 0
+        if mind is None:
+            stamp("Returning data without filtering.")
+            return self.data, self.attributes
 
-        return min(freq_allele_one, freq_allele_two)
+        stamp("Filtering samples with missing data >", mind)
+        stamp("Missing data calculated over", len(self.data), "SNPs")
+
+        mind_prop = self._calculate_mind()
+
+        to_remove = mind_prop[mind_prop > mind].index.tolist()
+
+        filtered_data = {}
+        for snp, data in self.data.items():
+            data["calls"] = [snp_call for i, snp_call in self._iterate_call_indices(data["calls"])
+                             if i not in to_remove]
+            filtered_data[snp] = data
+
+        attributes = self._adjust_attributes(self.attributes, mind, to_remove)
+
+        percent_removed = format((len(to_remove) / attributes["sample_size"])*100, ".2f")
+
+        stamp("Removed {r} samples out of {t} samples ({p}%)"
+              .format(r=len(to_remove), t=attributes["sample_size"], p=percent_removed))
+
+        # Recalculating SNP parameters:
+
+        if recalculate:
+            stamp("Recalculating MAF, CALL RATE and HWE for SNPs")
+            marker = SNPModule(filtered_data, attributes)
+            filtered_data, attributes = marker.get_data(threshold=None)
+
+        return filtered_data, attributes
+
+    @staticmethod
+    def _iterate_call_indices(calls):
+
+        for i, snp_call in enumerate(calls):
+            yield i, snp_call
+
+    def _calculate_mind(self):
+
+        calls = {snp_id: data["calls"] for snp_id, data in self.data.items()}
+        df = pandas.DataFrame(calls)
+        mind = (df == self.missing).sum(axis=1)
+        mind /= len(self.data)  # Series
+
+        return mind
+
+    def _adjust_attributes(self, attributes, mind, to_remove):
+
+        attributes["modules"][self.name]["results"]["mind"] = {
+            "value": mind,
+            "removed_samples": len(to_remove)
+        }
+
+        attributes["modules"][self.name]["states"]["mind"] = {
+            "sample_names_original": attributes["sample_names"],
+            "sample_size_original": attributes["sample_size"]
+        }
+
+        attributes["sample_names"] = [name for i, name in enumerate(self.sample_names)
+                                      if i not in to_remove]
+
+        attributes["sample_size"] -= len(to_remove)
+
+        return attributes
 
 ########################################################################################################################
 
@@ -691,7 +706,7 @@ class SNPModule(QualityControl):
         """
 
         if comparison not in ["<=", ">=", "=="]:
-            raise(ValueError("Comparison must be one of: <=, >=, =="))
+            raise ValueError("Comparison must be one of: <=, >=, ==")
 
         for threshold in thresholds:
             if threshold is not None:

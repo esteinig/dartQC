@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def readme():
@@ -12,6 +12,7 @@ setup(name='dartqc',
       author='Eike J. Steinig',
       author_email='eikejoachim.steinig@my.jcu.edu.au',
       license='MIT',
-      packages=['dartqc'],
+      packages=["dartqc"],
       scripts=['bin/dartqc'],
+      include_package_data=True,
       zip_safe=False)
