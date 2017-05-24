@@ -4,7 +4,7 @@
 Command line pipeline to facilitate quality control of SNP data from Diversity Array Technologies (DArT). This version is a re-write of the original scripts aiming to be somewhat more user-friendly and executable on JCU's HPC.
 
 <p align="center">
- <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png" height="1024" width="768">
+ <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png" height="768" width="768">
 </p>
 
 #### How to use DartQC
