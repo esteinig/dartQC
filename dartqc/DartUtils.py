@@ -27,7 +27,7 @@ class Installer:
 
         try:
             check_output(["conda", "--version"])
-            stamp("Conda manager detected, usage: conda --version")
+            stamp("Conda manager detected, use: conda --version")
             return True
         except CalledProcessError:
             stamp("Could not detect conda manager, please see README.")
@@ -61,6 +61,7 @@ class Installer:
 
         try:
             with open("install.log", "w") as err_file:
+                stamp("Installing environment for DartQC...")
                 check_output(["conda", "env", "create", "--name", "dartqc", "--file", self.env], stderr=err_file)
 
             stamp("Installed environment, activate with: source activate dartqc")
