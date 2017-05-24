@@ -31,7 +31,7 @@ dartqc filter -- help
 
 Global arguments are specified before the command for a task, like this:
 
-**`dartqc.py`**`--project example --output_path ./example`**`prepare`**`--file example_data.csv`
+**`dartqc`**`--project example --output_path ./example`**`prepare`**`--file example_data.csv`
 
 
 #### Quick Start
