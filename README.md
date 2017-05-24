@@ -22,16 +22,16 @@ This section provides a brief guide of how to install and use the pipeline compo
 DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-dartqc.py --help
+dartqc --help
 
-dartqc.py prepare --help
-dartqc.py process --help
-dartqc.py filter -- help
+dartqc prepare --help
+dartqc process --help
+dartqc filter -- help
 ```
 
-Global arguments are specified *before* the command for a task, like this:
+Global arguments are specified before the command for a task, like this:
 
-**`dartqc.py`**`--prefix example --output_path ./example`**`prepare`**`--file example_data.csv`
+**`dartqc.py`**`--project example --output_path ./example`**`prepare`**`--file example_data.csv`
 
 
 #### Quick Start
@@ -42,11 +42,11 @@ Example workflow without pre-processing from Excel or CSV:
 source activate dartqc
 
 # CSV
-dartqc.py prepare --file example.csv
+dartqc prepare --file example.csv
 # Excel
-dartqc.py prepare --file example.xlsx --sheet double_row_snps
+dartqc prepare --file example.xlsx --sheet double_row_snps
 
-dartqc.py filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
+dartqc filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
 
 source deactivate
 ```
@@ -56,21 +56,23 @@ Example workflow with pre-processing:
 ```
 source activate dartqc
 
-dartqc.py prepare --file calls.csv
-dartqc.py prepare --file raw.csv
+dartqc prepare --file calls.csv
+dartqc prepare --file raw.csv
 
-dartqc.py filter -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_threshold 7
+dartqc filter -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_threshold 7
 
-dartqc.py filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
+dartqc filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
 
 source deactivate
 ```
 
-#### Workflow
+---
 
 <p align="center">
  <img src="https://github.com/esteinig/dartQC/blob/master/workflow.png" height="768" width="768">
 </p>
+
+---
 
 ### Contact
 
