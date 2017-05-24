@@ -15,8 +15,7 @@ def main():
         exit(0)
 
     if args["subparser"] == "install":
-        stamp([f for f in pkg_resources.resource_listdir('', '')
-              if f.endswith('.json')])
+        Installer()
         exit(0)
 
     from dartqc.DartWriter import DartWriter
