@@ -13,9 +13,7 @@ class Installer:
         self.miniconda_url = "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh"
         self.miniconda_install = "Miniconda3-latest-Linux-x86_64.sh"
 
-        self.base_path = os.path.dirname(
-            os.path.dirname(
-                os.path.realpath(__file__)))
+        self.base_path = os.path.realpath(__file__)
 
         self.env = os.path.join(self.base_path, "env", "dartqc.yaml")
 
@@ -73,10 +71,6 @@ class Installer:
 class CommandLine:
 
     def __init__(self):
-
-        self.base_path = os.path.dirname(
-            os.path.dirname(
-                os.path.realpath(__file__)))
 
         parser = argparse.ArgumentParser()
 

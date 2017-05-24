@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 import os
-
 from dartqc.DartUtils import stamp, CommandLine, Installer
-import pkg_resources
+
 
 def main():
 
