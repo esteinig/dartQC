@@ -15,5 +15,5 @@ setup(name='dartqc',
       packages=["dartqc"],
       scripts=['bin/dartqc'],
       package_dir={"dartqc": "dartqc"},
-      package_data={"dartqc": "env/dartqc.yaml"},
+      package_data={"dartqc": ["env/dartqc.yaml"]},
       zip_safe=False)
