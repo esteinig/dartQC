@@ -1,4 +1,1 @@
-include README.md
-include schemes/*.json
-include readme/*.md
-include env/*.yaml
+include docs/*.md
