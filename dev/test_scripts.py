@@ -45,7 +45,7 @@ def test_preprocessing():
     pp.read_count_data("./testData/prawn_read_counts.csv")
 
     # Set all calls to missing < threshold (sum of minor and major read counts for SNP)
-    pp.filter_read_counts(threshold=0)
+    pp.filter_read_counts(threshold=5)
 
     # Export data and attributes for further use in the filtering modules...
     data, attributes = pp.get_data()

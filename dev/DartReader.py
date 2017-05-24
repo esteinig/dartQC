@@ -259,7 +259,6 @@ class DartReader:
         log = {"input": {"snps": len(self.data)}, "filters": [], "output": {}}
 
         attributes = {
-
             "project": self.project,
             "sample_size": self.sample_size,
             "sample_names": self.sample_names,

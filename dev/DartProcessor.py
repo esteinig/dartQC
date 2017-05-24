@@ -14,6 +14,7 @@ class Preprocessor(DartReader):
 
         DartReader.__init__(self)
 
+        self.counts = {}
         self.call_data = call_data
         self.call_attributes = call_attributes
 
@@ -122,6 +123,8 @@ class Preprocessor(DartReader):
         replaced = 0
         total = 0
 
+        self.counts = reduced_counts
+
         print("Replacing low counts with missing...")
 
         for snp, counts in reduced_counts.items():
@@ -143,3 +146,9 @@ class Preprocessor(DartReader):
     def get_data(self):
 
         return self.call_data, self.call_attributes
+
+    def get_counts(self):
+        return self.counts
+
+    def get_read_data(self):
+        return self.data

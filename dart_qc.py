@@ -251,7 +251,7 @@ class CommandLine:
                                  help="Select best clustered sequences by filter (call_rate, maf, rep) [maf]")
         
         self.parser.add_argument("--cdhit", dest="cdhit", default="cdhit-est", required=False, type=str,
-                                 help="cdhit exec (cdhit-est))
+                                 help="cdhit exec (cdhit-est)")
 
         ### Other ###
 

@@ -594,7 +594,6 @@ class MarkerModule(QualityControl):
         if threshold is None:
             return self.data, self.attributes
         else:
-
             data = {k: v for (k, v) in self.data.items() if k not in self.filters[parameter][threshold]}
             print(self.messages.get_filter_message(parameter, threshold, len(self.data), len(self.data)-len(data),
                                                    len(data)))
@@ -687,7 +686,6 @@ class MarkerModule(QualityControl):
         """
 
         for snp, data in self.data.items():
-
             self.data[snp]["maf"] = self._calculate_maf(snp, data["calls"])
             self.data[snp]["call_rate"] = self._calculate_call(data["calls"])
             self.data[snp]["hwe"] = self._calculate_hwe(snp, data["calls"])
