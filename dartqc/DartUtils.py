@@ -13,7 +13,7 @@ class Installer:
         self.miniconda_url = "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh"
         self.miniconda_install = "Miniconda3-latest-Linux-x86_64.sh"
 
-        self.base_path = os.path.realpath(__file__)
+        self.base_path = os.path.dirname(os.path.realpath(__file__))
 
         self.env = os.path.join(self.base_path, "env", "dartqc.yaml")
 
@@ -39,7 +39,7 @@ class Installer:
 
         try:
             stamp("Downloading and installing...")
-            with open("install.log", "a") as err_file:
+            with open("install.log", "w") as err_file:
                 check_output(["wget", self.miniconda_url, "&&", "bash", self.miniconda_install,
                               "-b", "-p", "$HOME/miniconda"], stderr=err_file)
                 stamp("Success. Removing installer for miniconda...")
@@ -49,7 +49,7 @@ class Installer:
 
         try:
             stamp("Adding $HOME/miniconda to PATH.")
-            with open("install.log", "a") as err_file:
+            with open("install.log", "w") as err_file:
                 call("""echo 'export PATH="$HOME/miniconda/bin:$PATH"' >> $HOME/.bashrc && source .bashrc""",
                      stderr=err_file)
                 stamp("Done. Testing...")
@@ -60,7 +60,7 @@ class Installer:
     def _install_env(self):
 
         try:
-            with open("install.log", "a") as err_file:
+            with open("install.log", "w") as err_file:
                 check_output(["conda", "env", "create", "--name", "dartqc", "--file", self.env], stderr=err_file)
 
             stamp("Installed environment, activate with: source activate dartqc")
