@@ -10,13 +10,15 @@ Arguments:
 --name, -n      name of output file, otherwise: <input_name>_scheme.json
 ```
 
-This task's main function is to generate a scheme file, so that subsequent modules know where to find the right rows and columns in the input data `--file`.  **Input is the double-row format for SNPs by DArT**. 
+ **Input is the double-row format for SNPs by DArT**. 
+
+This task's main function is to generate a scheme file, so that subsequent modules know where to find the right rows and columns in the input data `--file`.
 
 Executing this task will attempt to guess which rows and columns the data are in and output a JSON. You can also specify a sheet name with `--sheet`, which will convert an Excel sheet from `--file` to CSV. This task needs to be run for both raw and called read files to generate both `--raw_scheme` and `--call_scheme`, if you are later using the task [`process`](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md).
 
 ### Data Formatting
 
-Note that the data from DArT needs to include `CloneID` as a simple number, such as: `12753571`.
+Data input is the double row format provided by DArT. Note that the data needs to include `CloneID` as a simple number, such as: `12753571`. Heterozygous calls are specified in the data as `11`, homozygous minor calls as `01` and homozygous major calls as `10`.
 
 ### Examples
 
