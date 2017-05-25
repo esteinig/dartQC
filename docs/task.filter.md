@@ -32,6 +32,8 @@ Inputs are either the call data and scheme files with `--calls` and `--call_sche
 The following filters remove samples:
 - `--mind` > missing data per sample across all SNPs, default is None
 
+Note: `--mind` is really slow at the moment, especially with larger sample sizes.
+
 The following filters remove SNPs:
 - `--maf` <= minor allele frequency, default is None
 - `--call_rate` <= call rate of SNP, default is None
