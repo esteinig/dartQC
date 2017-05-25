@@ -11,10 +11,10 @@ Command line pipeline to facilitate quality control of SNP data from Diversity A
 
 This section provides a brief guide of how to install and use the pipeline components. This assumes you are using a Bash shell on a local Unix system or the JCU's HPC (Zodiac).
 
-1. [Install DartQC](https://github.com/esteinig/dartQC/blob/master/readme/install.md)
-2. [Task: prepare](https://github.com/esteinig/dartQC/blob/master/readme/task.prepare.md)
-3. [Task: process](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md)
-4. [Task: filter](https://github.com/esteinig/dartQC/blob/master/readme/task.filter.md)
+1. [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md)
+2. [Task: prepare](https://github.com/esteinig/dartQC/blob/master/docs/task.prepare.md)
+3. [Task: process](https://github.com/esteinig/dartQC/blob/master/docs/task.process.md)
+4. [Task: filter](https://github.com/esteinig/dartQC/blob/master/docs/task.filter.md)
 5. [DartQC on Zodiac]()
 
 #### Tasks
