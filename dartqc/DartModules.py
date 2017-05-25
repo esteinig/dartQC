@@ -51,15 +51,124 @@ class SummaryModule:
             writer = csv.writer(snp_summary)
             writer.writerows(out_data)
 
-    def write_preprocessing_summary(self):
+    def write_module_summary(self, file="module_summary.csv"):
 
-        pass
+        # Function at the moment for command line, hard-coded, need to fix.
 
-    def write_module_summary(self):
+        params_snp, removed_snp = self._get_snp_results()
+        params_red, removed_red = self._get_redundancy_results()
+        params_pop, removed_pop = self._get_pop_results()
+        params_sam, removed_sam = self._get_sample_results()
+        params_ppr, removed_ppr = self._get_preprocessing_results()
 
-        # Function at the moment for command line, hard-coded Population, SNP and Redundancy Modules.
+        project_param = {"project": self.attributes["project"], "snps": self.attributes["snps"]}
 
-        pass
+        snp_removed = self._get_snp_sum([removed_red, removed_pop, removed_snp])
+        project_removed = {"project": self.attributes["project"], "snps": snp_removed}
+
+        row_param = {k: v for d in [project_param, params_ppr, params_sam, params_pop, params_snp, params_red]
+                     for k, v in d.items()}
+        row_removed = {k: v for d in [project_removed, removed_ppr, removed_sam, removed_pop, removed_snp, removed_red]
+                       for k, v in d.items()}
+
+        df = pandas.DataFrame([row_param, row_removed], index=["parameters", "removed"])
+
+        out_file = os.path.join(self.out_path, file)
+
+        df.to_csv(out_file)
+
+    @staticmethod
+    def _get_snp_sum(dicts):
+
+        s = 0
+        for d in dicts:
+            for k, v in d.items():
+                if k in ("maf", "hwe", "rep_average", "monomorphic", "call_rate", "clusters", "duplicates"):
+                    if v is not None:
+                        s += int(v)
+
+        return s
+
+    def _get_snp_results(self):
+
+        """Extract entry from Attributes"""
+
+        try:
+            results = self.attributes["modules"]["snp"]["results"]
+            parameters = self.attributes["modules"]["snp"]["settings"]["parameters"]
+
+            params = {entry[0]: entry[1] for entry in parameters}
+            removed = {param: result["removed"] for param, result in results.items()}
+
+        except KeyError:
+            stamp("Could not detect results for SNP Module, skipping...")
+
+            params = {"maf": None, "hwe": None, "call_rate": None, "rep_average": None}
+            removed = {"maf": None, "hwe": None, "call_rate": None, "rep_average": None}
+
+        return params, removed
+
+    def _get_sample_results(self):
+
+        try:
+            removed = {"mind": self.attributes["individual"]["results"]["mind"]["removed_samples"],
+                       "samples": self.attributes["individual"]["results"]["mind"]["removed_samples"]}
+
+            params = {"mind": self.attributes["individual"]["results"]["mind"]["value"],
+                      "samples": len(self.attributes["individual"]["states"]["mind"]["sample_names_original"])}
+
+        except KeyError:
+            stamp("Could not detect results for Sample Module, skipping...")
+
+            params = {"mind": None, "samples": None}
+            removed = {"mind": None, "samples": None}
+
+        return params, removed
+
+    def _get_pop_results(self):
+
+        try:
+            removed = {"monomorphic": self.attributes["modules"]["population"]["results"]["removed"]}
+            params = {"monomorphic": self.attributes["modules"]["population"]["settings"]["value"]}
+        except KeyError:
+            stamp("Could not detect results for Population Module, skipping...")
+            params = {"monomorphic": None}
+            removed = {"monomorphic": None}
+
+        return params, removed
+
+    def _get_redundancy_results(self):
+
+        try:
+            parameters = self.attributes["modules"]["redundancy"]["settings"]
+            params = {"clusters": parameters["clusters"], "duplicates": parameters["duplicates"],
+                      "identity:": parameters["identity"]}
+            results = self.attributes["modules"]["redundancy"]["results"]
+
+            removed = {"clusters": results["clusters"]["removed"], "duplicates": results["duplicates"]["removed"],
+                       "identity": None}
+        except KeyError:
+            stamp("Could not detect results for Redundancy Module, skipping...")
+            params = {"clusters": None, "duplicates": None, "identity": None}
+            removed = {"clusters": None, "duplicates": None, "identity": None}
+
+        return params, removed
+
+    def _get_preprocessing_results(self):
+
+        try:
+            params = {"preprocess": self.attributes["modules"]["preprocessor"]["settings"]["read_count_sum_threshold"],
+                      "calls": self.attributes["modules"]["preprocessor"]["settings"]["results"]["total_calls"],
+                      "missing": self.attributes["modules"]["preprocessor"]["settings"]["results"]["before_missing"]}
+            removed = {"preprocess": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
+                       "calls": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
+                       "missing": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"]}
+        except KeyError:
+            stamp("Could not detect results for Preprocessing Module, skipping...")
+            params = {"preprocess": None, "calls": None, "missing": None}
+            removed = {"preprocess": None, "calls": None, "missing": None}
+
+        return params, removed
 
     def write_matrix(self, combination_matrix, r_matrix=None, file="combination_table.csv", r_file="r_matrix.csv"):
 
@@ -144,7 +253,7 @@ class PopulationModule(QualityControl):
         self._calculate_monomorphics()
 
         for pop, indices in self.populations.items():
-            stamp("There are", len(indices), "sample in population", pop)
+            stamp("There are", len(indices), "samples in population", pop)
 
         for pop, monomorphs in self.monomorphics.items():
             stamp("There are", len(monomorphs), "monomorphic SNPs in population", pop)
@@ -157,15 +266,17 @@ class PopulationModule(QualityControl):
             mono = len(self.populations)
 
         if comparison == "==":
-            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] == mono}
+            filtered = {snp: data for snp, data in self.data.items() if data["mono"] == mono}
         elif comparison == ">=":
-            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] >= mono}
+            filtered = {snp: data for snp, data in self.data.items() if data["mono"] >= mono}
         elif comparison == "<=":
-            filtered_data = {snp: data for snp, data in self.data.items() if data["mono"] <= mono}
+            filtered = {snp: data for snp, data in self.data.items() if data["mono"] <= mono}
         else:
             raise ValueError("Comparison must be one of: <=, >=, ==")
 
-        stamp("Filtered", len(filtered_data), "SNPs.")
+        filtered_data = {snp: data for snp, data in self.data.items() if snp not in filtered}
+
+        stamp("Filtered", len(filtered), "SNPs.")
 
         attributes = self._log_monomorphic(self.attributes, filtered_data, mono)
 
@@ -205,11 +316,6 @@ class PopulationModule(QualityControl):
                 self.populations[pop].append(name_index)
 
     def _calculate_monomorphics(self):
-
-        """
-        For each
-        :return:
-        """
 
         for pop in self.populations.keys():
             self.monomorphics[pop] = []
@@ -369,7 +475,15 @@ class RedundancyModule(QualityControl):
     def _set_log(self):
 
         self.attributes["modules"][self.name] = {
-            "results": {},
+            "results": {"clusters": {
+                "before": None,
+                "after": None,
+                "removed": None
+        }, "duplicates": {
+                "before": None,
+                "after": None,
+                "removed": None
+        }},
             "settings": {},
             "states": {}  # States are other parameters of interest not necessary results or settings.
         }

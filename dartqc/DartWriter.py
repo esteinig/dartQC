@@ -35,7 +35,7 @@ class DartWriter:
         genotypes = [sample.flatten().tolist() for sample in snps_by_sample]
 
         names = self.attributes["sample_names"]
-        pops = [self.attributes["samples"][sample]["pop"] for sample in names]
+        pops = [self.attributes["pops"][sample] for sample in names]
 
         if remove_space:
             names = ["_".join(name.split()) for name in names]

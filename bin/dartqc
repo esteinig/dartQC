@@ -11,7 +11,7 @@ def main():
     args = vars(cmd_line.args)
 
     if args["version"]:
-        print("0.1.1")
+        print("0.1.2")
         exit(0)
 
     if args["subparser"] == "install":
@@ -50,9 +50,10 @@ def main():
 
         stamp("Initialising Summary Module...")
         # Summary module for writing a summary of SNP parameters:
-        sm = SummaryModule(data=data, attributes=attributes)
+        sm = SummaryModule(data=data, attributes=attributes, out_path=args["out_path"])
 
         sm.write_snp_summary(summary_parameters=["maf", "call_rate", "rep_average", "hwe"])
+        sm.write_module_summary()
 
         stamp("Initialising Writing Module...")
         dart_writer = DartWriter(data, attributes)
@@ -117,7 +118,7 @@ def _filter_mind(args, data, attributes):
         im = SampleModule(data, attributes)
 
         # Not recalculating as MIND before SNP Module
-        data, attributes = im.filter_data(mind=args["mind"], recalculate=False)
+        data, attributes = im.filter_data(mind=args["mind"][0], recalculate=False)
 
     return data, attributes
 
