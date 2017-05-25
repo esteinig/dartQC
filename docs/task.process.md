@@ -1,5 +1,17 @@
 # Task: Process
 
+```
+dartqc process [--help] --raw [--raw_scheme] --calls [--call_scheme] [--read_sum]
+
+Arguments:
+
+--raw, -r         path to raw read count csv file
+--raw_scheme      path to raw scheme json file
+--calls, -c       path to call csv file
+--call_scheme     path to call scheme json file
+--read_sum        set all calls to missing where sum of read counts < read_sum
+```
+
 This tasks runs a pre-processing step on the call data, given raw read counts that can be requested from DArT. At the moment, the pre-processing is based on the sum of both allele counts for each SNP:
 
 1. Inputs are the raw and called data files; the module first checks for congruence of samples and SNP IDs (`AlleleID`), keeping the intersection between raw and called data.
