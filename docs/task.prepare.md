@@ -1,5 +1,15 @@
 ## Task: Prepare
 
+```
+dartqc prepare [--help] --file [--sheet] [--name]
+
+Arguments:
+
+--file, -f      path to csv file for raw or called data
+--sheet, -s     name of sheet to convert to csv if file is excel
+--name, -n      name of output file, otherwise: <input_name>_scheme.json
+```
+
 This task's main function is to generate a scheme file, so that subsequent modules know where to find the right rows and columns in the input data `--file`.  **Input is the double-row format for SNPs by DArT**. 
 
 Executing this task will attempt to guess which rows and columns the data are in and output a JSON. You can also specify a sheet name with `--sheet`, which will convert an Excel sheet from `--file` to CSV. This task needs to be run for both raw and called read files to generate both `--raw_scheme` and `--call_scheme`, if you are later using the task [`process`](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md).
