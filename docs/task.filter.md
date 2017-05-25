@@ -32,14 +32,14 @@ Inputs are either the call data and scheme files with `--calls` and `--call_sche
 The following filters remove samples:
 - `--mind` > missing data per sample across all SNPs, default is None
 
-Note: `--mind` is really slow at the moment, especially with larger sample sizes.
+Note: `--mind` is slow at the moment, especially with larger sample sizes, needs to be fixed.
 
 The following filters remove SNPs:
 - `--maf` <= minor allele frequency, default is None
 - `--call_rate` <= call rate of SNP, default is None
 - `--hwe` <= p-value of Hardy-Weinberg Equilibrium, default is None
 - `--rep` <= replicatation average provided by DArT, default is None
-- `--mono` == 'all' or int, remove monoorphic snps in mono populations, needs global option --pop
+- `--mono` == 'all' or int, remove mononorphic snps in --mono populations, needs global option --pop
 
 The following filters apply redundancy tests after filtering SNPs:
 - `--duplicates`: remove SNPs wit duplicate `CloneID`, default False
