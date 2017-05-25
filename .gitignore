@@ -8,3 +8,5 @@ out
 __pycache__
 testData
 testData/*
+/testData/prawn_data_double.csv
+/testData/prawn_read_counts.csv
