@@ -28,7 +28,7 @@ Make sure you have generated the scheme files for both raw and call data manuall
 
 For call and raw read data in current working directory:
 
-`dartqc.py --project preprocess process --calls example_calls.csv --call_scheme example_calls_scheme.json --raw example_raw.csv --raw_scheme example_raw_scheme.json --read_threshold 10`
+`dartqc process --calls example_calls.csv --call_scheme example_calls_scheme.json --raw example_raw.csv --raw_scheme example_raw_scheme.json --read_sum 10`
 
 This generates outputs: `preprocess_data.json` and `preprocess_attr.json`
 
