@@ -36,6 +36,11 @@ Tasks:
 dartqc prepare --help
 dartqc process --help
 dartqc filter -- help
+
+Support Tasks:
+
+dartqc install --help
+dartqc pbs --help
 ```
 
 Global arguments are specified before the command for a task, like this:
