@@ -41,7 +41,6 @@ class DartPreparator:
         self.limit = 30
 
         self.top = None
-        self.config = None
 
         self.data_row = 0
         self.sample_row = 0

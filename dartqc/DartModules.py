@@ -33,7 +33,7 @@ class SummaryModule:
     def write_snp_summary(self, file="snp_summary.csv", summary_parameters=None, sort=False):
 
         if summary_parameters is None:
-            summary_parameters = ["maf", "read_count_ref", "hwe"]
+            summary_parameters = ["maf", "hwe", "rep", "call_rate"]
 
         out_file = os.path.join(self.out_path, file)
 

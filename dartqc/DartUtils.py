@@ -175,7 +175,7 @@ class CommandLine:
                                     help="silence call if ref and snp allele raw read sum < threshold")
 
         process_parser.add_argument("--calls", "-c", default="calls.csv", type=lambda p: os.path.abspath(p),
-                                    required=False, dest="call_file", help="path to called read file")
+                                    required=True, dest="call_file", help="path to called read file")
 
         process_parser.add_argument("--call_scheme", default="call_scheme.json",
                                     type=lambda p: os.path.abspath(p), required=False,
