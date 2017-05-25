@@ -23,7 +23,15 @@ This section provides a brief guide of how to install and use DartQC, assuming a
 DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-dartqc --help
+dartqc [--help] [--project] [--output_path] [--pops] task
+
+Arguments:
+
+--project, -p          output prefix
+--output_path, -o      output directory
+--populations, --pop   csv file with header: id, population
+
+Tasks:
 
 dartqc prepare --help
 dartqc process --help
@@ -44,6 +52,7 @@ source activate dartqc
 
 # CSV
 dartqc prepare --file example.csv
+
 # Excel
 dartqc prepare --file example.xlsx --sheet double_row_snps
 
@@ -62,7 +71,7 @@ dartqc prepare --file raw.csv
 
 dartqc filter -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_threshold 7
 
-dartqc filter --processed ./example --maf 0.02 --call_rate 0.7 --duplicates --clusters
+dartqc filter --processed . --maf 0.02 --call_rate 0.7 --duplicates --clusters
 
 source deactivate
 ```
