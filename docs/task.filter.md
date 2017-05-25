@@ -1,5 +1,30 @@
 # Task: Filter
 
+```
+dartqc filter [--help] [--processed PROCESSED_PATH] [--calls CALL_FILE]
+              [--call_scheme CALL_SCHEME] [--maf MAF] [--hwe HWE]
+              [--call_rate CALL_RATE] [--rep REP] [--mind MIND]
+              [--mono MONO] [--mono_comparison MONO_COMP]
+              [--split_clones SPLIT_CLONES] [--duplicates] [--clusters]
+              [--identity IDENTITY]
+              
+Arguments:
+
+--processed           input path to processed data files (project_data.json, project_attr.json)
+--calls, -c           path to called read file
+--call_scheme         path to call scheme json file
+--maf                 filter snps <= minor allele frequency
+--hwe                 filter snps <= p-value of hardy-weinberg test
+--call_rate           filter snps <= call rate of snp
+--rep                 filter snps <= replication average of snp
+--mind                filter samples > missingness per sample
+--mono                filter samples monomorphic in <mono> populations ('all', int)
+--mono_comparison     filter samples monomorphic in >=, <=, == populations ('==')
+--duplicates          remove snps with duplicate clone IDs
+--clusters            remove snps in identical sequence clusters
+--identity            remove snps in identical sequence clusters
+```
+
 Main task to filter SNPs in DartQC.
 
 Inputs are either the call data and scheme files with `--calls` and `--call_scheme` or the directory containing the project's (global option `--project`) pre-processed files with `--preprocessed`.
@@ -29,7 +54,7 @@ Filter call file in working directory by MAF and Call Rate, remove duplicate `Cl
 
 ---
 
-Filter pre-processed files from project `preprocess` in current working directory:
+Filter pre-processed files (`dartqc_data.json`, `dartqc_attr.json`) from project `dartqc` in current working directory:
 
 `dartqc --project preprocess filter --processed . --maf 0.02 --call_rate 0.7`
 
