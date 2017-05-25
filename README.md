@@ -23,7 +23,7 @@ This section provides a brief guide of how to install and use DartQC, assuming a
 DartQC has a hierarchical parser structure that allows you to set global options and execute a task (prepare, process, filter) with its own specific arguments:
 
 ```
-dartqc [--help] [--project] [--output_path] [--pops] task
+dartqc [--help] [--project] [--output_path] [--pop] task
 
 Arguments:
 
