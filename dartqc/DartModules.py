@@ -35,7 +35,7 @@ class SummaryModule:
         if summary_parameters is None:
             summary_parameters = ["maf", "hwe", "rep", "call_rate"]
 
-        out_file = os.path.join(self.out_path, file)
+        out_file = os.path.join(self.out_path, self.attributes["project"] + "_" + file)
 
         out_data = [["id"] + summary_parameters]
 
@@ -73,7 +73,7 @@ class SummaryModule:
 
         df = pandas.DataFrame([row_param, row_removed], index=["parameters", "removed"])
 
-        out_file = os.path.join(self.out_path, file)
+        out_file = os.path.join(self.out_path, self.attributes["project"] + "_" + file)
 
         df.to_csv(out_file)
 
