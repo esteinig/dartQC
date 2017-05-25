@@ -94,6 +94,7 @@ class PBS:
         #PBS -l ncpus=1
         #PBS -l walltime={walltime}
 
+        source ~/.bashrc
         source activate dartqc
         cd $PBS_O_WORKDIR
 
