@@ -1,11 +1,11 @@
 ## Task: pbs
 
 ```
-dartqc pbs --help
+dartqc pbs [--help] [--email] [--walltime]
 
+Arguments:
 --email, -e     email address [user@hpc.jcu.edu.au]
 --walltime, -w  expected run time in hh:mm:ss [02:00:00]
-
 ```
 
 The only purpose of this task is to create a job submission script for PBS/Torque scheduling systems. It is good practice and behaviour  to run the processing and filtering on compute nodes instead of the login node. The command requires an e-mail address for user identification and you can set the expected walltime, default is `02:00:00`. This generates `dartqc.pbs`:
