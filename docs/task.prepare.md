@@ -14,11 +14,17 @@ This task's main function is to generate a scheme file, so that subsequent modul
 
 Executing this task will attempt to guess which rows and columns the data are in and output a JSON. You can also specify a sheet name with `--sheet`, which will convert an Excel sheet from `--file` to CSV. This task needs to be run for both raw and called read files to generate both `--raw_scheme` and `--call_scheme`, if you are later using the task [`process`](https://github.com/esteinig/dartQC/blob/master/readme/task.process.md).
 
+### Data Formatting
+
+Note that the data from DArT needs to include `CloneID` as a simple number, such as: `12753571`.
+
+### Examples
+
 ---
 
 If file (CSV) is in current working directory:
 
-`dartqc.py prepare --file example.csv`
+`dartqc prepare --file example.csv`
 
 This produces output: `example_scheme.json`
 
@@ -26,7 +32,7 @@ This produces output: `example_scheme.json`
 
 If file (Excel) with spreadsheet name (double_row) in current working directory:
 
-`dartqc.py prepare --file example.xlsc --sheet double_row`
+`dartqc prepare --file example.xlsc --sheet double_row`
 
 This produces outputs: `example_scheme.json`, `example.csv`
 
@@ -34,15 +40,11 @@ This produces outputs: `example_scheme.json`, `example.csv`
 
 You can change the output directory with the global option `-o` and change the scheme file name with the task option `--name`:
 
-`dartqc.py -o ./prep prepare --file example.csv --name prep`
+`dartqc -o ./prep prepare --file example.csv --name prep`
 
 This produces output: `./prep/prep_scheme.json`
 
 ---
-
-### Data Formatting
-
-Note that the data from DArT needs to include `CloneID` as a simple number, such as: `12753571`.
 
 ### Data Scheme: Manual
 
