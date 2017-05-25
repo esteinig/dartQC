@@ -152,8 +152,8 @@ class Preprocessor(DartReader):
 
         replaced -= call_missing
 
-        stamp("Pre-processing found", replaced, "/", total, "calls = ", format((replaced/total)*100, ".2f"),
-              "% (excluding calls already designated as missing) with total read depth across two calls <=", threshold)
+        stamp("Pre-processing silenced {r}/{t} calls {p}".format(r=replaced, t=total,
+                                                                 p=format((replaced/total)*100, ".2f")))
 
         self.call_attributes["modules"][self.name]["results"] = {
             "total_calls": total,
