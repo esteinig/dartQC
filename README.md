@@ -69,7 +69,7 @@ source activate dartqc
 dartqc prepare --file calls.csv
 dartqc prepare --file raw.csv
 
-dartqc filter -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_threshold 7
+dartqc process -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_sum 7
 
 dartqc filter --processed . --maf 0.02 --call_rate 0.7 --duplicates --clusters
 
