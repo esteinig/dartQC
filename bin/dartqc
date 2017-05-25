@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-from dartqc.DartUtils import stamp, CommandLine, Installer
+from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
 
 
 def main():
@@ -16,6 +16,10 @@ def main():
 
     if args["subparser"] == "install":
         Installer()
+        exit(0)
+
+    if args["subparser"] == "pbs":
+        PBS(email=args["email"], walltime=args["walltime"])
         exit(0)
 
     from dartqc.DartWriter import DartWriter

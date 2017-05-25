@@ -1,6 +1,7 @@
 import os
 import time
 import argparse
+import textwrap
 
 from subprocess import call, check_output, CalledProcessError
 
@@ -74,6 +75,47 @@ class Installer:
             stamp("Could not install environment, please see install.log and README.")
 
 
+class PBS:
+
+    def __init__(self, walltime="02:00:00", email="user@hpc.jcu.edu.au"):
+
+        self.walltime = walltime
+        self.email = email
+
+        self._write_pbs()
+
+    def _write_pbs(self):
+
+        pbs = textwrap.dedent("""
+        #PBS -S /bin/sh
+        #PBS -M {email}
+        #PBS -m n
+        #PBS -j oe
+        #PBS -l ncpus=1
+        #PBS -l walltime={walltime}
+
+        source activate dartqc
+        cd $PBS_O_WORKDIR
+
+        echo $PATH
+
+        if [ ! "$command" ]
+            then
+                echo -e "Error: script must be supplied with a command"
+                exit 1
+            else
+                echo "$command"
+                eval "$command"
+        fi
+
+        exit 0
+
+        """.format(walltime=self.walltime, email=self.email))
+
+        with open("dartqc.pbs", "w") as outfile:
+            outfile.write(pbs)
+
+
 class CommandLine:
 
     def __init__(self):
@@ -96,6 +138,16 @@ class CommandLine:
         install_parser = subparsers.add_parser("install")
 
         install_parser.set_defaults(subparser='install')
+
+        pbs_parser = subparsers.add_parser("pbs")
+
+        pbs_parser.add_argument("--email", "-e", type=str, default="user@hpc.jcu.edu.au", required=False,
+                                dest="email", help="user email for pbs")
+
+        pbs_parser.add_argument("--walltime", "-w", type=str, default="02:00:00", required=False,
+                                dest="walltime", help="expected walltime for pbs")
+
+        pbs_parser.set_defaults(subparser='pbs')
 
         prepare_parser = subparsers.add_parser("prepare")
 

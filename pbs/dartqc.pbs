@@ -1,0 +1,22 @@
+#PBS -S /bin/sh
+#PBS -M user@hpc.jcu.edu.au
+#PBS -m n
+#PBS -j oe
+#PBS -l ncpus=1
+#PBS -l walltime=02:00:00
+
+source activate dartqc
+cd $PBS_O_WORKDIR
+
+echo $PATH
+
+if [ ! "$command" ]
+    then
+	    echo -e "Error: script must be supplied with a command"
+	    exit 1
+	else
+    	echo "$command"
+	    eval "$command"
+fi
+
+exit 0
