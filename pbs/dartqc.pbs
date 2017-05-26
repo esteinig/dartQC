@@ -3,9 +3,17 @@
 #PBS -m n
 #PBS -j oe
 #PBS -l ncpus=1
+#PBS -l pmem=1gb
 #PBS -l walltime=02:00:00
 
-source activate dartqc
+pypi_install=false
+
+if [ "$pypi_install" = true ] ; then
+    source activate dartqc
+fi
+
+source ~/.bashrc
+
 cd $PBS_O_WORKDIR
 
 echo $PATH
