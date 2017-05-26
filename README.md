@@ -5,7 +5,11 @@ Command line pipeline to facilitate quality control of SNP data from Diversity A
 
 #### Install
 
-`pip install dartqc`
+Requires conda package manager, e.g. `miniconda` see [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md).
+
+```
+conda install dartqc -c bioconda -c esteinig
+```
 
 #### How to use DartQC
 
@@ -53,8 +57,6 @@ Global arguments are specified before the command for a task, like this:
 Example workflow without pre-processing from Excel or CSV:
 
 ```
-source activate dartqc
-
 # CSV
 dartqc prepare --file example.csv
 
@@ -62,23 +64,17 @@ dartqc prepare --file example.csv
 dartqc prepare --file example.xlsx --sheet double_row_snps
 
 dartqc filter --call example.csv --call_scheme example_scheme.json --maf 0.02 --clusters
-
-source deactivate
 ```
 
 Example workflow with pre-processing:
 
 ```
-source activate dartqc
-
 dartqc prepare --file calls.csv
 dartqc prepare --file raw.csv
 
 dartqc process -c calls.csv --call_scheme calls_scheme.json -r raw.csv --raw_scheme raw_scheme.json --read_sum 7
 
 dartqc filter --processed . --maf 0.02 --call_rate 0.7 --duplicates --clusters
-
-source deactivate
 ```
 
 ---
