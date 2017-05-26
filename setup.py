@@ -6,10 +6,10 @@ def readme():
         file.read()
 
 setup(name='dartqc',
-      version='0.1.4',
+      version='0.1.5',
       description='Quality control for SNP data from Diversity Array Technologies (DArT)',
       url='http://github.com/esteinig/dartqc',
-      download_url='http://github.com/esteinig/dartqc/archive/0.1.4.tar.gz',
+      download_url='http://github.com/esteinig/dartqc/archive/0.1.5.tar.gz',
       author='Eike J. Steinig',
       author_email='eikejoachim.steinig@my.jcu.edu.au',
       license='MIT',

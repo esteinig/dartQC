@@ -77,25 +77,41 @@ class Installer:
 
 class PBS:
 
-    def __init__(self, walltime="02:00:00", email="user@hpc.jcu.edu.au"):
+    def __init__(self, walltime="02:00:00", memory="1gb", processors=1, email="user@hpc.jcu.edu.au",
+                 pypi_install=False):
 
         self.walltime = walltime
+        self.memory = memory
+        self.processors = processors
+        self.pypi_install = pypi_install
+
         self.email = email
 
         self._write_pbs()
 
     def _write_pbs(self):
 
+        if self.pypi_install:
+            pypi = "true"
+        else:
+            pypi = "false"
+
         pbs = textwrap.dedent("""
         #PBS -S /bin/sh
         #PBS -M {email}
         #PBS -m n
         #PBS -j oe
-        #PBS -l ncpus=1
+        #PBS -l ncpus={cpus}
+        #PBS -l pmem={mem}
         #PBS -l walltime={walltime}
 
+        pypi_install={pypi}
+
+        if [ "$pypi_install" = true ] ; then
+            source activate dartqc
+        fi
+
         source ~/.bashrc
-        source activate dartqc
         cd $PBS_O_WORKDIR
 
         echo $PATH
@@ -111,7 +127,7 @@ class PBS:
 
         exit 0
 
-        """.format(walltime=self.walltime, email=self.email))
+        """.format(walltime=self.walltime, email=self.email, cpus=self.processors, mem=self.memory, pypi=pypi))
 
         with open("dartqc.pbs", "w") as outfile:
             outfile.write(pbs)
@@ -147,6 +163,12 @@ class CommandLine:
 
         pbs_parser.add_argument("--walltime", "-w", type=str, default="02:00:00", required=False,
                                 dest="walltime", help="expected walltime for pbs")
+        pbs_parser.add_argument("--memory", "-m", type=str, default="1gb", required=False,
+                                dest="memory", help="memory for pbs")
+        pbs_parser.add_argument("--cpus", "-c", type=str, default=1, required=False,
+                                dest="cpus", help="cpus for pbs")
+        pbs_parser.add_argument("--pypi", "-p", action="store_true", required=False,
+                                dest="pypi", help="package installed with pypi, load dartqc env before command")
 
         pbs_parser.set_defaults(subparser='pbs')
 
