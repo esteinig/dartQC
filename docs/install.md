@@ -8,7 +8,7 @@ conda install -c bioconda -c esteinig dartqc
 
 Python Package Index (PyPI). This is a cumbersome way to install the program since the environment requires CD-HIT from the BioConda channel. The preferred way is through `conda` as described above.
 
-You can install with pip and use the native installer in the program to install `miniconda` and the virtual environment. The environment needs to be then activated before using `dartqc`, i.e. `source activate dartqc`. When you want to update `dartqc` to a more recent version as the program is developed, you need to call `pip install dartqc --upgrade` from within the virtual environment. 
+You can install with pip and use the native installer task [`install`](https://github.com/esteinig/dartQC/blob/master/docs/task.install.md) in the program to install `miniconda` and the virtual environment. The environment needs to be then activated before using `dartqc`, i.e. `source activate dartqc`. When you want to update `dartqc` to a more recent version as the program is developed, you need to call `pip install dartqc --upgrade` from within the virtual environment. 
 
 ```
 pip install dartqc
