@@ -15,7 +15,7 @@ conda install dartqc -c bioconda -c esteinig
 
 This section provides a brief guide of how to install and use DartQC, assuming a Bash shell and Unix. If you are using the pipeline on JCU's HPC (Zodiac) please read the relevant sections in [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md) and [Task: pbs](https://github.com/esteinig/dartQC/blob/master/docs/task.pbs.md)
 
-1. [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md)\
+1. [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md)
 2. [Task: prepare](https://github.com/esteinig/dartQC/blob/master/docs/task.prepare.md)
 3. [Task: process](https://github.com/esteinig/dartQC/blob/master/docs/task.process.md)
 4. [Task: filter](https://github.com/esteinig/dartQC/blob/master/docs/task.filter.md)
