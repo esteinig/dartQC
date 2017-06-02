@@ -80,7 +80,7 @@ class DartReader:
                     one_ratio_ref_col=7, one_ratio_snp_col=8, freq_homozygous_ref_col=9, freq_homozygous_snp_col=10,
                     freq_heterozygous_col=11, pic_ref_col=12, pic_snp_col=13, pic_average=14, read_count_ref_col=15,
                     read_count_snp_col=16, rep_average_col=17, call_start_col=18, sample_start_col=18, clone_split="|",
-                    split_clone=False, scheme=None):
+                    split_clone=False, scheme=None, graph=False):
 
         self.project = project
         self.verbose = verbose
@@ -118,6 +118,8 @@ class DartReader:
 
         self.split_clone = split_clone
         self.clone_split = clone_split
+
+        self.graph = graph
 
         self._dart_qc_encoding = {self.missing: "-", self.heterozygous: "0", self.homozygous_minor: "1",
                                   self.homozygous_major: "2"}
@@ -204,6 +206,7 @@ class DartReader:
                                      "clone_id": clone_id,
                                      "allele_seq_ref": row[self._seq-1],
                                      "rep_average": float(row[self._rep_average-1]),
+                                     "freq_heterozygous": row[self._freq_heterozygous-1],
                                      "calls": [call_1]}  # Add allele calls 1
                         else:
 
