@@ -12,8 +12,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from scipy import stats
 
-from dartqc.DartUtils import stamp
-from dartqc.DartMessages import DartMessages
+from dartQC.DartUtils import stamp
+from dartQC.DartMessages import DartMessages
 
 
 class SummaryModule:
