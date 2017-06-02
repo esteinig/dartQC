@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
+import sys
 import os
-from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
+from dartQC.DartUtils import stamp, CommandLine, Installer, PBS
+from dartQC.DartGraphs import DartGraphs
+from dartQC.DartReader import DartReader
+from dartQC.DartProcessor import Preprocessor
+import logging
 
 
 def main():
@@ -14,6 +19,10 @@ def main():
         print("0.1.5")
         exit(0)
 
+    if args["log_path"]:
+        logging.basicConfig(filename=args["log_path"],level=logging.INFO)
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
     if args["subparser"] == "install":
         Installer()
         exit(0)
@@ -23,9 +32,10 @@ def main():
             pypi_install=args["pypi"])
         exit(0)
 
-    from dartqc.DartWriter import DartWriter
-    from dartqc.DartPrepare import DartPreparator
-    from dartqc.DartModules import SummaryModule
+    sys.path.append(dirname("C:/Users/jc229483/Desktop/Repositories/DartQCMaster/dartQC"))
+    from dartQC.DartWriter import DartWriter
+    from dartQC.DartPrepare import DartPreparator
+    from dartQC.DartModules import SummaryModule
 
     os.makedirs(args["out_path"], exist_ok=True)
 
@@ -65,11 +75,28 @@ def main():
 
 def _filter_dart(args):
 
-    from dartqc.DartReader import DartReader
+    from dartQC.DartReader import DartReader
 
     # Reading the data from JSON after Preprocessing:
 
+    diff_data = []
+    diff_attrs = []
+    diff_legend = []
+    diff_colors = []
+
     if args["processed_path"] is not None:
+        # Differential graphs also need the original un-filtered data
+        if args["graph"] and "call_file" in args and "call_scheme" in args:
+            dart_reader = DartReader()
+            dart_reader.set_options(scheme=args["call_scheme"])
+            dart_reader.read_double_row(file=args["call_file"], basic=True)
+            orig_data, orig_attrs = dart_reader.get_data()
+
+            diff_data.append(orig_data)
+            diff_attrs.append(orig_attrs)
+            diff_legend.append("Original")
+            diff_colors.append("red")
+
         data_file = os.path.join(args["processed_path"], args["project"] + "_data.json")
         attr_file = os.path.join(args["processed_path"], args["project"] + "_attr.json")
 
@@ -79,26 +106,65 @@ def _filter_dart(args):
 
         dart_reader = DartReader()
         data, attributes = dart_reader.read_json(data_file=data_file, attribute_file=attr_file)
+
+        diff_data.append(data)
+        diff_attrs.append(attributes)
+        diff_legend.append("Threshold")
+        diff_colors.append("orange")
     else:
         data, attributes = _read_dart(args)
+        diff_data.append(data)
+        diff_attrs.append(attributes)
+        diff_legend.append("Original")
+        diff_colors.append("red")
 
-    # Insert summary module here for before filtering snapshot of data (including parameters)
+    # Graphing needs the read counts data - so read it in now
+    if args["graph"]:
+        dart_reader = DartReader()
+        dart_reader.set_options(scheme=args["raw_scheme"])
+        dart_reader.read_double_row(file=args["raw_file"], encode=False, numeric=True)
+        read_counts, counts_attrs = dart_reader.get_data()
+
+# Insert summary module here for before filtering snapshot of data (including parameters)
     # otherwise find summary of modules in attributes (removed, retained)
 
-    data, attributes = _filter_mind(args, data, attributes)
 
-    data, attributes = _filter_monomorphic(args, data, attributes)
+    data, attributes = _filter_mind(args, data, attributes) #  Returns an array of data and attributes
 
-    data, attributes = _filter_snps(args, data, attributes)
+    # Graph the difference between the mind args passed in.
+    if args["graph"] and len(data) > 1:
+        DartGraphs.create_plots(data, read_counts, attributes, "mind", args["out_path"], args["project"], "teal", legend=[("Mind " + str(mind)) for mind in args["mind"]])
 
-    data, attributes = _filter_redundancy(args, data, attributes)
+    # Just use the first mind values - ignore the rest (multiple values is only intended for graphing)
+    data, attributes = _filter_monomorphic(args, data[0], attributes[0])    # Only outputs 1 set of data
+
+    data, attributes = _filter_snps(args, data, attributes)     # Outputs data and attribute arrays
+
+    # Graph the difference between the sets of filter variables passed in.
+    if args["graph"] and len(data) > 1:
+        DartGraphs.create_plots(data, read_counts, attributes, "filter", args["out_path"], args["project"])
+
+    # Just use the first mind values - ignore the rest (multiple values is only intended for graphing)
+    data, attributes = _filter_redundancy(args, data[0], attributes[0])
+
+    # Create a set of final graphs + also create a set of graphs with original, read count thresholded & final data
+    if args["graph"]:
+        DartGraphs.create_plots(data, read_counts, attributes, "final", args["out_path"], args["project"], "green")
+
+        diff_data.append(data)
+        diff_attrs.append(attributes)
+        diff_legend.append("Final")
+        diff_colors.append("green")
+
+        DartGraphs.create_plots(diff_data, read_counts, diff_attrs, "diff", args["out_path"], args["project"],
+                                color=diff_colors, legend=diff_legend)
 
     return data, attributes
 
 
 def _filter_monomorphic(args, data, attributes):
 
-    from dartqc.DartModules import PopulationModule
+    from dartQC.DartModules import PopulationModule
 
     if args["pop_file"] is None:
         stamp("Cannot load Population Module, no population file specified.")
@@ -113,20 +179,33 @@ def _filter_monomorphic(args, data, attributes):
 
 def _filter_mind(args, data, attributes):
 
-    from dartqc.DartModules import SampleModule
+    from dartQC.DartModules import SampleModule
 
-    if args["mind"][0] is not None:
-        im = SampleModule(data, attributes)
+    mind_arr = args["mind"]
 
-        # Not recalculating as MIND before SNP Module
-        data, attributes = im.filter_data(mind=args["mind"][0], recalculate=False)
+    if not isinstance(mind_arr, list):
+        mind_arr = [mind_arr]
 
-    return data, attributes
+    all_data = []
+    all_attrs = []
+    for mind in mind_arr:
+        if mind is not None:
+            im = SampleModule(data, attributes)
+
+            # Not recalculating as MIND before SNP Module
+            data, attributes = im.filter_data(mind=args["mind"][0], recalculate=False)
+            all_data.append(data)
+            all_attrs.append(attributes)
+
+    if len(all_data) == 0:
+        return [data], [attributes]
+
+    return all_data, all_attrs
 
 
 def _filter_redundancy(args, data, attributes):
 
-    from dartqc.DartModules import RedundancyModule
+    from dartQC.DartModules import RedundancyModule
 
     stamp("Initialising Redundancy Module...")
 
@@ -141,7 +220,7 @@ def _filter_redundancy(args, data, attributes):
         stamp("Removing SNPs in which clone sequences cluster at nucleotide identity of",
               str(args["identity"] * 100) + "%")
 
-        rm.remove_clusters(selector_list=("maf", "call_rate", "rep_average"), cdhit_path="cd-hit-est",
+        rm.remove_clusters(selector_list=("maf", "call_rate", "rep_average"), cdhit_path=args["cdhit_path"],
                            identity=args["identity"])
 
     # Export data with duplicates and clustered SNPs removed:
@@ -156,14 +235,14 @@ def _filter_redundancy(args, data, attributes):
 
 def _filter_snps(args, data, attributes):
 
-    from dartqc.DartModules import SNPModule
+    from dartQC.DartModules import SNPModule
 
     stamp("Initialising SNP Module...")
 
-    maf = args["maf"][0]
-    call_rate = args["call_rate"][0]
-    rep = args["rep"][0]
-    hwe = args["hwe"][0]
+    maf = args["maf"]
+    call_rate = args["call_rate"]
+    rep = args["rep"]
+    hwe = args["hwe"]
 
     snp_filters = (maf, call_rate, rep, hwe)
 
@@ -197,21 +276,29 @@ def _filter_snps(args, data, attributes):
         # Filtered data is exported from module for further use.
         # Single filter use only at the moment:
 
-        data, attributes = mm.get_data(multiple=[("maf", maf),
-                                                 ("call_rate", call_rate),
-                                                 ("rep_average", rep),
-                                                 ("hwe", hwe)])
+        all_data = []
+        all_attrs = []
+        for index in range(len(maf)):
+            data, attributes = mm.get_data(multiple=[("maf", maf[index]),
+                                                     ("call_rate", call_rate[index]),
+                                                     ("rep_average", rep[index]),
+                                                     ("hwe", hwe[index])])
 
-        if len(data) == 0:
-            stamp("All data was filtered, cannot process data.")
-            exit(1)
+            if len(data) == 0:
+                stamp("All data was filtered, cannot process data for filter set " + index)
+            else:
+                all_data.append(data)
+                all_attrs.append(attributes)
 
-    return data, attributes
+
+    if len(all_data) == 0:
+        return [data], [attributes]
+
+    return all_data, all_attrs
 
 
 def _read_dart(args):
 
-    from dartqc.DartReader import DartReader
 
     stamp("Reading data from call file...")
     stamp("Project", args["project"])
@@ -251,8 +338,8 @@ def _read_dart(args):
 
 def _preprocess_dart(args, data, attributes):
 
-    from dartqc.DartProcessor import Preprocessor
-    from dartqc.DartWriter import DartWriter
+    from dartQC.DartProcessor import Preprocessor
+    from dartQC.DartWriter import DartWriter
 
     stamp("Pre-processing with raw read data...")
     stamp("Setting calls to missing, where raw read sum is <=", args["raw_read_threshold"])
@@ -267,7 +354,7 @@ def _preprocess_dart(args, data, attributes):
     pp = Preprocessor(call_data=data, call_attributes=attributes)
 
     # Setting options for raw read count file:
-    pp.set_options(project=args["project"], scheme=args["raw_scheme"])
+    pp.set_options(project=args["project"], scheme=args["raw_scheme"], graph=args["graph"], out_path=args["out_path"])
 
     # Reading the raw read counts:
     pp.read_count_data(args["raw_file"])

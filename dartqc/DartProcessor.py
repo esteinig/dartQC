@@ -1,8 +1,11 @@
 import numpy
 
-from dartqc.DartReader import DartReader
-from dartqc.DartUtils import stamp
+from dartQC.DartReader import DartReader
+from dartQC.DartUtils import stamp
 
+from DartGraphs import DartGraphs
+
+from copy import copy
 
 class Preprocessor(DartReader):
 
@@ -99,7 +102,7 @@ class Preprocessor(DartReader):
 
         return missing
 
-    def filter_read_counts(self, threshold=7):
+    def filter_read_counts(self, threshold=[7]):
 
         """
         1. Transform read count matrix to numpy array, ordered by allele IDs.
@@ -137,35 +140,61 @@ class Preprocessor(DartReader):
         for i, snp in enumerate(snp_order):
             reduced_counts[snp] = reduced_array[i]
 
-        replaced = 0
-        total = 0
 
         stamp("Replacing low counts with missing...")
 
-        for snp, counts in reduced_counts.items():
-            filter_vector = [False if sum(allele_counts) <= threshold else True for allele_counts in counts]
-            self.call_data[snp]["calls"] = [call if filter_vector[i] else "-" for i, call in
-                                            enumerate(self.call_data[snp]["calls"])]
+        all_call_data = []
+        all_call_attrs = []
 
-            replaced += filter_vector.count(False)
-            total += len(filter_vector)
+        # If not graphing there is no point filtering all values given, so just take the first threshold value
+        if not self.graph:
+            threshold = [threshold[0]]
+        else:
+            DartGraphs.create_static_plots(self.call_data, self.data, self.out_path, self.project)
+            DartGraphs.create_plots(self.call_data, self.data, self.call_attributes, "original", self.out_path, self.project, "red")
+            # pass
 
-        replaced -= call_missing
+        for call_thresh in threshold:
+            replaced = 0
+            total = 0
+            call_data = {}
+            call_attrs = copy(self.call_attributes)
+            call_attrs["modules"] = {self.name: {}}
 
-        stamp("Pre-processing silenced {r}/{t} calls {p}".format(r=replaced, t=total,
-                                                                 p=format((replaced/total)*100, ".2f")))
+            for snp, counts in reduced_counts.items():
+                filter_vector = [False if sum(allele_counts) <= call_thresh else True for allele_counts in counts]
+                call_data[snp] = copy(self.call_data[snp])
+                call_data[snp]["calls"] = [call if filter_vector[i] else "-" for i, call in
+                                                enumerate(self.call_data[snp]["calls"])]
 
-        self.call_attributes["modules"][self.name]["results"] = {
-            "total_calls": total,
-            "replaced_calls": replaced,
-            "before_missing": call_missing,
-            "after_missing": call_missing + replaced
-        }
+                total += len(filter_vector)
+                replaced += filter_vector.count(False)
 
-        self.call_attributes["modules"][self.name]["settings"] = {
-            "read_count_sum_threshold": threshold
-        }
+
+            replaced -= call_missing
+            stamp("Pre-processing silenced {r}/{t} calls {p}% using call threshold {c}".format(r=replaced, t=total,
+                                                                     p=format((replaced/total)*100, ".2f"), c=call_thresh))
+
+            call_attrs["modules"][self.name]["results"] = {
+                "total_calls": total,
+                "replaced_calls": replaced,
+                "before_missing": call_missing,
+                "after_missing": call_missing + replaced
+            }
+
+            call_attrs["modules"][self.name]["settings"] = {
+                "read_count_sum_threshold": call_thresh
+            }
+
+            all_call_attrs.append(call_attrs)
+            all_call_data.append(call_data)
+
+        self.call_data = all_call_data[0]
+        self.call_attributes = all_call_attrs[0]
+
+        if self.graph:
+            DartGraphs.create_plots(all_call_data, self.data, all_call_attrs, "threshold", self.out_path, self.project, "orange", legend=[("Threshold " + str(thresh)) for thresh in threshold])
+
 
     def get_data(self):
-
         return self.call_data, self.call_attributes
