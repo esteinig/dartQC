@@ -4,7 +4,7 @@ import argparse
 import textwrap
 
 from subprocess import call, check_output, CalledProcessError
-
+import logging
 
 class Installer:
 
@@ -150,6 +150,9 @@ class CommandLine:
         parser.add_argument("--populations", "--pop", type=lambda p: os.path.abspath(p), default=None, required=False,
                             dest="pop_file", help="CSV file with header columns ID and Population")
 
+        parser.add_argument("--log_path", type=lambda p: os.path.abspath(p), required=False, dest="log_path",
+                            help="log path")
+
         subparsers = parser.add_subparsers(help='Command-line interface for DartQC')
 
         install_parser = subparsers.add_parser("install")
@@ -192,7 +195,7 @@ class CommandLine:
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="raw_scheme", help="path to raw scheme json file")
 
-        process_parser.add_argument("--read_sum", "--reads", default=10, type=int, required=False,
+        process_parser.add_argument("--read_sum", "--reads", default=[10], type=lambda s: [int(item) for item in s.split(',')], required=False,
                                     dest="raw_read_threshold",
                                     help="silence call if ref and snp allele raw read sum < threshold")
 
@@ -202,6 +205,9 @@ class CommandLine:
         process_parser.add_argument("--call_scheme", default="call_scheme.json",
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="call_scheme", help="path to call scheme json file")
+
+        process_parser.add_argument("--graph", "-g", default=False, type=bool, required=False,
+                                    dest="graph", help="Create graphs")
 
         process_parser.set_defaults(subparser='process')
 
@@ -242,6 +248,19 @@ class CommandLine:
                                    dest="remove_clusters", help="remove snps in identical sequence clusters")
         filter_parser.add_argument("--identity", default=0.95, type=float,
                                    dest="identity", help="remove snps in identical sequence clusters")
+        filter_parser.add_argument("--cdhit_path", type=lambda p: os.path.abspath(p), required=False,
+                                   dest="cdhit_path", default="cd-hit-est",
+                                   help="Path to the cdhit executable (required if cd-hit-est doesn't work on cmd line)")
+
+        filter_parser.add_argument("--graph", "-g", default=False, type=bool, required=False,
+                                    dest="graph", help="Create graphs")
+
+        filter_parser.add_argument("--raw", "-r", type=lambda p: os.path.abspath(p), required=False,
+                                    dest="raw_file", help="path to raw read file (only needed if graphing)")
+
+        filter_parser.add_argument("--raw_scheme", default="raw_scheme.json",
+                                    type=lambda p: os.path.abspath(p), required=False,
+                                    dest="raw_scheme", help="path to raw scheme json file (only needed if graphing)")
 
         filter_parser.set_defaults(subparser='filter')
 
@@ -249,5 +268,6 @@ class CommandLine:
 
 
 def stamp(*args):
-
-    print(str(time.strftime("[%H:%M:%S]")) + " " + " ".join([str(arg) for arg in args]))
+    message = str(time.strftime("[%H:%M:%S]")) + " " + " ".join([str(arg) for arg in args])
+    print(message)
+    logging.info(message)
