@@ -32,7 +32,6 @@ def main():
             pypi_install=args["pypi"])
         exit(0)
 
-    sys.path.append(dirname("C:/Users/jc229483/Desktop/Repositories/DartQCMaster/dartQC"))
     from dartQC.DartWriter import DartWriter
     from dartQC.DartPrepare import DartPreparator
     from dartQC.DartModules import SummaryModule

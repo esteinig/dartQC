@@ -3,7 +3,7 @@ import numpy
 from dartQC.DartReader import DartReader
 from dartQC.DartUtils import stamp
 
-from DartGraphs import DartGraphs
+from dartQC.DartGraphs import DartGraphs
 
 from copy import copy
 
