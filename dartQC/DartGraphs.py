@@ -7,8 +7,8 @@ from matplotlib import pyplot
 from matplotlib import patches
 from matplotlib import colors
 
-from dartQC.DartModules import SNPModule
-from dartQC.DartUtils import stamp
+from dartqc.DartModules import SNPModule
+from dartqc.DartUtils import stamp
 
 class DartGraphs:
 

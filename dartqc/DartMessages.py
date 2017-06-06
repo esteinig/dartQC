@@ -1,6 +1,6 @@
 import textwrap
 
-from dartQC.DartUtils import stamp
+from dartqc.DartUtils import stamp
 
 class DartMessages:
 

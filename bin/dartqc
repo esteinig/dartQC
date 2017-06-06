@@ -2,10 +2,10 @@
 
 import sys
 import os
-from dartQC.DartUtils import stamp, CommandLine, Installer, PBS
-from dartQC.DartGraphs import DartGraphs
-from dartQC.DartReader import DartReader
-from dartQC.DartProcessor import Preprocessor
+from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
+from dartqc.DartGraphs import DartGraphs
+from dartqc.DartReader import DartReader
+from dartqc.DartProcessor import Preprocessor
 import logging
 
 
@@ -32,9 +32,9 @@ def main():
             pypi_install=args["pypi"])
         exit(0)
 
-    from dartQC.DartWriter import DartWriter
-    from dartQC.DartPrepare import DartPreparator
-    from dartQC.DartModules import SummaryModule
+    from dartqc.DartWriter import DartWriter
+    from dartqc.DartPrepare import DartPreparator
+    from dartqc.DartModules import SummaryModule
 
     os.makedirs(args["out_path"], exist_ok=True)
 
@@ -74,7 +74,7 @@ def main():
 
 def _filter_dart(args):
 
-    from dartQC.DartReader import DartReader
+    from dartqc.DartReader import DartReader
 
     # Reading the data from JSON after Preprocessing:
 
@@ -163,7 +163,7 @@ def _filter_dart(args):
 
 def _filter_monomorphic(args, data, attributes):
 
-    from dartQC.DartModules import PopulationModule
+    from dartqc.DartModules import PopulationModule
 
     if args["pop_file"] is None:
         stamp("Cannot load Population Module, no population file specified.")
@@ -178,7 +178,7 @@ def _filter_monomorphic(args, data, attributes):
 
 def _filter_mind(args, data, attributes):
 
-    from dartQC.DartModules import SampleModule
+    from dartqc.DartModules import SampleModule
 
     mind_arr = args["mind"]
 
@@ -204,7 +204,7 @@ def _filter_mind(args, data, attributes):
 
 def _filter_redundancy(args, data, attributes):
 
-    from dartQC.DartModules import RedundancyModule
+    from dartqc.DartModules import RedundancyModule
 
     stamp("Initialising Redundancy Module...")
 
@@ -234,7 +234,7 @@ def _filter_redundancy(args, data, attributes):
 
 def _filter_snps(args, data, attributes):
 
-    from dartQC.DartModules import SNPModule
+    from dartqc.DartModules import SNPModule
 
     stamp("Initialising SNP Module...")
 
@@ -337,8 +337,8 @@ def _read_dart(args):
 
 def _preprocess_dart(args, data, attributes):
 
-    from dartQC.DartProcessor import Preprocessor
-    from dartQC.DartWriter import DartWriter
+    from dartqc.DartProcessor import Preprocessor
+    from dartqc.DartWriter import DartWriter
 
     stamp("Pre-processing with raw read data...")
     stamp("Setting calls to missing, where raw read sum is <=", args["raw_read_threshold"])

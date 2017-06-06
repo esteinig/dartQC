@@ -1,9 +1,9 @@
 import numpy
 
-from dartQC.DartReader import DartReader
-from dartQC.DartUtils import stamp
+from dartqc.DartReader import DartReader
+from dartqc.DartUtils import stamp
 
-from dartQC.DartGraphs import DartGraphs
+from dartqc.DartGraphs import DartGraphs
 
 from copy import copy
 

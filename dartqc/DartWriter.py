@@ -3,7 +3,7 @@ import csv
 import numpy
 import json
 
-from dartQC.DartUtils import stamp
+from dartqc.DartUtils import stamp
 
 
 class DartWriter:

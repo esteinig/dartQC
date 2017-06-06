@@ -3,7 +3,7 @@ import json
 import pandas
 import operator
 
-from dartQC.DartUtils import stamp
+from dartqc.DartUtils import stamp
 
 
 class DartPreparator:
