@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import numpy
 import sys
 import os
 from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
@@ -370,6 +371,37 @@ def _preprocess_dart(args, data, attributes):
     dart_writer = DartWriter(data, attributes)
 
     dart_writer.write_json(args["project"])
+
+    # Write out a matrix CSV file showing what individuals and SNP's have been filtered based on the (first) threshold
+    thresh_matrix_file = os.path.abspath(os.path.join(attributes["out_path"], args["project"] + "_thresh_matrix.csv"))
+    stamp("Writing threshold filterd matrix to CSV: " + thresh_matrix_file)
+
+    filtered = pp.get_filtered()
+
+    # Invert the filtered values so True = filtered and False = not filtered.
+    for snp in filtered:
+        filtered[snp] = list(~numpy.array(filtered[snp]))
+
+    headers = ",," + ",".join(attributes["sample_names"]) + "\n"
+
+    vals = [v for (k, v) in filtered.items()]
+    individ_vals = list(zip(*vals))
+    inivid_array = numpy.asarray(individ_vals)
+    individ_counts = (numpy.sum(inivid_array, axis=(1))).tolist()
+
+    counts_str = ",Tot. Silenced," + ",".join(str(x) for x in individ_counts) + "\n"
+
+    with open(thresh_matrix_file, "w") as data_out:
+        data_out.write(headers)
+        data_out.write(counts_str)
+
+        for snp in filtered:
+            count = sum(filtered[snp])
+
+            # Write out if each SNP:individ was silensed.
+            # 1 means it wasn't silenced, 0 means it was (same as original filtered)
+            data_out.write(snp + "," + str(count) + "," + ",".join("0" if x else "1" for x in filtered[snp]) + "\n")
+
 
     return data, attributes
 

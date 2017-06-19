@@ -145,6 +145,7 @@ class Preprocessor(DartReader):
 
         all_call_data = []
         all_call_attrs = []
+        all_filtered = []
 
         # If not graphing there is no point filtering all values given, so just take the first threshold value
         if not self.graph:
@@ -160,6 +161,7 @@ class Preprocessor(DartReader):
             call_data = {}
             call_attrs = copy(self.call_attributes)
             call_attrs["modules"] = {self.name: {}}
+            filtered = {}
 
             for snp, counts in reduced_counts.items():
                 filter_vector = [False if sum(allele_counts) <= call_thresh else True for allele_counts in counts]
@@ -169,6 +171,8 @@ class Preprocessor(DartReader):
 
                 total += len(filter_vector)
                 replaced += filter_vector.count(False)
+
+                filtered[snp] = filter_vector;
 
 
             replaced -= call_missing
@@ -188,9 +192,11 @@ class Preprocessor(DartReader):
 
             all_call_attrs.append(call_attrs)
             all_call_data.append(call_data)
+            all_filtered.append(filtered)
 
         self.call_data = all_call_data[0]
         self.call_attributes = all_call_attrs[0]
+        self.filtered = all_filtered[0]
 
         if self.graph:
             DartGraphs.create_plots(all_call_data, self.data, all_call_attrs, "threshold", self.out_path, self.project, "orange", legend=[("Threshold " + str(thresh)) for thresh in threshold])
@@ -198,3 +204,6 @@ class Preprocessor(DartReader):
 
     def get_data(self):
         return self.call_data, self.call_attributes
+
+    def get_filtered(self):
+        return self.filtered
