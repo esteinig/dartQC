@@ -17,9 +17,10 @@ This section provides a brief guide of how to install and use DartQC, assuming a
 
 1. [Install DartQC](https://github.com/esteinig/dartQC/blob/master/docs/install.md)
 2. [Task: prepare](https://github.com/esteinig/dartQC/blob/master/docs/task.prepare.md)
-3. [Task: process](https://github.com/esteinig/dartQC/blob/master/docs/task.process.md)
-4. [Task: filter](https://github.com/esteinig/dartQC/blob/master/docs/task.filter.md)
-5. [Task: pbs](https://github.com/esteinig/dartQC/blob/master/docs/task.pbs.md)
+3. [Task: validate](https://github.com/esteinig/dartQC/blob/master/docs/task.validate.md)
+4. [Task: process](https://github.com/esteinig/dartQC/blob/master/docs/task.process.md)
+5. [Task: filter](https://github.com/esteinig/dartQC/blob/master/docs/task.filter.md)
+6. [Task: pbs](https://github.com/esteinig/dartQC/blob/master/docs/task.pbs.md)
 
 #### Tasks
 
@@ -37,6 +38,7 @@ Arguments:
 Tasks:
 
 dartqc prepare --help
+dartqc validate --help
 dartqc process --help
 dartqc filter -- help
 

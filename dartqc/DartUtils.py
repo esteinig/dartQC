@@ -6,8 +6,8 @@ import textwrap
 from subprocess import call, check_output, CalledProcessError
 import logging
 
-class Installer:
 
+class Installer:
     def __init__(self, miniconda=True):
 
         self.miniconda = miniconda
@@ -76,7 +76,6 @@ class Installer:
 
 
 class PBS:
-
     def __init__(self, walltime="02:00:00", memory="1gb", processors=1, email="user@hpc.jcu.edu.au",
                  pypi_install=False):
 
@@ -134,9 +133,7 @@ class PBS:
 
 
 class CommandLine:
-
     def __init__(self):
-
         parser = argparse.ArgumentParser()
 
         parser.add_argument("--version", "-v", dest="version", action="store_true", help="print version and exit")
@@ -186,6 +183,32 @@ class CommandLine:
 
         prepare_parser.set_defaults(subparser='prepare')
 
+        validate_parser = subparsers.add_parser("validate")
+
+        validate_parser.add_argument("--raw", "-r", type=lambda p: os.path.abspath(p), required=True,
+                                     dest="raw_file", help="path to raw read file")
+
+        validate_parser.add_argument("--raw_scheme", default="raw_scheme.json",
+                                     type=lambda p: os.path.abspath(p), required=True,
+                                     dest="raw_scheme", help="path to raw scheme json file")
+
+        validate_parser.add_argument("--calls", "-c", default="calls.csv", type=lambda p: os.path.abspath(p),
+                                     required=True, dest="call_file", help="path to called read file")
+
+        validate_parser.add_argument("--call_scheme", default="call_scheme.json",
+                                     type=lambda p: os.path.abspath(p), required=True,
+                                     dest="call_scheme", help="path to call scheme json file")
+
+        validate_parser.add_argument("--id_list", "-i", default="id_list.csv", type=lambda p: os.path.abspath(p),
+                                     required=True, dest="id_list",
+                                     help="path to CSV file with list of official clone IDs that should be used (eg. to fix ID's that Dart outputs wrong)")
+
+        validate_parser.add_argument("--cdhit_path", type=lambda p: os.path.abspath(p), required=False,
+                                     dest="cdhit_path", default="cd-hit-est",
+                                     help="Path to the cdhit 2d executable (required if cd-hit-2d doesn't work on cmd line)")
+
+        validate_parser.set_defaults(subparser='validate')
+
         process_parser = subparsers.add_parser("process")
 
         process_parser.add_argument("--raw", "-r", type=lambda p: os.path.abspath(p), required=True,
@@ -195,7 +218,8 @@ class CommandLine:
                                     type=lambda p: os.path.abspath(p), required=False,
                                     dest="raw_scheme", help="path to raw scheme json file")
 
-        process_parser.add_argument("--read_sum", "--reads", default=[10], type=lambda s: [int(item) for item in s.split(',')], required=False,
+        process_parser.add_argument("--read_sum", "--reads", default=[10],
+                                    type=lambda s: [int(item) for item in s.split(',')], required=False,
                                     dest="raw_read_threshold",
                                     help="silence call if ref and snp allele raw read sum < threshold")
 
@@ -253,14 +277,14 @@ class CommandLine:
                                    help="Path to the cdhit executable (required if cd-hit-est doesn't work on cmd line)")
 
         filter_parser.add_argument("--graph", "-g", default=False, type=bool, required=False,
-                                    dest="graph", help="Create graphs")
+                                   dest="graph", help="Create graphs")
 
         filter_parser.add_argument("--raw", "-r", type=lambda p: os.path.abspath(p), required=False,
-                                    dest="raw_file", help="path to raw read file (only needed if graphing)")
+                                   dest="raw_file", help="path to raw read file (only needed if graphing)")
 
         filter_parser.add_argument("--raw_scheme", default="raw_scheme.json",
-                                    type=lambda p: os.path.abspath(p), required=False,
-                                    dest="raw_scheme", help="path to raw scheme json file (only needed if graphing)")
+                                   type=lambda p: os.path.abspath(p), required=False,
+                                   dest="raw_scheme", help="path to raw scheme json file (only needed if graphing)")
 
         filter_parser.set_defaults(subparser='filter')
 

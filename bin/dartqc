@@ -3,6 +3,8 @@
 import numpy
 import sys
 import os
+
+from DartFileValidation import DartFileValidator
 from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
 from dartqc.DartGraphs import DartGraphs
 from dartqc.DartReader import DartReader
@@ -11,7 +13,6 @@ import logging
 
 
 def main():
-
     cmd_line = CommandLine()
 
     args = vars(cmd_line.args)
@@ -21,7 +22,7 @@ def main():
         exit(0)
 
     if args["log_path"]:
-        logging.basicConfig(filename=args["log_path"],level=logging.INFO)
+        logging.basicConfig(filename=args["log_path"], level=logging.INFO)
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
     if args["subparser"] == "install":
@@ -42,12 +43,29 @@ def main():
     # Workflows
 
     if args["subparser"] == "prepare":
-
         DartPreparator(file_path=args["file"], excel_sheet=args["sheet"], output_name=args["output_name"],
                        output_path=args["out_path"])
 
-    if args["subparser"] == "process":
+    if args["subparser"] == "validate":
+        # Validate that the input data is good such as clone IDs match the official list
+        # (eg. sometimes the names are formatted wrong or the clone ID is different for the same SNP...)
 
+        data, attributes = _read_dart(args)
+
+        attributes["args"] = args
+
+        # Read the read counts data
+        dart_reader = DartReader()
+        dart_reader.set_options(project=args["project"], scheme=args["raw_scheme"], out_path=args["out_path"])
+        dart_reader.read_double_row(file=args["raw_file"], encode=False, numeric=True)
+        read_counts, read_attrs = dart_reader.get_data()
+
+        validator = DartFileValidator(data=data, attributes=attributes, read_counts=read_counts,
+                                      ids_file_path=args["id_list"])
+        validator.do_validations()
+        data, attributes, read_counts = validator.get_data()
+
+    if args["subparser"] == "process":
         # Import the called reads from the standard file in basic mode, that is import a pre-formatted
         # data matrix with columns (C): CloneID, AlleleID, Sequence, Replication Average and Calls
 
@@ -56,7 +74,6 @@ def main():
         data, attributes = _preprocess_dart(args, data, attributes)
 
     if args["subparser"] == "filter":
-
         data, attributes = _filter_dart(args)
 
         stamp("Initialising Summary Module...")
@@ -74,7 +91,6 @@ def main():
 
 
 def _filter_dart(args):
-
     from dartqc.DartReader import DartReader
 
     # Reading the data from JSON after Preprocessing:
@@ -125,20 +141,21 @@ def _filter_dart(args):
         dart_reader.read_double_row(file=args["raw_file"], encode=False, numeric=True)
         read_counts, counts_attrs = dart_reader.get_data()
 
-# Insert summary module here for before filtering snapshot of data (including parameters)
+    # Insert summary module here for before filtering snapshot of data (including parameters)
     # otherwise find summary of modules in attributes (removed, retained)
 
 
-    data, attributes = _filter_mind(args, data, attributes) #  Returns an array of data and attributes
+    data, attributes = _filter_mind(args, data, attributes)  # Returns an array of data and attributes
 
     # Graph the difference between the mind args passed in.
     if args["graph"] and len(data) > 1:
-        DartGraphs.create_plots(data, read_counts, attributes, "mind", args["out_path"], args["project"], "teal", legend=[("Mind " + str(mind)) for mind in args["mind"]])
+        DartGraphs.create_plots(data, read_counts, attributes, "mind", args["out_path"], args["project"], "teal",
+                                legend=[("Mind " + str(mind)) for mind in args["mind"]])
 
     # Just use the first mind values - ignore the rest (multiple values is only intended for graphing)
-    data, attributes = _filter_monomorphic(args, data[0], attributes[0])    # Only outputs 1 set of data
+    data, attributes = _filter_monomorphic(args, data[0], attributes[0])  # Only outputs 1 set of data
 
-    data, attributes = _filter_snps(args, data, attributes)     # Outputs data and attribute arrays
+    data, attributes = _filter_snps(args, data, attributes)  # Outputs data and attribute arrays
 
     # Graph the difference between the sets of filter variables passed in.
     if args["graph"] and len(data) > 1:
@@ -163,7 +180,6 @@ def _filter_dart(args):
 
 
 def _filter_monomorphic(args, data, attributes):
-
     from dartqc.DartModules import PopulationModule
 
     if args["pop_file"] is None:
@@ -178,7 +194,6 @@ def _filter_monomorphic(args, data, attributes):
 
 
 def _filter_mind(args, data, attributes):
-
     from dartqc.DartModules import SampleModule
 
     mind_arr = args["mind"]
@@ -204,7 +219,6 @@ def _filter_mind(args, data, attributes):
 
 
 def _filter_redundancy(args, data, attributes):
-
     from dartqc.DartModules import RedundancyModule
 
     stamp("Initialising Redundancy Module...")
@@ -234,7 +248,6 @@ def _filter_redundancy(args, data, attributes):
 
 
 def _filter_snps(args, data, attributes):
-
     from dartqc.DartModules import SNPModule
 
     stamp("Initialising SNP Module...")
@@ -290,7 +303,6 @@ def _filter_snps(args, data, attributes):
                 all_data.append(data)
                 all_attrs.append(attributes)
 
-
     if len(all_data) == 0:
         return [data], [attributes]
 
@@ -298,8 +310,6 @@ def _filter_snps(args, data, attributes):
 
 
 def _read_dart(args):
-
-
     stamp("Reading data from call file...")
     stamp("Project", args["project"])
     stamp("Output to:", args["out_path"])
@@ -337,7 +347,6 @@ def _read_dart(args):
 
 
 def _preprocess_dart(args, data, attributes):
-
     from dartqc.DartProcessor import Preprocessor
     from dartqc.DartWriter import DartWriter
 
@@ -402,8 +411,7 @@ def _preprocess_dart(args, data, attributes):
             # 1 means it wasn't silenced, 0 means it was (same as original filtered)
             data_out.write(snp + "," + str(count) + "," + ",".join("0" if x else "1" for x in filtered[snp]) + "\n")
 
-
     return data, attributes
 
-main()
 
+main()
