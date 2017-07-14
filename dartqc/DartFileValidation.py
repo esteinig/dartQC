@@ -136,7 +136,7 @@ class DartFileValidator:
         self.seq_vals = []
         for index, cluster in enumerate(clusters):
             seq_list = []
-            self.seq_renames = {"12949790": "62949790"}
+            self.seq_renames = {}
 
             ref_seq = cluster[0]
             ref_seq_str = str(cluster[0][0]) + "--" + str(cluster[0][1])
