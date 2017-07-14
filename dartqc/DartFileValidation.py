@@ -8,7 +8,7 @@ import pandas
 import operator
 import re
 
-from DartModules import RedundancyModule
+from dartqc.DartModules import RedundancyModule
 from dartqc.DartUtils import stamp
 
 
