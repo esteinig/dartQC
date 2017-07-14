@@ -22,4 +22,6 @@ Validation information is output to the <project>_seq_vals.csv file and new data
 clone ID's renamed based on the passed in id_list.  These new files are <project>_data_validated.csv and
 <project>_read_counts_validated.csv respectively
 
-If the cdhit_path given is actually for cd-hit-est it will auto rename to cd-hit-est-2d
+This task is expected to be run as a stand-alone operation before pre-processing & generates new data and read count files to run the down line processing with.
+
+Note:  If the cdhit_path given is actually for cd-hit-est it will auto rename to cd-hit-est-2d

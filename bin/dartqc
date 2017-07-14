@@ -4,7 +4,7 @@ import numpy
 import sys
 import os
 
-from DartFileValidation import DartFileValidator
+from dartqc.DartFileValidation import DartFileValidator
 from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
 from dartqc.DartGraphs import DartGraphs
 from dartqc.DartReader import DartReader
