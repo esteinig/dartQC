@@ -204,8 +204,9 @@ class DartFileValidator:
             csv_writer = csv.writer(vals_out, delimiter=",", lineterminator='\n')
             csv_writer.writerows(output_csv)
 
+        print("\n")
         stamp("Sequence ID filtering info written to ", out_file)
-        stamp("Look at this file for more information on any ERRORS and WARNINGS", out_file)
+        stamp("Look at this file for more information on any ERRORS and WARNINGS")
 
     def rename_sequences(self):
         with open(self.attributes["args"]["raw_scheme"], "r") as infile:
