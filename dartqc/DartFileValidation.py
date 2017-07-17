@@ -8,6 +8,8 @@ import pandas
 import operator
 import re
 
+import sys
+
 from dartqc.DartModules import RedundancyModule
 from dartqc.DartUtils import stamp
 
@@ -106,7 +108,7 @@ class DartFileValidator:
             # -M    Allocated memory
             # -T    Threads allocated
             call([cdhit_path, "-i", self.id_fasta_path, "-i2", self.data_fasta_path, "-o", out_file, "-c", "0.99", "-n",
-                  "10", "-d", "20", "-M", "16000", "-T", "1"], stdout=devnull)
+                  "10", "-d", "25", "-M", "16000", "-T", "1"], stdout=devnull)
 
         self.cluster_path = out_file + ".clstr"
 
@@ -161,7 +163,7 @@ class DartFileValidator:
                 elif not diff_pos and not diff_id:
                     match_type = "BAD ID & LOC"
 
-                seq_list.append([match_type, seq_str, rename_str])
+                seq_list.append([match_type, seq_str])
 
             self.seq_vals.append({
                 "cluster_num": index,
@@ -175,8 +177,24 @@ class DartFileValidator:
         output_csv = [["Cluster #", "Ref Seq", "Cluster Sequences..."]]
 
         for seq in self.seq_vals:
+            type_val = {
+                "GOOD": 0,
+                "BAD ID": 1,
+                "BAD LOC": 2,
+                "BAD ID & LOC": 3
+            }
+            seq["sequences"].sort(key=lambda x: type_val[x[0]])
+            # sorted_seq = sorted(seq["sequences"], cmp=lambda seq1,seq2: cmp(type_val[seq1[0]], type_val[seq2[0]]))
+
             row_data = [str(seq["cluster_num"]), seq["ref_seq_str"]] + [str(item) for sublist in seq["sequences"] for
                                                                         item in sublist]
+
+            for item in seq["sequences"]:
+                if type_val[item[0]] == 1:
+                    sys.stderr.write("WARNING: [" + item[0] + ":" + item[1] + "] " + item[1] + " renamed to " + seq["ref_seq_str"] + "\n")
+                if type_val[item[0]] > 1:
+                    sys.stderr.write("ERROR: [" + item[0] + ":" + item[1] + "] Unexpected clone ID!  This needs manual fixing\n")
+
             output_csv.append(row_data)
 
         if out_file is None:
@@ -187,6 +205,7 @@ class DartFileValidator:
             csv_writer.writerows(output_csv)
 
         stamp("Sequence ID filtering info written to ", out_file)
+        stamp("Look at this file for more information on any ERRORS and WARNINGS", out_file)
 
     def rename_sequences(self):
         with open(self.attributes["args"]["raw_scheme"], "r") as infile:
