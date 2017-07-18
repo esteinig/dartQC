@@ -152,7 +152,7 @@ class DartFileValidator:
                 rename_str = None
 
                 match_type = None
-                if perfect_match:
+                if perfect_match or (not diff_pos and not diff_id):
                     match_type = "GOOD"
                 elif not diff_pos and diff_id:
                     match_type = "BAD ID"
@@ -160,8 +160,10 @@ class DartFileValidator:
                     self.seq_renames[seq[0]] = ref_seq[0]
                 elif diff_pos and not diff_id:
                     match_type = "BAD LOC"
-                elif not diff_pos and not diff_id:
+                elif diff_pos and diff_id:
                     match_type = "BAD ID & LOC"
+                else:
+                    match_type = "UNKNOWN"
 
                 seq_list.append([match_type, seq_str])
 
@@ -181,7 +183,8 @@ class DartFileValidator:
                 "GOOD": 0,
                 "BAD ID": 1,
                 "BAD LOC": 2,
-                "BAD ID & LOC": 3
+                "BAD ID & LOC": 3,
+                "UNKNOWN": 4
             }
             seq["sequences"].sort(key=lambda x: type_val[x[0]])
             # sorted_seq = sorted(seq["sequences"], cmp=lambda seq1,seq2: cmp(type_val[seq1[0]], type_val[seq2[0]]))
