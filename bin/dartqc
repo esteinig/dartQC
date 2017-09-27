@@ -102,7 +102,7 @@ def _filter_dart(args):
 
     if args["processed_path"] is not None:
         # Differential graphs also need the original un-filtered data
-        if args["graph"] and "call_file" in args and "call_scheme" in args:
+        if args["graph"] and "call_file" in args and "call_scheme" in args and os.path.exists(args["call_scheme"]):
             dart_reader = DartReader()
             dart_reader.set_options(scheme=args["call_scheme"])
             dart_reader.read_double_row(file=args["call_file"], basic=True)

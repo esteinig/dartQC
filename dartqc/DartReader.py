@@ -2,6 +2,8 @@ import os
 import csv
 import json
 
+from dartqc.DartQCException import DartQCException
+
 
 class DartReader:
 
@@ -168,6 +170,7 @@ class DartReader:
 
             allele_id = None
             allele_index = 1
+            clone_id = None
 
             pops = []
 
@@ -189,14 +192,13 @@ class DartReader:
                     # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
                     # Implement Error checks for conformity between both alleles: SNP Position, Number of Individuals
                     if allele_index == 1:
-
                         allele_id = row[self._id-1]
                         clone_id = row[self._clone-1]
 
                         call_1 = row[self._call-1:]
 
                         if numeric:
-                            call_1 = [int(call) for call in call_1]
+                            call_1 = [0 if call is None or call == "" else int(call) for call in call_1]
 
                         if self.split_clone:
                             clone_id = clone_id.split(self.clone_split)[0]
@@ -234,6 +236,18 @@ class DartReader:
                         allele_index = 2
                     else:
                         # Add sequence and allele calls 2:
+                        prevRowSNP = allele_id[allele_id.rfind("-") + 1:]
+                        rowSNP = row[self._id-1][row[self._id-1].find("-") + 1:row[self._id-1].rfind("-")]
+
+                        if row[self._clone-1] is None or len(row[self._clone-1]) == 0 or row[self._id-1] is None \
+                                or len(row[self._id-1]) == 0 or "|" not in row[self._id-1] \
+                                or clone_id != row[self._clone-1] \
+                                or allele_id[: allele_id.index("|")] != row[self._id-1][: row[self._id-1].index("|")] \
+                                or prevRowSNP != rowSNP:
+                            raise DartQCException("Miss matched rows: " + clone_id + "("+allele_id+") -> " + row[self._clone-1] + "("+row[self._id-1]+").\n"
+                                        + "\t\t- Edit " + file + " so all allele's have 2 rows + they are sequential\n"
+                                        + "\t\t- Check to make sure clone and allele IDs match correctly\n"
+                                        + "\t\t- Check the SNP matches (ending of the id such as 20:G>A)")
 
                         call_2 = row[self._call-1:]
 
@@ -245,10 +259,24 @@ class DartReader:
                         self.data[allele_id]["snp"] = row[self._snp-1]
 
                         if len(self.data[allele_id]["calls"]) != 2:
-                            raise(ValueError("Error. Genotype of", allele_id, "does not contain two alleles.",
+                            raise(DartQCException("Genotype of", allele_id, "does not contain two alleles.",
                                   "Check if starting row for data is correctly specified."))
                         if encode:
-                            self.data[allele_id]["calls"] = self._encode_dart(self.data[allele_id]["calls"])
+                            try:
+                                self.data[allele_id]["calls"] = self._encode_dart(self.data[allele_id]["calls"])
+                            except KeyError:
+                                err_data = None
+                                calls = zip(self.data[allele_id]["calls"][0], self.data[allele_id]["calls"][1])
+                                for idx, snp_call in enumerate(calls):
+                                    if snp_call not in self._dart_qc_encoding:
+                                        err_data = snp_call
+                                        break
+
+                                raise DartQCException("Incorrect call data for " + allele_id + (": " + str(err_data) if err_data is not None else "")
+                                                      + " - all calls should be 10, 01, 11 or --.  Check: \n"
+                                                        "\t\t- Read_counts file wasn't selected as the data file\n"
+                                                        "\t\t- That allele has exactly 2 rows\n"
+                                                        "\t\t- The two rows for that allele are directly after each other")
                         else:
                             self.data[allele_id]["calls"] = list(zip(self.data[allele_id]["calls"][0],
                                                                      self.data[allele_id]["calls"][1]))
@@ -257,6 +285,9 @@ class DartReader:
                         allele_index = 1
 
                 row_index += 1
+
+            if allele_index != 1:
+                raise DartQCException("Last allele only has 1 row!  Edit " + file + " to add the missing row or remove the single row for clone: " + clone_id)
 
         # Check if reader picked up populations, if not generate generic names:
         if not pops:
@@ -307,4 +338,4 @@ class DartReader:
         if self.format == "double":
             calls = zip(calls[0], calls[1])
 
-        return [self._dart_qc_encoding[snp_call] for snp_call in calls]
+            return [self._dart_qc_encoding[snp_call] for snp_call in calls]

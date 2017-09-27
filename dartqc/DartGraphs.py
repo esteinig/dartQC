@@ -7,6 +7,7 @@ from matplotlib import pyplot
 from matplotlib import patches
 from matplotlib import colors
 
+import dartqc.DartQCException
 from dartqc.DartModules import SNPModule
 from dartqc.DartUtils import stamp
 
@@ -133,7 +134,7 @@ class DartGraphs:
         pyplot.close(fig)
 
     @staticmethod
-    def create_scatter_plot(x, y, title, x_tick_labels, x_label, y_label, outfile, color="blue", legend=None):
+    def create_scatter_plot(x, y, title, x_tick_labels,  x_label, y_label, outfile, color="blue", legend=None, x_ticks=None):
         # ax = pyplot.axes([0.1, 0.1, 0.8, 0.8])
         fig, ax = pyplot.subplots()
         fig.set_size_inches(15, 9)
@@ -185,7 +186,9 @@ class DartGraphs:
         ax.set_title(title, fontdict={'weight': 'bold', 'size': 'large'})
         ax.set_xlabel(x_label, fontdict={'weight': 'bold'})
         ax.set_ylabel(y_label, fontdict={'weight': 'bold'})
-        # ax.set_xticks(x)
+
+        if x_ticks is not None:
+            ax.set_xticks(x_ticks)
 
         # Set the x axis labels
         if x_tick_labels is not None:
@@ -208,14 +211,15 @@ class DartGraphs:
         title = "Distribution of total read counts per individual"
         y_label = "Number of individuals"
         x_label = "Total read count per individual"
-        x_tick_labels = ["less than 1 million", "1 million to 1.25 million", "1.5 million to 1.75 million",
-                         "1.75 million to 2 million", "2 million to 2.25 million", "2.25 million to 2.5 million",
-                         "greater than 2.5 million"]
+        # x_tick_labels = ["less than 1 million", "1 million to 1.25 million", "1.5 million to 1.75 million",
+        #                  "1.75 million to 2 million", "2 million to 2.25 million", "2.25 million to 2.5 million",
+        #                  "greater than 2.5 million"]
 
         if not isinstance(read_data, list):
             read_data = [read_data]
 
         y_data = []
+        all_indiv_read_cnts = []
 
         for graph_data in read_data:
             if len(graph_data) == 0:
@@ -227,27 +231,50 @@ class DartGraphs:
             counts_array = numpy.asarray(individ_counts)
 
             individ_read_counts = (numpy.sum(counts_array, axis=(1, 2)) / 2.0).tolist()
+            all_indiv_read_cnts.append(individ_read_counts)
 
-            # individReadCounts = [sum(sum(tuple) for tuple in cnts) for cnts in individCounts]
-
-            graph_y_data = [0, 0, 0, 0, 0, 0, 0, 0]
+        biggestCount = 0
+        for individ_read_counts in all_indiv_read_cnts:
             for count in individ_read_counts:
-                if count <= 1000000:
-                    graph_y_data[0] += 1
-                elif count <= 1250000:
-                    graph_y_data[1] += 1
-                elif count <= 1500000:
-                    graph_y_data[2] += 1
-                elif count <= 1750000:
-                    graph_y_data[3] += 1
-                elif count <= 2000000:
-                    graph_y_data[4] += 1
-                elif count <= 2250000:
-                    graph_y_data[5] += 1
-                elif count <= 2500000:
-                    graph_y_data[6] += 1
-                else:
-                    graph_y_data[7] += 1
+                if count > biggestCount:
+                    biggestCount = count
+
+        biggestCount = round(biggestCount / 10000.0) * 10000
+
+        categories = [round((biggestCount / 10) * x) for x in range(1, 10)]
+        x_tick_labels = [("Less than " if idx == 0 else str(round(categories[idx - 1]/1000)) + "k to ") + str(round(num/1000)) + "k" for idx, num in enumerate(categories)]
+        x_tick_labels.append("Greater than " + str(round(categories[len(categories) - 1] / 1000)) + "k")
+
+        for individ_read_counts in all_indiv_read_cnts:
+            graph_y_data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            for count in individ_read_counts:
+                found = False
+                for idx, num in enumerate(categories):
+                    if count < num:
+                        graph_y_data[idx] += 1
+                        found = True
+                        break
+
+                if not found:
+                    graph_y_data[len(graph_y_data) - 1] += 1
+
+
+                # if count <= 1000000:
+                #     graph_y_data[0] += 1
+                # elif count <= 1250000:
+                #     graph_y_data[1] += 1
+                # elif count <= 1500000:
+                #     graph_y_data[2] += 1
+                # elif count <= 1750000:
+                #     graph_y_data[3] += 1
+                # elif count <= 2000000:
+                #     graph_y_data[4] += 1
+                # elif count <= 2250000:
+                #     graph_y_data[5] += 1
+                # elif count <= 2500000:
+                #     graph_y_data[6] += 1
+                # else:
+                #     graph_y_data[7] += 1
 
             y_data.append(graph_y_data)
 
@@ -319,7 +346,7 @@ class DartGraphs:
         title = "Distribution of call rates across SNPs"
         y_label = "Number of SNPs"
         x_label = "Call rate per SNP"
-        x_tick_labels = ["<50%", "50 to 55%", "55 to 60%", "60 to 65%", "70 to 75%", "75 to 80%", "80 to 85%",
+        x_tick_labels = ["<50%", "50 to 55%", "55 to 60%", "60 to 65%", "65 to 70%", "70 to 75%", "75 to 80%", "80 to 85%",
                          "85 to 90%", "90 to 95%", "95 to 100%"]
 
         if not isinstance(data, list):
@@ -336,10 +363,10 @@ class DartGraphs:
             calls_array = numpy.asarray(list(calls))
 
             # blanks = [(calls == "-").sum() for calls in callsArray]
-            positive_calls = [((calls == "1") | (calls == "2")).sum() for calls in calls_array]
-            tot_calls = [(calls != "-").sum() for calls in calls_array]
+            positive_calls = [numpy.asarray([call == "1" or call == "2" for call in call_list]).sum() for call_list in calls_array]
+            tot_calls = [numpy.asarray([call != "-" for call in call_list]).sum() for call_list in calls_array]
 
-            call_rate_per_snp = [pos / tot for pos, tot in zip(positive_calls, tot_calls)]
+            call_rate_per_snp = [0 if tot == 0 else pos / tot for pos, tot in zip(positive_calls, tot_calls)]
 
             # Convert actual call rates into counts in each percentage range.
             graph_y_data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -382,7 +409,7 @@ class DartGraphs:
         title = "Distribution of call rates across individuals"
         y_label = "Number of individuals"
         x_label = "Call rate per individual"
-        x_tick_labels = ["<50%", "50 to 55%", "55 to 60%", "60 to 65%", "70 to 75%", "75 to 80%", "80 to 85%",
+        x_tick_labels = ["<50%", "50 to 55%", "55 to 60%", "60 to 65%", "65 to 70%", "70 to 75%", "75 to 80%", "80 to 85%",
                          "85 to 90%", "90 to 95%", "95 to 100%"]
 
         if not isinstance(data, list):
@@ -400,10 +427,12 @@ class DartGraphs:
             calls_array = numpy.asarray(list(individ_calls))
 
             # blanks = [(calls == "-").sum() for calls in callsArray]
-            positive_calls = [((calls == "1") | (calls == "2")).sum() for calls in calls_array]
-            tot_calls = [(calls != "-").sum() for calls in calls_array]
+            # positive_calls = [((calls == "1") | (calls == "2")).sum() for calls in calls_array]
+            # tot_calls = [(calls != "-").sum() for calls in calls_array]
+            positive_calls = [numpy.asarray([call == "1" or call == "2" for call in call_list]).sum() for call_list in calls_array]
+            tot_calls = [numpy.asarray([call != "-" for call in call_list]).sum() for call_list in calls_array]
 
-            call_rate_per_snp = [pos / tot for pos, tot in zip(positive_calls, tot_calls)]
+            call_rate_per_snp = [0 if tot == 0 else pos / tot for pos, tot in zip(positive_calls, tot_calls)]
 
             # Convert to counts within eac call rate percentage range.
             graph_y_data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -652,7 +681,8 @@ class DartGraphs:
         title = "Relationship between Call rate and MAF"
         y_label = "MAF by SNP"
         x_label = "Call rate by SNP"
-        x_tick_labels = ["50%", "60%", "70%", "80%", "90%", "100%", "110%"]
+        x_tick_labels = ["0%", "20%", "40%", "60%", "80%", "100%"]
+        x_ticks = [0, .2, .4, .6, .8, 1]
 
         if not isinstance(snp_maf, list):
             snp_maf = [snp_maf]
@@ -671,17 +701,19 @@ class DartGraphs:
             calls_array = numpy.asarray(list(calls))
 
             # blanks = [(calls == "-").sum() for calls in callsArray]
-            positive_calls = [((calls == "1") | (calls == "2")).sum() for calls in calls_array]
-            tot_calls = [(calls != "-").sum() for calls in calls_array]
+            # positive_calls = [((calls == "1") | (calls == "2")).sum() for calls in calls_array]
+            # tot_calls = [(calls != "-").sum() for calls in calls_array]
+            positive_calls = [numpy.asarray([call == "1" or call == "2" for call in call_list]).sum() for call_list in calls_array]
+            tot_calls = [numpy.asarray([call != "-" for call in call_list]).sum() for call_list in calls_array]
 
-            call_rate_per_snp = [pos / tot for pos, tot in zip(positive_calls, tot_calls)]
+            call_rate_per_snp = [0 if tot == 0 else pos / tot for pos, tot in zip(positive_calls, tot_calls)]
             x_data.append(call_rate_per_snp)
 
             # Find MAF for a SNP
             graph_y_data = list(snp_maf[index].values())
             y_data.append(graph_y_data)
 
-        DartGraphs.create_scatter_plot(x=x_data, y=y_data, title=title, x_tick_labels=x_tick_labels, x_label=x_label,
+        DartGraphs.create_scatter_plot(x=x_data, y=y_data, title=title, x_tick_labels=x_tick_labels, x_ticks=x_ticks, x_label=x_label,
                                        y_label=y_label, outfile=outfile, color=color, legend=legend)
 
         print(title + ": " + str(round((time.time() - start), 2)) + "s - " + outfile)
