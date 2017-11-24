@@ -247,16 +247,17 @@ class CommandLine:
                                    type=lambda p: os.path.abspath(p), required=False,
                                    dest="call_scheme", help="path to call scheme json file")
 
-        filter_parser.add_argument("--maf", default=[None], type=lambda s: [float(item) for item in s.split(',')],
+        # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]
+        filter_parser.add_argument("--maf", default=[], type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')],
                                    dest="maf", help="filter snps <= minor allele frequency")
-        filter_parser.add_argument("--hwe", default=[None], type=lambda s: [float(item) for item in s.split(',')],
+        filter_parser.add_argument("--hwe", default=[], type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')],
                                    dest="hwe", help="filter snps <= p-value of hardy-weinberg test")
-        filter_parser.add_argument("--call_rate", default=[None], type=lambda s: [float(item) for item in s.split(',')],
+        filter_parser.add_argument("--call_rate", default=[], type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')],
                                    dest="call_rate", help="filter snps <= call rate of snp")
-        filter_parser.add_argument("--rep", default=[None], type=lambda s: [float(item) for item in s.split(',')],
+        filter_parser.add_argument("--rep", default=[], type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')],
                                    dest="rep", help="filter snps <= replication average of snp")
 
-        filter_parser.add_argument("--mind", default=[None], type=lambda s: [float(item) for item in s.split(',')],
+        filter_parser.add_argument("--mind", default=[], type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')],
                                    dest="mind", help="filter samples > missingness per sample")
         filter_parser.add_argument("--mono", default=None,
                                    dest="mono", help="filter samples monomorphic in <mono> populations ('all', int)")
