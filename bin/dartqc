@@ -43,6 +43,7 @@ def main():
     # Workflows
 
     if args["subparser"] == "prepare":
+        # Best attempt create data and read_count mapping schemes
         DartPreparator(file_path=args["file"], excel_sheet=args["sheet"], output_name=args["output_name"],
                        output_path=args["out_path"])
 
@@ -122,6 +123,7 @@ def _filter_dart(args):
 
         dart_reader = DartReader()
         data, attributes = dart_reader.read_json(data_file=data_file, attribute_file=attr_file)
+        attributes["out_path"] = args["out_path"]  # Don't overwrite the output path from the cmd line!
 
         diff_data.append(data)
         diff_attrs.append(attributes)
@@ -144,16 +146,19 @@ def _filter_dart(args):
     # Insert summary module here for before filtering snapshot of data (including parameters)
     # otherwise find summary of modules in attributes (removed, retained)
 
+    if args["mind"] is not None and len(args["mind"]) > 0:
+        data, attributes = _filter_mind(args, data, attributes)  # Returns an array of data and attributes
 
-    data, attributes = _filter_mind(args, data, attributes)  # Returns an array of data and attributes
+        # Graph the difference between the mind args passed in.
+        if args["graph"] and len(data) > 1:
+            DartGraphs.create_plots(data, read_counts, attributes, "mind", args["out_path"], args["project"], "teal",
+                                    legend=[("Mind " + str(mind)) for mind in args["mind"]])
 
-    # Graph the difference between the mind args passed in.
-    if args["graph"] and len(data) > 1:
-        DartGraphs.create_plots(data, read_counts, attributes, "mind", args["out_path"], args["project"], "teal",
-                                legend=[("Mind " + str(mind)) for mind in args["mind"]])
+        data = data[0]
+        attributes = attributes[0]
 
     # Just use the first mind values - ignore the rest (multiple values is only intended for graphing)
-    data, attributes = _filter_monomorphic(args, data[0], attributes[0])  # Only outputs 1 set of data
+    data, attributes = _filter_monomorphic(args, data, attributes)
 
     data, attributes = _filter_snps(args, data, attributes)  # Outputs data and attribute arrays
 
@@ -161,7 +166,7 @@ def _filter_dart(args):
     if args["graph"] and len(data) > 1:
         DartGraphs.create_plots(data, read_counts, attributes, "filter", args["out_path"], args["project"])
 
-    # Just use the first mind values - ignore the rest (multiple values is only intended for graphing)
+    # Just use the first filter values - ignore the rest (multiple values is only intended for graphing)
     data, attributes = _filter_redundancy(args, data[0], attributes[0])
 
     # Create a set of final graphs + also create a set of graphs with original, read count thresholded & final data
@@ -298,7 +303,7 @@ def _filter_snps(args, data, attributes):
                                                      ("hwe", hwe[index])])
 
             if len(data) == 0:
-                stamp("All data was filtered, cannot process data for filter set " + index)
+                stamp("All data was filtered, cannot process data for filter set " + str(index))
             else:
                 all_data.append(data)
                 all_attrs.append(attributes)

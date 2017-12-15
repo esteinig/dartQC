@@ -29,6 +29,8 @@ class DartWriter:
         stamp("Decoding calls...")
         snp_rows = [[self.decoding_scheme[snp] for snp in self.data[snp_id]["calls"]] for snp_id in snp_order]
 
+        # Update to output actual ACGT values for alleles rather than just A or B - this maintains the most info.
+
         stamp("Transposing calls...")
         snps_by_sample = numpy.asarray(snp_rows).transpose(1, 0, 2)
 

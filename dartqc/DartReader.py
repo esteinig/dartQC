@@ -6,7 +6,6 @@ from dartqc.DartQCException import DartQCException
 
 
 class DartReader:
-
     """Class for reading raw calls."""
 
     def __init__(self):
@@ -18,9 +17,9 @@ class DartReader:
 
         # Parsing raw data
 
-        self.raw_file = ''              # File name with raw data
-        self.data = {}                  # Holds initial unfiltered data
-        self.header = []                # Holds the lines before the actual header for statistics and data
+        self.raw_file = ''  # File name with raw data
+        self.data = {}  # Holds initial unfiltered data
+        self.header = []  # Holds the lines before the actual header for statistics and data
 
         self.sample_names = []
         self.sample_size = 0
@@ -30,9 +29,9 @@ class DartReader:
 
         # Row numbers (non-pythonic) in Excel Spreadsheet
 
-        self._data_row = 7              # Start of Sequences / Data
-        self._sample_row = 5            # Sample Identification
-        self._pop_row = 0               # Sample Populations
+        self._data_row = 7  # Start of Sequences / Data
+        self._sample_row = 5  # Sample Identification
+        self._pop_row = 0  # Sample Populations
 
         # Column numbers (non-pythonic) in Excel Spreadsheet
 
@@ -139,6 +138,7 @@ class DartReader:
                 self._sample_column = config["data_column"]
                 self._data_row = config["data_row"]
                 self._sample_row = config["sample_row"]
+                self._pop_row = config["pop_row"] if "pop_row" in config else None
 
     def read_pops(self, file, sep=','):
 
@@ -150,7 +150,7 @@ class DartReader:
             reader = csv.reader(infile, delimiter=sep)
             for row in reader:
                 if meta_head:
-                    self.meta[row[self._id_meta-1]] = row[self._pop_meta-1]
+                    self.meta[row[self._id_meta - 1]] = row[self._pop_meta - 1]
                 else:
                     meta_head = row
 
@@ -176,15 +176,15 @@ class DartReader:
 
             for row in reader:
 
-                if row_index <= self._data_row-2:  # Don't include description header
+                if row_index <= self._data_row - 2:  # Don't include description header
                     self.header.append(row)
 
                 if row_index == self._sample_row:
-                    self.sample_names = row[self._sample_column-1:]
+                    self.sample_names = row[self._sample_column - 1:]
                     self.sample_size = len(self.sample_names)
 
                 if row_index == self._pop_row:
-                    pops = row[self._sample_column-1:]
+                    pops = row[self._sample_column - 1:]
 
                 # Data Rows, read from specified row and only if it contains data in at least one field (remove empties)
                 if row_index >= self._data_row and any(row):
@@ -192,10 +192,10 @@ class DartReader:
                     # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
                     # Implement Error checks for conformity between both alleles: SNP Position, Number of Individuals
                     if allele_index == 1:
-                        allele_id = row[self._id-1]
-                        clone_id = row[self._clone-1]
+                        allele_id = row[self._id - 1]
+                        clone_id = row[self._clone - 1]
 
-                        call_1 = row[self._call-1:]
+                        call_1 = row[self._call - 1:]
 
                         if numeric:
                             call_1 = [0 if call is None or call == "" else int(call) for call in call_1]
@@ -206,28 +206,28 @@ class DartReader:
                         if basic:
                             entry = {"allele_id": allele_id,
                                      "clone_id": clone_id,
-                                     "allele_seq_ref": row[self._seq-1],
-                                     "rep_average": float(row[self._rep_average-1]),
-                                     "freq_heterozygous": row[self._freq_heterozygous-1],
+                                     "allele_seq_ref": row[self._seq - 1],
+                                     "rep_average": float(row[self._rep_average - 1]),
+                                     "freq_heterozygous": row[self._freq_heterozygous - 1],
                                      "calls": [call_1]}  # Add allele calls 1
                         else:
 
                             entry = {"allele_id": allele_id,
                                      "clone_id": clone_id,
-                                     "allele_seq_ref": row[self._seq-1],
-                                     "snp_position": row[self._snp_position-1],
-                                     "call_rate_dart": row[self._call_rate_dart-1],
-                                     "one_ratio_ref": row[self._one_ratio_ref-1],
-                                     "one_ratio_snp": row[self._one_ratio_snp-1],
-                                     "freq_homozygous_ref": row[self._freq_homozygous_ref-1],
-                                     "freq_homozygous_snp": row[self._freq_homozygous_snp-1],
-                                     "freq_heterozygous": row[self._freq_heterozygous-1],
-                                     "pic_ref": row[self._pic_ref-1],
-                                     "pic_snp": row[self._pic_snp-1],
-                                     "pic_average": row[self._pic_average-1],
-                                     "read_count_ref": float(row[self._read_count_ref-1]),
-                                     "read_count_snp": float(row[self._read_count_snp-1]),
-                                     "rep_average": float(row[self._rep_average-1]),
+                                     "allele_seq_ref": row[self._seq - 1],
+                                     "snp_position": row[self._snp_position - 1],
+                                     "call_rate_dart": row[self._call_rate_dart - 1],
+                                     "one_ratio_ref": row[self._one_ratio_ref - 1],
+                                     "one_ratio_snp": row[self._one_ratio_snp - 1],
+                                     "freq_homozygous_ref": row[self._freq_homozygous_ref - 1],
+                                     "freq_homozygous_snp": row[self._freq_homozygous_snp - 1],
+                                     "freq_heterozygous": row[self._freq_heterozygous - 1],
+                                     "pic_ref": row[self._pic_ref - 1],
+                                     "pic_snp": row[self._pic_snp - 1],
+                                     "pic_average": row[self._pic_average - 1],
+                                     "read_count_ref": float(row[self._read_count_ref - 1]),
+                                     "read_count_snp": float(row[self._read_count_snp - 1]),
+                                     "rep_average": float(row[self._rep_average - 1]),
                                      "calls": [call_1]}  # Add allele calls 1
 
                         self.data[allele_id] = entry
@@ -237,30 +237,32 @@ class DartReader:
                     else:
                         # Add sequence and allele calls 2:
                         prevRowSNP = allele_id[allele_id.rfind("-") + 1:]
-                        rowSNP = row[self._id-1][row[self._id-1].find("-") + 1:row[self._id-1].rfind("-")]
+                        rowSNP = row[self._id - 1][row[self._id - 1].find("-") + 1:row[self._id - 1].rfind("-")]
 
-                        if row[self._clone-1] is None or len(row[self._clone-1]) == 0 or row[self._id-1] is None \
-                                or len(row[self._id-1]) == 0 or "|" not in row[self._id-1] \
-                                or clone_id != row[self._clone-1] \
-                                or allele_id[: allele_id.index("|")] != row[self._id-1][: row[self._id-1].index("|")] \
+                        if row[self._clone - 1] is None or len(row[self._clone - 1]) == 0 or row[self._id - 1] is None \
+                                or len(row[self._id - 1]) == 0 or "|" not in row[self._id - 1] \
+                                or clone_id != row[self._clone - 1] \
+                                or allele_id[: allele_id.index("|")] != row[self._id - 1][
+                                                                        : row[self._id - 1].index("|")] \
                                 or prevRowSNP != rowSNP:
-                            raise DartQCException("Miss matched rows: " + clone_id + "("+allele_id+") -> " + row[self._clone-1] + "("+row[self._id-1]+").\n"
-                                        + "\t\t- Edit " + file + " so all allele's have 2 rows + they are sequential\n"
-                                        + "\t\t- Check to make sure clone and allele IDs match correctly\n"
-                                        + "\t\t- Check the SNP matches (ending of the id such as 20:G>A)")
+                            raise DartQCException("Miss matched rows: " + clone_id + "(" + allele_id + ") -> " + row[
+                                self._clone - 1] + "(" + row[self._id - 1] + ").\n"
+                                                  + "\t\t- Edit " + file + " so all allele's have 2 rows + they are sequential\n"
+                                                  + "\t\t- Check to make sure clone and allele IDs match correctly\n"
+                                                  + "\t\t- Check the SNP matches (ending of the id such as 20:G>A)")
 
-                        call_2 = row[self._call-1:]
+                        call_2 = row[self._call - 1:]
 
                         if numeric:
                             call_2 = [int(call) for call in call_2]
 
                         self.data[allele_id]["calls"].append(call_2)
-                        self.data[allele_id]["allele_seq_snp"] = row[self._seq-1]
-                        self.data[allele_id]["snp"] = row[self._snp-1]
+                        self.data[allele_id]["allele_seq_snp"] = row[self._seq - 1]
+                        self.data[allele_id]["snp"] = row[self._snp - 1]
 
                         if len(self.data[allele_id]["calls"]) != 2:
-                            raise(DartQCException("Genotype of", allele_id, "does not contain two alleles.",
-                                  "Check if starting row for data is correctly specified."))
+                            raise (DartQCException("Genotype of", allele_id, "does not contain two alleles.",
+                                                   "Check if starting row for data is correctly specified."))
                         if encode:
                             try:
                                 self.data[allele_id]["calls"] = self._encode_dart(self.data[allele_id]["calls"])
@@ -272,7 +274,8 @@ class DartReader:
                                         err_data = snp_call
                                         break
 
-                                raise DartQCException("Incorrect call data for " + allele_id + (": " + str(err_data) if err_data is not None else "")
+                                raise DartQCException("Incorrect call data for " + allele_id + (
+                                ": " + str(err_data) if err_data is not None else "")
                                                       + " - all calls should be 10, 01, 11 or --.  Check: \n"
                                                         "\t\t- Read_counts file wasn't selected as the data file\n"
                                                         "\t\t- That allele has exactly 2 rows\n"
@@ -287,7 +290,8 @@ class DartReader:
                 row_index += 1
 
             if allele_index != 1:
-                raise DartQCException("Last allele only has 1 row!  Edit " + file + " to add the missing row or remove the single row for clone: " + clone_id)
+                raise DartQCException(
+                    "Last allele only has 1 row!  Edit " + file + " to add the missing row or remove the single row for clone: " + clone_id)
 
         # Check if reader picked up populations, if not generate generic names:
         if not pops:

@@ -17,7 +17,6 @@ from dartqc.DartMessages import DartMessages
 
 
 class SummaryModule:
-
     def __init__(self, data=None, attributes=None, out_path=None):
 
         self.data = data
@@ -42,7 +41,7 @@ class SummaryModule:
         snps = [[snp] + [data[parameter] for parameter in summary_parameters] for snp, data in self.data.items()]
 
         if sort:
-            snps = sorted(snps, key=operator.itemgetter(*[i for i in range(1, len(summary_parameters)+1)]),
+            snps = sorted(snps, key=operator.itemgetter(*[i for i in range(1, len(summary_parameters) + 1)]),
                           reverse=True)
 
         out_data += snps
@@ -160,9 +159,10 @@ class SummaryModule:
             params = {"preprocess": self.attributes["modules"]["preprocessor"]["settings"]["read_count_sum_threshold"],
                       "calls": self.attributes["modules"]["preprocessor"]["settings"]["results"]["total_calls"],
                       "missing": self.attributes["modules"]["preprocessor"]["settings"]["results"]["before_missing"]}
-            removed = {"preprocess": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
-                       "calls": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
-                       "missing": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"]}
+            removed = {
+                "preprocess": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
+                "calls": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"],
+                "missing": self.attributes["modules"]["preprocessor"]["settings"]["results"]["replaced_calls"]}
         except KeyError:
             stamp("Could not detect results for Preprocessing Module, skipping...")
             params = {"preprocess": None, "calls": None, "missing": None}
@@ -184,14 +184,13 @@ class SummaryModule:
                 writer = csv.writer(out_r_file)
                 writer.writerows(r_matrix)
 
+
 ########################################################################################################################
 
 
 class QualityControl:
-
     def __init__(self, data, attributes):
-
-        self.data = data                                # Dictionary holds data from DartReader
+        self.data = data  # Dictionary holds data from DartReader
         self.attributes = attributes
 
         self.verbose = True
@@ -214,7 +213,6 @@ class QualityControl:
 
 
 class PopulationModule(QualityControl):
-
     def __init__(self, data, attributes):
 
         QualityControl.__init__(self, data, attributes)
@@ -224,8 +222,8 @@ class PopulationModule(QualityControl):
         self.pops = attributes["pops"]
         self.sample_names = attributes["sample_names"]  # List of ordered unique names, same order as calls for SNPs
 
-        self.populations = {}                           # Dictionary of populations and list of member indices
-        self.monomorphics = {}                          # Dictionary of populations and list of mono SNPs for key pop
+        self.populations = {}  # Dictionary of populations and list of member indices
+        self.monomorphics = {}  # Dictionary of populations and list of mono SNPs for key pop
 
         self.attributes["modules"][self.name] = {}
 
@@ -335,7 +333,7 @@ class PopulationModule(QualityControl):
                     self.monomorphics[pop].append(snp)
                     number += 1
 
-                # Repeat for each population
+                    # Repeat for each population
 
             # When done, add the total number of population the SNP
             # is monomorphic to the data for this SNP
@@ -350,7 +348,6 @@ class PopulationModule(QualityControl):
 
 
 class SampleModule(QualityControl):
-
     def __init__(self, data, attributes):
 
         QualityControl.__init__(self, data, attributes)
@@ -396,7 +393,7 @@ class SampleModule(QualityControl):
 
         attributes = self._adjust_attributes(self.attributes, mind, to_remove)
 
-        percent_removed = format((len(to_remove) / attributes["sample_size"])*100, ".2f")
+        percent_removed = format((len(to_remove) / attributes["sample_size"]) * 100, ".2f")
 
         stamp("Removed {r} samples out of {t} samples ({p}%)"
               .format(r=len(to_remove), t=attributes["sample_size"], p=percent_removed))
@@ -444,11 +441,11 @@ class SampleModule(QualityControl):
 
         return attributes
 
+
 ########################################################################################################################
 
 
 class RedundancyModule(QualityControl):
-
     def __init__(self, data, attributes, tmp_remove=True):
 
         QualityControl.__init__(self, data, attributes)
@@ -463,7 +460,7 @@ class RedundancyModule(QualityControl):
         self.retained_sequences = []
         self.removed_sequences = []
 
-        self.identity = 0.95            # Identity used in Cluster Removal
+        self.identity = 0.95  # Identity used in Cluster Removal
 
         self.attributes["modules"][self.name] = {}
 
@@ -479,11 +476,11 @@ class RedundancyModule(QualityControl):
                 "before": None,
                 "after": None,
                 "removed": None
-        }, "duplicates": {
+            }, "duplicates": {
                 "before": None,
                 "after": None,
                 "removed": None
-        }},
+            }},
             "settings": {},
             "states": {}  # States are other parameters of interest not necessary results or settings.
         }
@@ -528,7 +525,7 @@ class RedundancyModule(QualityControl):
 
                 self._log_filters(mode=mode, before=before, after=after)
 
-                self.messages.get_redundancy_message(mode, before, before-after, after)
+                self.messages.get_redundancy_message(mode, before, before - after, after)
 
         self.attributes["modules"][self.name]["states"] = {
             "duplicates_removed": len(self.removed_duplicates),
@@ -542,9 +539,9 @@ class RedundancyModule(QualityControl):
     def _log_filters(self, mode, before, after):
 
         self.attributes["modules"][self.name]["results"][mode] = {
-                "before": before,
-                "after": after,
-                "removed": before - after
+            "before": before,
+            "after": after,
+            "removed": before - after
         }
 
     def remove_duplicates(self, selector="maf", target="clone_id", selector_list=None):
@@ -629,6 +626,9 @@ class RedundancyModule(QualityControl):
         out_file = os.path.join(self.tmp_path, file_name)
         cluster_path = os.path.join(self.tmp_path, file_name + '.clstr')
 
+        stamp("Calling cd-hit-est: " + cdhit_path + " -i " + fasta_path + " -o " + out_file + " -c " + str(identity) +
+              " -n " + str(word_size) + " -d " + str(description_length))
+
         with open(os.devnull, "w") as devnull:
             call([cdhit_path, "-i", fasta_path, "-o", out_file, "-c", str(identity), "-n", str(word_size),
                   "-d", str(description_length)], stdout=devnull)
@@ -646,7 +646,7 @@ class RedundancyModule(QualityControl):
         identity_clusters = {}
 
         with open(file, "r") as clstr_file:
-              nrows = len(list(clstr_file))
+            nrows = len(list(clstr_file))
 
         with open(file, "r") as clstr_file:
             clstr_reader = csv.reader(clstr_file, delimiter=' ')
@@ -729,16 +729,17 @@ class RedundancyModule(QualityControl):
             entries_ranked = sorted(entries_stats, key=operator.itemgetter(1), reverse=True)
         else:
             entries_stats = [[i] + [self.data[i][selector] for selector in selector_list] for i in ids]
-            entries_ranked = sorted(entries_stats, key=operator.itemgetter(*[i for i in range(1, len(selector_list)+1)]),
+            entries_ranked = sorted(entries_stats,
+                                    key=operator.itemgetter(*[i for i in range(1, len(selector_list) + 1)]),
                                     reverse=True)
 
         return entries_ranked[0][0]
+
 
 ########################################################################################################################
 
 
 class CombinationModule:
-
     """ Combinator module for MarkerModule. Assess and visualize combinations of parameters for QC. """
 
     def __init__(self, marker_module):
@@ -768,7 +769,7 @@ class CombinationModule:
                     filtered_x = self.filters[parameter_one][value_x]
                     filter_combined = set(filtered_x + filtered_y)
                     r_matrix += [[str(value_y), str(value_x), len(self.data) - len(filter_combined), 100, 100]]
-                    result_row.append(len(self.data) - len(filter_combined))        # Number of retained SNPs
+                    result_row.append(len(self.data) - len(filter_combined))  # Number of retained SNPs
                 result_matrix.append(result_row)
 
             return result_matrix, r_matrix
@@ -778,7 +779,6 @@ class CombinationModule:
 
 
 class SNPModule(QualityControl):
-
     """ Analysis module for markers, calculate parameters and filter SNPs. """
 
     def __init__(self, data, attributes):
@@ -787,7 +787,7 @@ class SNPModule(QualityControl):
 
         self.name = "snp"
 
-        self.filters = {}                   # {"maf" : {0.5 : [ "SNP1" , "SNP2" ...] ...} ...}
+        self.filters = {}  # {"maf" : {0.5 : [ "SNP1" , "SNP2" ...] ...} ...}
 
         self._calculate_parameters()
 
@@ -806,10 +806,10 @@ class SNPModule(QualityControl):
     def _log_filters(self, parameter, value, before, after):
 
         self.attributes["modules"][self.name]["results"][parameter] = {
-                "value": value,
-                "before": before,
-                "after": after,
-                "removed": before - after
+            "value": value,
+            "before": before,
+            "after": after,
+            "removed": before - after
         }
 
     def filter_data(self, thresholds, parameter="maf", comparison="<="):
@@ -861,7 +861,7 @@ class SNPModule(QualityControl):
 
                 self._log_filters(parameter=parameter, before=before, after=after, value=threshold)
 
-                self.messages.get_filter_message(parameter, threshold, before, before-after, after)
+                self.messages.get_filter_message(parameter, threshold, before, before - after, after)
 
             return data, self.attributes
 
@@ -878,7 +878,8 @@ class SNPModule(QualityControl):
 
             self._log_filters(parameter=parameter, before=len(self.data), after=len(data), value=threshold)
 
-            self.messages.get_filter_message(parameter, threshold, len(self.data), len(self.data)-len(data), len(data))
+            self.messages.get_filter_message(parameter, threshold, len(self.data), len(self.data) - len(data),
+                                             len(data))
 
             return data, self.attributes
 
@@ -899,10 +900,10 @@ class SNPModule(QualityControl):
         het_count = genotypes.count(self.heterozygous)
 
         try:
-            freq_allele_one = (genotypes.count(self.homozygous_major) + (het_count/2)) / adjusted_samples
-            freq_allele_two = (genotypes.count(self.homozygous_minor) + (het_count/2)) / adjusted_samples
+            freq_allele_one = (genotypes.count(self.homozygous_major) + (het_count / 2)) / adjusted_samples
+            freq_allele_two = (genotypes.count(self.homozygous_minor) + (het_count / 2)) / adjusted_samples
         except ZeroDivisionError:
-            #print("Detected complete missing data in SNP:", snp)
+            # print("Detected complete missing data in SNP:", snp)
             return 0
 
         return min(freq_allele_one, freq_allele_two)
@@ -920,10 +921,10 @@ class SNPModule(QualityControl):
         hetero_obs, major_obs, minor_obs = self._get_observed(genotypes)
 
         try:
-            p = (major_obs + (hetero_obs/2)) / adjusted_samples
-            q = (minor_obs + (hetero_obs/2)) / adjusted_samples
+            p = (major_obs + (hetero_obs / 2)) / adjusted_samples
+            q = (minor_obs + (hetero_obs / 2)) / adjusted_samples
         except ZeroDivisionError:
-            #print("Detected complete missing data in SNP:", snp)
+            # print("Detected complete missing data in SNP:", snp)
             return 0
 
         if (p + q) != 1:
@@ -932,9 +933,9 @@ class SNPModule(QualityControl):
         hetero_exp, major_exp, minor_exp = self._get_expected(p, q, adjusted_samples)
 
         try:
-            hetero_test = ((hetero_obs-hetero_exp)**2)/hetero_exp
-            major_test = ((major_obs-major_exp)**2)/major_exp
-            minor_test = ((minor_obs-minor_exp)**2)/minor_exp
+            hetero_test = ((hetero_obs - hetero_exp) ** 2) / hetero_exp
+            major_test = ((major_obs - major_exp) ** 2) / major_exp
+            minor_test = ((minor_obs - minor_exp) ** 2) / minor_exp
         except ZeroDivisionError:
             return 0
 
@@ -944,7 +945,7 @@ class SNPModule(QualityControl):
 
         """" Get observed counts in the genotype for each SNP """
 
-        return genotypes.count(self.heterozygous), genotypes.count(self.homozygous_major),\
+        return genotypes.count(self.heterozygous), genotypes.count(self.homozygous_major), \
                genotypes.count(self.homozygous_minor)
 
     @staticmethod
@@ -952,13 +953,13 @@ class SNPModule(QualityControl):
 
         """ Get expected counts under HWE """
 
-        return adjusted_samples*(2*p*q), adjusted_samples*(p**2), adjusted_samples*(q**2)
+        return adjusted_samples * (2 * p * q), adjusted_samples * (p ** 2), adjusted_samples * (q ** 2)
 
     def _calculate_call(self, genotypes):
 
         """ Calculates call rate across samples for a single SNP. """
 
-        return 1 - (genotypes.count(self.missing)/self.sample_size)
+        return 1 - (genotypes.count(self.missing) / self.sample_size)
 
     def _calculate_parameters(self):
 
@@ -968,7 +969,6 @@ class SNPModule(QualityControl):
         """
 
         for snp, data in self.data.items():
-
             self.data[snp]["maf"] = self._calculate_maf(snp, data["calls"])
             self.data[snp]["call_rate"] = self._calculate_call(data["calls"])
             self.data[snp]["hwe"] = self._calculate_hwe(snp, data["calls"])

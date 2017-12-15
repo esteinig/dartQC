@@ -11,6 +11,8 @@ import dartqc.DartQCException
 from dartqc.DartModules import SNPModule
 from dartqc.DartUtils import stamp
 
+GRAPH_IMG_TYPE = ".jpg"
+
 class DartGraphs:
 
     # Some graphs won't be changed based on filtering (eg. read counts, repAvg & freq Hetz)
@@ -18,10 +20,10 @@ class DartGraphs:
     def create_static_plots(data, read_data, output_dir, project):
         print("Creating static plots")
 
-        DartGraphs.read_counts_per_individ(read_data, os.path.join(output_dir, project + "_IndividReadCounts.jpg"), color='blue')
-        DartGraphs.avg_reads_per_snp(read_data, os.path.join(output_dir, project + "_AvgReadsPerSNP.jpg"), color='blue')
-        DartGraphs.avg_rep_across_snp(data, os.path.join(output_dir, project + "_AvgRepAcrossSNP.jpg"), color='blue')
-        DartGraphs.het_across_snp(data, os.path.join(output_dir, project + "_HetAcrossSNP.jpg"), color='blue')
+        DartGraphs.read_counts_per_individ(read_data, os.path.join(output_dir, project + "_IndividReadCounts" + GRAPH_IMG_TYPE), color='blue')
+        DartGraphs.avg_reads_per_snp(read_data, os.path.join(output_dir, project + "_AvgReadsPerSNP" + GRAPH_IMG_TYPE), color='blue')
+        DartGraphs.avg_rep_across_snp(data, os.path.join(output_dir, project + "_AvgRepAcrossSNP" + GRAPH_IMG_TYPE), color='blue')
+        DartGraphs.het_across_snp(data, os.path.join(output_dir, project + "_HetAcrossSNP" + GRAPH_IMG_TYPE), color='blue')
 
     @staticmethod
     def create_plots(data, read_data, attrs, name, output_dir, project, color=None, legend=None):
@@ -58,11 +60,11 @@ class DartGraphs:
             mm = SNPModule(data=data_item, attributes=attrs[index])
             snpMAF.append({k: v["maf"] for (k, v) in data_item.items()})
 
-        DartGraphs.call_rates_across_snp(data=data, outfile=os.path.join(output_dir, project + "_" + name +"_CallRatesAcrossSNP.jpg"), color=color, legend=legend)
-        DartGraphs.call_rate_across_individ(data=data, outfile=os.path.join(output_dir, project + "_" + name + "_CallRatesAcrossIndivid.jpg"), color=color, legend=legend)
-        DartGraphs.maf_across_snp(snp_maf=snpMAF, outfile=os.path.join(output_dir, project + "_" + name + "_MAFAcrossSNP.jpg"), color=color, legend=legend)
-        DartGraphs.maf_to_read_count(snp_maf=snpMAF, read_data=read_data, outfile=os.path.join(output_dir, project + "_" + name + "_MAFToReadCount.jpg"), color=color, legend=legend)
-        DartGraphs.call_rate_to_maf(data=data, snp_maf=snpMAF, outfile=os.path.join(output_dir, project + "_" + name + "_CallRateToMAF.jpg"), color=color, legend=legend)
+        DartGraphs.call_rates_across_snp(data=data, outfile=os.path.join(output_dir, project + "_" + name +"_CallRatesAcrossSNP" + GRAPH_IMG_TYPE), color=color, legend=legend)
+        DartGraphs.call_rate_across_individ(data=data, outfile=os.path.join(output_dir, project + "_" + name + "_CallRatesAcrossIndivid" + GRAPH_IMG_TYPE), color=color, legend=legend)
+        DartGraphs.maf_across_snp(snp_maf=snpMAF, outfile=os.path.join(output_dir, project + "_" + name + "_MAFAcrossSNP" + GRAPH_IMG_TYPE), color=color, legend=legend)
+        DartGraphs.maf_to_read_count(snp_maf=snpMAF, read_data=read_data, outfile=os.path.join(output_dir, project + "_" + name + "_MAFToReadCount" + GRAPH_IMG_TYPE), color=color, legend=legend)
+        DartGraphs.call_rate_to_maf(data=data, snp_maf=snpMAF, outfile=os.path.join(output_dir, project + "_" + name + "_CallRateToMAF" + GRAPH_IMG_TYPE), color=color, legend=legend)
 
 
     @staticmethod
