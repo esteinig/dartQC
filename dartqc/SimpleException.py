@@ -5,7 +5,7 @@ import traceback
 import re
 
 
-class DartQCException(RuntimeError):
+class SimpleException(RuntimeError):
     def __init__(self, *msg):
         message = ""
         for arg in msg:

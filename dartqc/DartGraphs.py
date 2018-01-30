@@ -7,7 +7,7 @@ from matplotlib import pyplot
 from matplotlib import patches
 from matplotlib import colors
 
-import dartqc.DartQCException
+import dartqc.SimpleException
 from dartqc.DartModules import SNPModule
 from dartqc.DartUtils import stamp
 

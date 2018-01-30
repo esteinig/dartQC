@@ -1,6 +1,6 @@
 import numpy
 
-from dartqc.DartQCException import DartQCException
+from dartqc.SimpleException import SimpleException
 from dartqc.DartReader import DartReader
 from dartqc.DartUtils import stamp
 
@@ -69,7 +69,7 @@ class Preprocessor(DartReader):
             for sample in set(self.sample_names).difference(set(self.call_names)):
                 stamp(sample)
 
-            raise DartQCException("Sample names in data & read count files don't match.\n"
+            raise SimpleException("Sample names in data & read count files don't match.\n"
                                   + "\t\t- Check if the read_counts (and data) sample row is set correctly")
         else:
             stamp("Concordance between sample names in call and count data, all is good.")
@@ -138,7 +138,7 @@ class Preprocessor(DartReader):
 
         for idx, aCounts in enumerate(count_array):
             if len(aCounts) < 2:
-                raise DartQCException("Invalid read counts data for allele " + snp_order[idx] + " - is there only 1 row?")
+                raise SimpleException("Invalid read counts data for allele " + snp_order[idx] + " - is there only 1 row?")
 
         columns = [numpy.sum(count_array[:, self.replicates[sample]], axis=1).tolist() for sample in self.call_names]
 

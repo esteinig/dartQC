@@ -2,7 +2,7 @@ import os
 import csv
 import json
 
-from dartqc.DartQCException import DartQCException
+from dartqc.SimpleException import SimpleException
 
 
 class DartReader:
@@ -245,7 +245,7 @@ class DartReader:
                                 or allele_id[: allele_id.index("|")] != row[self._id - 1][
                                                                         : row[self._id - 1].index("|")] \
                                 or prevRowSNP != rowSNP:
-                            raise DartQCException("Miss matched rows: " + clone_id + "(" + allele_id + ") -> " + row[
+                            raise SimpleException("Miss matched rows: " + clone_id + "(" + allele_id + ") -> " + row[
                                 self._clone - 1] + "(" + row[self._id - 1] + ").\n"
                                                   + "\t\t- Edit " + file + " so all allele's have 2 rows + they are sequential\n"
                                                   + "\t\t- Check to make sure clone and allele IDs match correctly\n"
@@ -261,7 +261,7 @@ class DartReader:
                         self.data[allele_id]["snp"] = row[self._snp - 1]
 
                         if len(self.data[allele_id]["calls"]) != 2:
-                            raise (DartQCException("Genotype of", allele_id, "does not contain two alleles.",
+                            raise (SimpleException("Genotype of", allele_id, "does not contain two alleles.",
                                                    "Check if starting row for data is correctly specified."))
                         if encode:
                             try:
@@ -274,7 +274,7 @@ class DartReader:
                                         err_data = snp_call
                                         break
 
-                                raise DartQCException("Incorrect call data for " + allele_id + (
+                                raise SimpleException("Incorrect call data for " + allele_id + (
                                 ": " + str(err_data) if err_data is not None else "")
                                                       + " - all calls should be 10, 01, 11 or --.  Check: \n"
                                                         "\t\t- Read_counts file wasn't selected as the data file\n"
@@ -290,7 +290,7 @@ class DartReader:
                 row_index += 1
 
             if allele_index != 1:
-                raise DartQCException(
+                raise SimpleException(
                     "Last allele only has 1 row!  Edit " + file + " to add the missing row or remove the single row for clone: " + clone_id)
 
         # Check if reader picked up populations, if not generate generic names:
