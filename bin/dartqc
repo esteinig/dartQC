@@ -4,7 +4,9 @@ import numpy
 import sys
 import os
 
-from dartqc.DartFileValidation import DartFileValidator
+import time
+
+from dartqc.AlleleIDValidation import IDValidator
 from dartqc.DartUtils import stamp, CommandLine, Installer, PBS
 from dartqc.DartGraphs import DartGraphs
 from dartqc.DartReader import DartReader
@@ -61,8 +63,8 @@ def main():
         dart_reader.read_double_row(file=args["raw_file"], encode=False, numeric=True)
         read_counts, read_attrs = dart_reader.get_data()
 
-        validator = DartFileValidator(data=data, attributes=attributes, read_counts=read_counts,
-                                      ids_file_path=args["id_list"])
+        validator = IDValidator(data=data, attributes=attributes, read_counts=read_counts,
+                                ids_file_path=args["id_list"])
         validator.do_validations()
         data, attributes, read_counts = validator.get_data()
 
@@ -89,6 +91,28 @@ def main():
 
         dart_writer.write_json(args["project"] + "_filtered")
         dart_writer.write_plink(args["project"] + "_filtered", remove_space=True)
+
+# def _test_load_speed():
+#       ~ 10s to read CSV vs .6 to read json -> much, much quicker, but at 10s not worth bothering with...
+#
+#     workingDir = "C:\\Users\\jc229483\\Desktop\\DartQC Test"
+#
+#     start = time.time()
+#     data_file = os.path.join(workingDir, "prawns_data.json")
+#     attr_file = os.path.join(workingDir, "prawns_attr.json")
+#
+#     dart_reader = DartReader()
+#     data, attributes = dart_reader.read_json(data_file=data_file, attribute_file=attr_file)
+#
+#     print("JSON Read time " + str(round((time.time() - start), 2)) + "s")
+#     start = time.time()
+#
+#     dart_reader = DartReader()
+#     dart_reader.set_options(scheme=os.path.join(workingDir, "test_data_scheme.json"))
+#     dart_reader.read_double_row(os.path.join(workingDir, "test_data.csv"), basic=True)
+#     orig_data, orig_attrs = dart_reader.get_data()
+#
+#     print("CSV Read time " + str(round((time.time() - start), 2)) + "s")
 
 
 def _filter_dart(args):

@@ -14,7 +14,7 @@ from dartqc.DartModules import RedundancyModule
 from dartqc.DartUtils import stamp
 
 
-class DartFileValidator:
+class IDValidator:
     """
     Class for validating data in the input files before pre-processing but after the file schemas are created
     (currently cd-hit-2d clusters and validates clone ID's)
@@ -68,8 +68,8 @@ class DartFileValidator:
 
             for row in ids_reader:
                 if ids_reader.line_num > 1:
-                    fasta_str = fasta_str + ">" + row[0] + "\n" + row[1][:60] + "\n" + (
-                        row[1][60:] + "\n" if len(row[1]) > 60 else "")
+                    fasta_str = fasta_str + ">" + row[0] + "\n" + row[1][:60] + "\n" \
+                                + (row[1][60:] + "\n" if len(row[1]) > 60 else "")
 
         # Write the fasta file
         if fasta_file_path is None:
@@ -194,9 +194,11 @@ class DartFileValidator:
 
             for item in seq["sequences"]:
                 if type_val[item[0]] == 1:
-                    sys.stderr.write("WARNING: [" + item[0] + ":" + item[1] + "] " + item[1] + " renamed to " + seq["ref_seq_str"] + "\n")
+                    sys.stderr.write("WARNING: [" + item[0] + ":" + item[1] + "] " + item[1] + " renamed to " + seq[
+                        "ref_seq_str"] + "\n")
                 if type_val[item[0]] > 1:
-                    sys.stderr.write("ERROR: [" + item[0] + ":" + item[1] + "] Unexpected clone ID!  This needs manual fixing\n")
+                    sys.stderr.write(
+                        "ERROR: [" + item[0] + ":" + item[1] + "] Unexpected clone ID!  This needs manual fixing\n")
 
             output_csv.append(row_data)
 

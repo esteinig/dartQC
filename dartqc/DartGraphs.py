@@ -131,7 +131,7 @@ class DartGraphs:
             tick.set_horizontalalignment("right")
 
         # Save the graph to file
-        pyplot.savefig(outfile, bbox_inches='tight')
+        pyplot.savefig(outfile, bbox_inches='tight', transparent=True)
 
         pyplot.close(fig)
 
@@ -200,7 +200,7 @@ class DartGraphs:
         #     tick.set_horizontalalignment("right")
 
         # Save the graph to file
-        pyplot.savefig(outfile, bbox_inches='tight')
+        pyplot.savefig(outfile, bbox_inches='tight', transparent=True)
 
         pyplot.close(fig)
 

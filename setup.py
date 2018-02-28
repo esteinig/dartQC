@@ -14,6 +14,6 @@ setup(name='dartqc',
       author_email='eikejoachim.steinig@my.jcu.edu.au',
       license='MIT',
       packages=["dartqc"],
-      scripts=['bin/dartqc'],
+      scripts=['bin/dartqc', 'bin/filter.py', 'bin/install.py', 'bin/CreatePBSScript.py'],
       package_dir={"dartqc": "dartqc"},
-      package_data={"dartqc": ["env/dartqc.yaml"]})
+      package_data={"dartqc": ["env/dartqc.yaml"]}, requires=['simplejson'])
