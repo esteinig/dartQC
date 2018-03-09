@@ -8,7 +8,7 @@ import logging
 
 import re
 
-import PipelineOptions
+from dartqc import PipelineOptions
 
 
 class CmdLine:
@@ -46,16 +46,13 @@ class CmdLine:
 
         prepare_parser.set_defaults(subparser='read')
 
-        validate_parser = subparsers.add_parser("validate")
+        validate_parser = subparsers.add_parser("rename")
 
-        validate_parser.add_argument("--id_list", "-i", default="id_list.csv", type=lambda p: os.path.abspath(p),
+        validate_parser.add_argument("--id_list", "-i", default="id_list.csv", type=str,
                                      required=True, dest="id_list",
                                      help="path to CSV file with list of official clone IDs that should be used (eg. to fix ID's that Dart outputs wrong)")
 
-        validate_parser.add_argument("--identity", default=0.95, type=float,
-                                     dest="identity", help="remove snps in identical sequence clusters")
-
-        validate_parser.set_defaults(subparser='validate')
+        validate_parser.set_defaults(subparser='rename')
 
         filter_parser = subparsers.add_parser("filter")
 
@@ -65,12 +62,13 @@ class CmdLine:
                                        type=filter.get_cmd_type(), help=filter.get_cmd_help())
 
         # # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]
-        filter_parser.add_argument("--ignore_pops", "-i", default=False, dest="ignore_pops",
-                                   type=bool, help="Don't use populations (originally intended for use with MAF & HWE)")
+        # filter_parser.add_argument("--ignore_pops", "-i", default=False, dest="ignore_pops",
+        #                            type=bool, help="Don't use populations (originally intended for use with MAF & HWE)")
+        #
+        # filter_parser.add_argument("--pop_blacklist", default=[], dest="pop_blacklist",
+        #                            type=lambda s: [item for item in re.sub(r"[\[\] ]", "", s).split(",")],
+        #                            help="Populations to ignore (originally intended for use with MAF & HWE)")
 
-        filter_parser.add_argument("--pop_blacklist", default=[], dest="pop_blacklist",
-                                   type=lambda s: [item for item in re.sub(r"[\[\] ]", "", s).split(",")],
-                                   help="Populations to ignore (originally intended for use with MAF & HWE)")
         # filter_parser.add_argument("--maf", default=[], dest="minor_allele_freq",
         #                            type=lambda s: [float(item.strip()) if len(item.strip()) > 0 else None
         #                                            for item in s[1:-1].split(',')],
@@ -106,7 +104,7 @@ class CmdLine:
                                    type=lambda s: {k: v.split(",") for item in re.split(r"],", re.sub(r"[{} ]", "", s))
                                                    for k, v in dict([re.sub(r"[\[\] ]", "", item).split(":")]).items()},
                                    required=False,
-                                   dest="outputs", help="Which filters should generate genotypes")
+                                   dest="outputs", help="Specify outputs for each filter type")
 
         filter_parser.add_argument("--order", "-o", default=[],
                                    type=lambda s: [item for item in s.split(',')],
@@ -117,17 +115,15 @@ class CmdLine:
         output_parser = subparsers.add_parser("output",
                                               help="Primarily for user interface to allow generation of output types on click")
 
-        validate_parser.add_argument("--types", type=lambda s: [type for type in s.split(",")],
+        output_parser.add_argument("--types", type=lambda s: [type for type in s.split(",")],
                                      required=True, dest="types",
                                      help="Output type(s) to generate")
 
-        validate_parser.add_argument("--folder", type=str, default=None,
-                                     dest="folder",
-                                     help="Dataset folder (eg. Filter_1) - leave blank for unfiltered dataset")
+        output_parser.add_argument("--set", type=str, default=None, dest="set",
+                                     help="Set or set folder (eg. 1 or Filter_1) - leave blank for unfiltered dataset")
 
-        validate_parser.add_argument("--filter", type=str, default=None,
-                                     dest="filter",
-                                     help="FilterResult to generate output data from - leave blank for final results")
+        output_parser.add_argument("--filter", type=str, default=None, dest="filter",
+                                     help="FilterResult to generate output data from - 'final' or leave blank for final results")
 
         output_parser.set_defaults(subparser='output')
 

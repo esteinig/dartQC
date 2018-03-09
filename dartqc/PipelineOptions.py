@@ -1,47 +1,7 @@
 from collections import OrderedDict
 
-import Dataset
-import FilterResult
-
-
-# from filters import HardyWeinberg
-# from filters import HetComp
-# from filters import MinSNPData
-# from filters import MinSampleData
-# from filters import MinorAlleleFreq
-# # from filters import SNPMetric
-# from filters import ReadCounts
-# from filters import Cluster
-# from input import DartReader
-# from output import CSV
-# from output import Plink
-#
-# # All filter types available
-# # Order matters!  This is the default filter order
-# # Each filter should have the signature:
-# #       def filter_name(dataset: Dataset, threshold: ??? typ. float, unkown_args: [???], **kwargs)
-# #       unknown_args & kwargs are provided so 3rd party implementations can access cmd line args.
-# #       threshold is implementation specific based on the cmd line parsing, but it is typically a float.
-# filter_types = OrderedDict()
-# filter_types[ReadCounts.NAME] = ReadCounts.filter
-# # filter_types[SNPMetric.NAME] = SNPMetric.filter
-# filter_types[HetComp.NAME] = HetComp.filter
-# filter_types[MinSampleData.NAME] = MinSampleData.filter
-# filter_types[MinSNPData.NAME] = MinSNPData.filter
-# filter_types[Cluster.NAME] = Cluster.filter
-# filter_types[MinorAlleleFreq.NAME] = MinorAlleleFreq.filter
-# filter_types[HardyWeinberg.NAME] = HardyWeinberg.filter
-#
-# # All available input types (eg. supported genotype providers)
-# input_types = {
-#     DartReader.NAME: DartReader.read
-# }
-#
-# # All available output types
-# output_types = {
-#     CSV.NAME: CSV.output,
-#     Plink.NAME: Plink.output
-# }
+from dartqc.Dataset import Dataset
+from dartqc.FilterResult import FilterResult
 
 
 class Filter:

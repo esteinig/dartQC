@@ -2,9 +2,9 @@ import logging
 import numpy
 import re
 
-import PipelineOptions
-from Dataset import Dataset
-from FilterResult import FilterResult
+from dartqc import PipelineOptions
+from dartqc.Dataset import Dataset
+from dartqc.FilterResult import FilterResult
 
 log = logging.getLogger(__file__)
 
@@ -28,9 +28,13 @@ class SNPMetricFilter(PipelineOptions.Filter):
         silenced = FilterResult()
 
         for snp_def in dataset.snps:
+            if snp_def.allele_id in dataset.filtered.snps:
+                continue
+
             if threshold[1] == ">" and float(snp_def.all_headers[threshold[0]]) < threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)
-            elif threshold[1] == "<" and float(snp_def.all_headers[threshold[0]]) > threshold[2]:
+            elif threshold[1] == "<" and float(
+                    snp_def.all_headers[threshold[0]]) > threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)
             elif threshold[1] == "=" and float(snp_def.all_headers[threshold[0]]) != threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)

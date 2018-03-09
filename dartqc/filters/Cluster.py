@@ -9,12 +9,12 @@ from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
-from PipelineOptions import Filter
-from Dataset import Dataset
-from FilterResult import FilterResult
-from filters.MinorAlleleFreq import MAFFilter
 from install import cdhit_config
+
+from dartqc.PipelineOptions import Filter
+from dartqc.Dataset import Dataset
+from dartqc.FilterResult import FilterResult
+from dartqc.filters.MinorAlleleFreq import MAFFilter
 
 log = logging.getLogger(__file__)
 
@@ -36,8 +36,13 @@ class ClusterFilter(Filter):
     def filter(self, dataset: Dataset, identity: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
 
+        log.info("Identifying clusters using cd-hit-est")
+
         clusters = ClusterFilter._find_clusters(dataset, identity)
-        removed, retained = ClusterFilter._select_clusters(dataset, clusters)
+
+        log.info("{} clusters identified - silencing least important SNPs based on MAF".format(len(clusters)))
+
+        removed, retained = ClusterFilter._select_by_maf(dataset, clusters)
 
         for snp in removed:
             silenced.silenced_snp(snp)
@@ -75,8 +80,7 @@ class ClusterFilter(Filter):
     def _write_fasta(dataset, path):
         """ Write fasta file of sequences with SNP IDs for CD-HIT. """
 
-        filtered_calls = dataset.get_filtered_calls()
-        snp_defs = [snp_def for snp_def in dataset.snps if snp_def.allele_id in filtered_calls]
+        snp_defs = [snp_def for snp_def in dataset.snps if snp_def.allele_id not in dataset.filtered.snps]
 
         seqs = [SeqRecord(Seq(snp.sequence_ref, IUPAC.unambiguous_dna), id=snp.allele_id, name="", description="") for
                 snp in snp_defs]
@@ -158,37 +162,25 @@ class ClusterFilter(Filter):
             return ""
 
     @staticmethod
-    def _select_clusters(dataset, clusters):
+    def _select_by_maf(dataset, clusters):
         """ Select best markers from clusters by selector. """
         retained_sequences = []
         removed_sequences = []
 
-        for cluster, cluster_members in clusters.items():
-            best_sequence = ClusterFilter._compare_entries(dataset, cluster_members)
-            retained_sequences.append(best_sequence)
-            removed_sequences += [member for member in cluster_members if member != best_sequence]
-
-        return retained_sequences, removed_sequences
-
-    @staticmethod
-    def _compare_entries(dataset, allele_ids):
-        """
-        Gets data from dictionary for each duplicate SNP according to 'selector'
-        and returns the allele identification of the best entry.
-
-        Selector list currently sorts descending, that is all selector values must be ranked highest value ("best") -
-        this is the case for MAF, Call Rate, Rep, Read Counts ...
-
-        Later rank the data by QC Score.
-
-        """
-        maf_values = MAFFilter.calculate_maf(dataset, False)
+        clustered_alleles = [allele_id for cluster_allele_ids in clusters.values() for allele_id in cluster_allele_ids]
+        maf_values = MAFFilter.calculate_maf(dataset, False, None, clustered_alleles)
         maf_no_pops = maf_values[list(maf_values.keys())[0]]
 
-        entries_stats = [[allele_id, maf_no_pops[allele_id]] for allele_id in allele_ids]
-        entries_ranked = sorted(entries_stats, key=operator.itemgetter(1), reverse=True)
+        for cluster, allele_ids in clusters.items():
+            # best_sequence = ClusterFilter._compare_entries(dataset, cluster_members)
+            entries_stats = [[allele_id, maf_no_pops[allele_id]] for allele_id in allele_ids]
+            entries_ranked = sorted(entries_stats, key=operator.itemgetter(1), reverse=True)
 
-        return entries_ranked[0][0]
+            best_sequence = entries_ranked[0][0]
 
+            retained_sequences.append(best_sequence)
+            removed_sequences += [member for member in allele_ids if member != best_sequence]
+
+        return retained_sequences, removed_sequences
 
 ClusterFilter()

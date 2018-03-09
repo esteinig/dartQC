@@ -1,6 +1,11 @@
-from FilterResult import FilterResult
-from Dataset import Dataset
-from PipelineOptions import Filter
+import logging
+import numpy
+
+from dartqc.FilterResult import FilterResult
+from dartqc.Dataset import Dataset
+from dartqc.PipelineOptions import Filter
+
+log = logging.getLogger(__file__)
 
 
 class MinSNPDataFilter(Filter):
@@ -21,10 +26,28 @@ class MinSNPDataFilter(Filter):
 
         filtered_calls = dataset.get_filtered_calls()
 
-        for allele_id, snp_calls in filtered_calls.items():
-            perc_data = 1 - (snp_calls.count(dataset.missing) / len(dataset.samples))
+        # Get calls as matrix & trim back to only first allele's call (much quicker processing)
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
+        numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
+        numpy_matrix = numpy_matrix[0]  # Only get first allele calls (if "-" -> missing)
+
+        ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
+                                      for idx in range(len(dataset.snps))])
+
+        for snp_idx, snp_def in enumerate(dataset.snps):
+            # Ignore filtered SNPs
+            if ignored_snps[snp_idx]:
+                continue
+
+            # first_allele_calls = numpy.dstack(filtered_calls[snp_def.allele_id])[0][0]
+            missing_idxs = numpy.where(numpy_matrix[snp_idx] == "-")[0]
+            perc_data = 1 - len(missing_idxs) / len(dataset.samples)
             if perc_data < threshold:
-                silenced.silenced_snp(allele_id)
+                silenced.silenced_snp(snp_def.allele_id)
+
+            if snp_idx % 5000 == 0:
+                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
 
         return silenced
 

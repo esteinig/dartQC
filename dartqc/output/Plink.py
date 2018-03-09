@@ -37,13 +37,15 @@ class PlinkOutput(Output):
         snp_call_matrix = []
         for allele_id, snp_calls in filtered_calls.items():
             snp_vals = dataset.get_snp_def(allele_id).snp.split(":")[1].split(">")
-            calls = [snp_vals[0] + snp_vals[1] if call == Dataset.heterozygous
-                     else snp_vals[0] + snp_vals[0] if call == Dataset.homozygous_major
-            else snp_vals[1] + snp_vals[1] if call == Dataset.homozygous_minor
-            else "00" for call in snp_calls]
+
+            # Convert to ACTG values such as AC, TG, etc. instead of 0,1 or 1,0 etc.
+            calls = numpy.asarray([snp_vals[0] + snp_vals[1] if tuple(call) == Dataset.heterozygous
+                     else snp_vals[0] + snp_vals[0] if tuple(call) == Dataset.homozygous_major
+            else snp_vals[1] + snp_vals[1] if tuple(call) == Dataset.homozygous_minor
+            else "00" for call in snp_calls])
             snp_call_matrix.append(calls)
 
-        sample_call_matrix = list(zip(*snp_call_matrix))
+        sample_call_matrix = numpy.dstack(snp_call_matrix)[0]
 
         plink_rows = []
         for idx, sample_def in enumerate(dataset.samples):

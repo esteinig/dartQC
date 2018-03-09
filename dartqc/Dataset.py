@@ -3,12 +3,17 @@ import re
 
 import logging
 
+import sys
+
+import numpy
+import time
+
 try:
     import simplejson as json
 except ImportError:
     import json
 
-from FilterResult import FilterResult
+from dartqc.FilterResult import FilterResult
 
 log = logging.getLogger(__file__)
 
@@ -16,7 +21,6 @@ log = logging.getLogger(__file__)
 class SNPDef:
     def __init__(self, clone_id: str, allele_id: str, sequence: str = None, sequence_ref: str = None,
                  rep_average: float = None, snp: str = None, all_headers: {} = None):
-
         self.clone_id = clone_id
         self.allele_id = allele_id
         self.sequence_ref = sequence_ref
@@ -49,35 +53,12 @@ class Dataset:
     encoded_homozygous_major = "2"
     encoded_missing = "-"
 
+    data_cols = ["calls", "read_counts", "replicate_counts"]
+
     def __init__(self, type: str, working_dir: str, batch_id: str, snps: [SNPDef], samples: [SampleDef],
-                 calls: {} = None,
-                 read_counts: {} = None):
+                 calls: {}, read_counts: {}, replicates: [str], replicate_counts: {}):
 
         self.type = type
-
-        # Validate that defs, calls and read counts all have matching SNP clone IDs & matching # samples
-        val_errs = []
-        if len(calls) != len(read_counts):
-            val_errs.append("Calls and read counts have a different number of SNPs!  (input data error - continuable)")
-
-        if len(snps) != len(read_counts):
-            val_errs.append("SNP def mismatch - data has different number of SNPs than identified (input data error - continuable)")
-
-        for snp in snps:
-            if snp.allele_id not in calls:
-                val_errs.append("Calls data missing SNP  (miss-named?): " + snp.allele_id)
-
-            if snp.allele_id not in read_counts:
-                val_errs.append("Read counts missing SNP (miss-named?): " + snp.allele_id)
-
-            if len(calls[snp.allele_id]) != len(samples):
-                val_errs.append("Call samples length incorrect for SNP: " + snp.allele_id)
-
-            if len(read_counts[snp.allele_id]) != len(samples):
-                val_errs.append("Read count samples length incorrect for SNP: " + snp.allele_id)
-
-        if len(val_errs) > 0:
-            log.error("Dataset read errors: \n{}\n\n".format("\n".join(val_errs)))
 
         self.batch_id = batch_id
         self.working_dir = working_dir
@@ -85,24 +66,54 @@ class Dataset:
         self.snps = snps
         self.samples = samples
 
-        self.calls = {}
-        for allele_id, snp_calls in calls.items():
-            self.calls[allele_id] = [
-                tuple(call) if (call[0] == "1" or call[0] == "1") and (call[1] == "0" or call[1] == "1")
-                else ("-", "-") for call in snp_calls]
-
-        # Make sure counts are tuples (JSON dump/read converts to list)
+        self.calls = calls
         self.read_counts = read_counts
-        for allele_id, snp_calls in self.read_counts.items():
-            self.read_counts[allele_id] = [tuple(counts) for counts in snp_calls]
+
+        self.replicates = replicates
+        self.replicate_counts = replicate_counts
 
         # These are the results of the currently running filter - reset at the start of each filter run
         self.filtered = FilterResult()
+
+        # Validate this dataset if it is newly created (don't validate yet if loading from file)
+        if calls is not None or read_counts is not None or replicate_counts is not None:
+            self._validate_input_data()
+
+    def _validate_input_data(self):
+        # Validate that defs, calls and read counts all have matching SNP clone IDs & matching # samples
+        val_errs = []
+        if len(self.calls) != len(self.read_counts):
+            val_errs.append("Calls and read counts have a different number of SNPs!  (input data error - continuable)")
+
+        if len(self.snps) != len(self.read_counts):
+            val_errs.append(
+                "SNP def mismatch - data has different number of SNPs than identified (input data error - continuable)")
+
+        for snp in self.snps:
+            if snp.allele_id not in self.calls:
+                val_errs.append("Calls data missing SNP  (miss-named?): " + snp.allele_id)
+
+            if snp.allele_id not in self.read_counts:
+                val_errs.append("Read counts missing SNP (miss-named?): " + snp.allele_id)
+
+            if len(self.calls[snp.allele_id]) != len(self.samples):
+                val_errs.append("Call samples length incorrect for SNP: " + snp.allele_id)
+
+            if len(self.read_counts[snp.allele_id]) != len(self.samples):
+                val_errs.append("Read count samples length incorrect for SNP: " + snp.allele_id)
+
+        if len(val_errs) > 0:
+            log.error("Dataset read errors: \n{}\n\n".format("\n".join(val_errs)))
+
+        if len(self.replicates) != len(set(self.replicates)):
+            log.error("Duplicate replicate IDs - dataset reading error (each replicate name should only be given once)")
 
     def clear_filters(self):
         self.filtered = FilterResult()
 
     def filter(self, filtered: FilterResult):
+        start = time.time()
+
         self.filtered.samples.extend(filtered.samples)
         self.filtered.samples = list(set(self.filtered.samples))
 
@@ -123,18 +134,51 @@ class Dataset:
             else:
                 self.filtered.call_changes[snp] = changes
 
+        log.info("Time to add filters to dataset: {:.1f}".format(time.time() - start))
+
     def get_filtered_calls(self) -> {str: []}:
         """
         Return a copy of self.calls which have all set calls silenced
         :param set_name: Name/idx of the parameter set to silence for
         :return: Calls dict {snp: [calls]}
         """
-        filtered_calls = {}
-        for snp, calls in self.calls.items():
-            if snp not in self.filtered.snps:
-                filtered_calls[snp] = [call if self.samples[idx].id not in self.filtered.samples and (
-                    snp not in self.filtered.calls or self.samples[idx].id not in
-                    self.filtered.calls[snp]) else ("-", "-") for idx, call in enumerate(calls)]
+
+        start = time.time()
+
+        # Get a copy of orig calls.
+        filtered_calls = numpy.copy(self.calls).tolist()
+
+        # Silence whole SNPs
+        for allele_id in self.filtered.snps:
+            # filtered_calls[allele_id] = numpy.stack([numpy.full(len(self.samples), "-", dtype=str),numpy.full(len(self.samples), "-", dtype=str)], axis=1)
+            filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
+
+        # Silenece whole samples
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+        for sample_id in self.filtered.samples:
+            for allele_id in filtered_calls:
+                filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+
+        # Silence calls
+        for allele_id, samples in self.filtered.calls.items():
+            for sample_id in samples:
+                filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+
+        # Change calls
+        for allele_id, changes in self.filtered.call_changes.items():
+            for sample_id, new_val in changes.items():
+                filtered_calls[allele_id][sample_idxs[sample_id]] = new_val
+
+        # filtered_calls = {}
+        # for snp, calls in self.calls.items():
+        #     if snp not in self.filtered.snps:
+        #         filtered_calls[snp] = numpy.asarray([call if self.samples[idx].id not in self.filtered.samples and (
+        #             snp not in self.filtered.calls or self.samples[idx].id not in
+        #             self.filtered.calls[snp]) else ("-", "-") for idx, call in enumerate(calls)])
+        #     else:
+        #         filtered_calls[snp] = numpy.asarray([["-", "-"] for sample in self.samples])
+        #
+        log.info("Time to get filtered dataset: {:.1f}".format(time.time() - start))
 
         return filtered_calls
 
@@ -182,47 +226,154 @@ class Dataset:
         single_calls = {}
 
         for allele_id, tuple_calls in calls.items():
-            single_calls[allele_id] = [Dataset.encoded_heterozygous if call == Dataset.heterozygous
-                                       else Dataset.encoded_homozygous_minor if call == Dataset.homozygous_minor
-            else Dataset.encoded_homozygous_major if call == Dataset.homozygous_major
+            single_calls[allele_id] = [Dataset.encoded_heterozygous if tuple(call) == Dataset.heterozygous
+                                       else Dataset.encoded_homozygous_minor if tuple(call) == Dataset.homozygous_minor
+            else Dataset.encoded_homozygous_major if tuple(call) == Dataset.homozygous_major
             else Dataset.encoded_missing for call in tuple_calls]
 
         return single_calls
 
     def write_json(self, path):
-        with open(path, "w") as outfile:
-            jsonstr = json.dumps(self.__dict__, default=lambda o: o.__dict__)
-            outfile.write(jsonstr)
-            # json.dump(self.__dict__, default=lambda o: o.__dict__, fp=outfile)
+        start_time = time.time()
+
+        dict_data = self.__dict__
+        filtered = self.filtered
+        del dict_data["filtered"]
+        numpy.save(path, dict_data)
+
+        self.filtered = filtered
+
+        # test = numpy.asarray(self.__dict__)
+        # numpy.savez(path, working_dir=self.working_dir, batch_id=self.batch_id, snps=self.snps, samples=self.samples,
+        #             type=self.type, calls=self.calls, read_counts=self.read_counts, replicates=self.replicates,
+        #             replicate_counts=self.replicate_counts)
+        # with open(path, "w") as outfile:
+        #     # jsonstr = json.dumps(self.__dict__, default=lambda o: o.__dict__)
+        #     # outfile.write(jsonstr)
+        #
+        #     # json.dump(self.__dict__, default=lambda o: o.__dict__, fp=outfile)
+        #
+        #     outfile.write("{\n")
+        #
+        #     # Need custom JSON writing as dumping it all to a string then writing is a massive amount of memory.
+        #     # json.dump directly to file is incredibly slow - not feasible to use.
+        #
+        #     first_row = True
+        #     for key, val in self.__dict__.items():
+        #         if key not in Dataset.data_cols and key != "filtered":
+        #             outfile.write('{}\t"{}": {}'.format((",\n" if not first_row else ""), key, json.dumps(val, default=lambda o: o.__dict__)))
+        #         elif key in Dataset.data_cols:
+        #             # Need to custom write out the numpy as its incompatible with json.dumps
+        #             outfile.write(',\n\t"' + key + '": {')
+        #
+        #             first_row = True
+        #             for allele_id, snp_data in val.items():
+        #                 list_data = snp_data.tolist()
+        #                 if len(list_data) > 0 and type(list_data[0]) == numpy.ndarray:
+        #                     list_data = [item.tolist() for item in list_data]
+        #
+        #                 outfile.write(
+        #                     '{}"{}":{}'.format("," if not first_row else "", allele_id, json.dumps(list_data)))
+        #                 first_row = False
+        #
+        #             outfile.write("}")
+        #
+        #         first_row = False
+        #
+        #     outfile.write("\n}")
+        #     outfile.flush()
+
+        log.info("Time to write dataset to file: {}".format(time.time() - start_time))
 
     @staticmethod
     def read_json(path):
-        with open(path) as dataset_file:
-            dict_val = json.load(dataset_file)
+        start_time = time.time()
 
-            snps = []
-            for snp_dict in dict_val["snps"]:
-                snp = SNPDef(**snp_dict)
-                snps.append(snp)
+        dataset = numpy.load(path).tolist()
+        dataset = Dataset(**dataset)
 
-            samples = []
-            for sample_dict in dict_val["samples"]:
-                sample = SampleDef(*sample_dict.values())
-                samples.append(sample)
+        log.info("Dataset loaded - {} Samples, {} SNPs".format(len(dataset.samples), len(dataset.snps)))
 
-            dataset = Dataset(dict_val["type"], dict_val["working_dir"], dict_val["batch_id"], snps, samples,
-                              dict_val["calls"],
-                              dict_val["read_counts"])
+        # file_data = numpy.load(path)
+        # for key in file_data:
+        #     # if key not in Dataset.data_cols:
+        #     dict_val[key] = file_data[key].tolist()
+        #
 
-            del dict_val["snps"]
-            del dict_val["samples"]
-            del dict_val["calls"]
-            del dict_val["read_counts"]
+        # snps = []
+        # for snp_dict in file_data["snps"]:
+        #     snp = SNPDef(**snp_dict)
+        #     snps.append(snp)
+        # dict_val["snps"] = snps
+        #
+        # samples = []
+        # for sample_dict in file_data["samples"]:
+        #     if "pop" in sample_dict:
+        #         del sample_dict["pop"]  # temp fix
+        #
+        #     sample = SampleDef(*sample_dict.values())
+        #     samples.append(sample)
+        # dict_val["samples"] = samples
 
-            for k, v in dict_val.items():
-                setattr(dataset, k, v)
 
-            return dataset
+
+        # with open(path) as dataset_file:
+        #     line = dataset_file.readline()
+        #
+        #     # dict_val = json.load(dataset_file)
+        #     dict_val = {}
+        #
+        #     # Read in incrementally to prevent memory overload
+        #     # Python data types are all classes which is exceptionally inefficient - so incrementally read into numpy
+        #
+        #     while line != "":
+        #         line = line.strip()
+        #         if not re.match(r"^[\{\}]$", line):
+        #             key, value = line.split(":", 1)
+        #             line = None
+        #
+        #             key = re.sub(r"[\"\']", "", key)
+        #
+        #             if value[-1:] == ",":
+        #                 value = value[:-1]
+        #
+        #             if key in Dataset.data_cols:
+        #                 value = re.split(r"\]\],", value.strip()[1:-1])
+        #
+        #                 dict_val[key] = {}
+        #                 for allele_data in value:
+        #                     allele_id = allele_data[1:allele_data.find('"', 1)]
+        #                     allele_data = allele_data[len(allele_id) + 3:]
+        #
+        #                     if allele_data[-2:] != "]]":
+        #                         allele_data += "]]"
+        #
+        #                     dict_val[key] = numpy.asarray(json.loads(allele_data))
+        #             else:
+        #                 value = json.loads(value)
+        #                 dict_val[key] = value
+        #
+        #         line = dataset_file.readline()
+        #
+        #     # dict_val = json.load(dataset_file)
+        #
+
+
+        # file_data = Dataset(file_data["type"], file_data["working_dir"], file_data["batch_id"], snps, samples,
+        #                     file_data["calls"], file_data["read_counts"], file_data["replicates"],
+        #                     file_data["replicate_counts"])
+
+        # del dict_val["snps"]
+        # del dict_val["samples"]
+        # del dict_val["calls"]
+        # del dict_val["read_counts"]
+        #
+        # for k, v in dict_val.items():
+        #     setattr(dataset, k, v)
+
+        log.info("Time to load dataset from file: {}".format(time.time() - start_time))
+
+        return dataset
 
     def __repr__(self):
         return self.batch_id + " @ " + self.working_dir

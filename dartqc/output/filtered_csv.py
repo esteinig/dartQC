@@ -27,9 +27,9 @@ class CSVOutput(Output):
 
             for allele_id, snp_calls in dataset.get_filtered_calls().items():
                 snp_vals = dataset.get_snp_def(allele_id).snp.split(":")[1].split(">")
-                calls = [snp_vals[0] + snp_vals[1] if call == Dataset.heterozygous
-                         else snp_vals[0] + snp_vals[0] if call == Dataset.homozygous_major
-                else snp_vals[1] + snp_vals[1] if call == Dataset.homozygous_minor
+                calls = [snp_vals[0] + snp_vals[1] if tuple(call) == Dataset.heterozygous
+                         else snp_vals[0] + snp_vals[0] if tuple(call) == Dataset.homozygous_major
+                else snp_vals[1] + snp_vals[1] if tuple(call) == Dataset.homozygous_minor
                 else "--" for call in snp_calls]
 
                 csv_out.write("{},{}\n".format(allele_id, ",".join(calls)))

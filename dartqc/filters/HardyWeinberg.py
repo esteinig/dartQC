@@ -1,8 +1,15 @@
+import re
+
+import logging
+
+import numpy
 from scipy.stats import stats
 
-from Dataset import Dataset
-from FilterResult import FilterResult
-from PipelineOptions import Filter
+from dartqc.Dataset import Dataset
+from dartqc.FilterResult import FilterResult
+from dartqc.PipelineOptions import Filter
+
+log = logging.getLogger(__file__)
 
 
 class HWEFilter(Filter):
@@ -10,87 +17,138 @@ class HWEFilter(Filter):
         return 201
 
     def get_cmd_type(self):
-        return lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')]
+        return lambda s: [re.sub(r'[\(\)]', "", item).split(",")
+                          for item in re.split(r"\),\(", re.sub(r'[\[\] ]', "", s))
+                          if len(s.strip()) > 0]
 
     def get_name(self) -> str:
         return "hwe"
 
     def get_cmd_help(self) -> str:
-        return "filter snps <= p-value of hardy-weinberg test"
+        return "filter snps <= p-value of hardy-weinberg test - Pattern: [[HWE thresh, # req. passing pops, ignored pop name(s), ...],...] if # req. passing pops is missing/None then pops are ignored."
 
-    def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
-        all_hwe_values = HWEFilter.calculate_hwe(dataset, True)
+    def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
 
         # TODO:  Update to work with pops as per MAF
+        hwe_thresh = float(threshold[0])
+
+        no_pops = True
+        req_success_pops = None
+        ignored_pops = []
+
+        if len(threshold) > 1 and threshold[1] is not None and threshold[1] != "None" \
+                and threshold[1] != "" and threshold[1] != "null":
+            req_success_pops = int(threshold[1])
+            no_pops = False
+
+            for pop in threshold[2:]:
+                ignored_pops.append(pop)
+
+        ignored_snps = numpy.asarray([True if snp_def.allele_id in dataset.filtered.snps else False
+                                      for idx, snp_def in enumerate(dataset.snps)])
+
+        all_hwe_values = HWEFilter.calculate_hwe(dataset, not no_pops)
+
+        log.info("HWE values calculated - filtering")
 
         silenced = FilterResult()
-        filtered_calls = dataset.get_filtered_calls()
+        snp_pop_good_cnts = {snp.allele_id: 0 for snp in dataset.snps}
 
-        pops = dataset.get_populations()
-
+        # For all populations, how many exceed the required MAF threshold
         for pop_name, pop_hwe in all_hwe_values.items():
-            for allele_id in pop_hwe.keys():
-                for idx, sample_def in enumerate(dataset.samples):
-                    # Only silence calls that aren't already missing/silenced
-                    # Only silence if the sample/call is from this population
-                    if filtered_calls[allele_id][idx] != dataset.missing and idx in pops[pop_name] and pop_hwe[allele_id] < threshold:
-                        silenced.silenced_call(allele_id, sample_def.id)
+            if pop_name not in ignored_pops:
+                for allele_id, hwe_val in pop_hwe.items():
+                    snp_pop_good_cnts[allele_id] += 1 if hwe_val > hwe_thresh else 0
+
+        # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
+        for snp_idx, snp_def in enumerate(dataset.snps):
+            # Ignore filtered SNPs
+            if ignored_snps[snp_idx]:
+                continue
+
+            if req_success_pops is None or snp_pop_good_cnts[snp_def.allele_id] < req_success_pops:
+                silenced.silenced_snp(snp_def.allele_id)
+
+            if snp_idx % 5000 == 0:
+                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
 
         return silenced
 
     @staticmethod
-    def calculate_hwe(dataset: Dataset, use_pops: bool = True) -> {str: {str: float}}:
+    def calculate_hwe(dataset: Dataset, use_pops: bool = True, pops_blackilst: [str] = None) -> {str: {str: float}}:
         """
         Calculates p-value for HWE using ChiSquare statistic: remove missing, get observed counts, get observed
         frequencies, get expected counts, calculate test values using (O-E)**2 / E and return ChiSquare probability
         with 1 degree of Freedom (bi-allelic SNP).
-
         """
+
+        log.info("Calculating HWE values")
 
         filtered_calls = dataset.get_filtered_calls()
 
-        pops = list(range(len(dataset.samples)))
+        pops = {"pop": list(range(len(dataset.samples)))}
         if use_pops:
-            pops = dataset.get_populations()
+            pops = {k: v for k, v in dataset.get_populations().items()}
 
-        hwe_values = {}
-        for allele_id, snp_calls in filtered_calls.items():
+        # Remove blacklisted populations (ignore these samples)
+        for pop_name in pops:
+            if pops_blackilst is not None and pop_name in pops_blackilst:
+                del pops[pop_name]
+
+        ignored_snps = numpy.asarray([True if snp_def.allele_id in dataset.filtered.snps else False
+                                      for idx, snp_def in enumerate(dataset.snps)])
+
+        hwe_values = {pop: {} for pop in pops}
+        for snp_idx, snp_def in enumerate(dataset.snps):
+            # Ignore filtered SNPs
+            if ignored_snps[snp_idx]:
+                continue
+
             for pop_name, pop_sample_idxs in pops.items():
-                pop_calls = [call for idx, call in enumerate(snp_calls) if idx in pop_sample_idxs]
+                pop_calls = filtered_calls[snp_def.allele_id][pop_sample_idxs]
 
-                adjusted_samples = len(pop_calls) - pop_calls.count(dataset.missing)
-                hetero_obs, major_obs, minor_obs = HWEFilter._get_observed(pop_calls)
+                split_allele_calls = numpy.dstack(pop_calls)[0]
 
-            if adjusted_samples > 0:
-                p = (major_obs + (hetero_obs / 2)) / adjusted_samples
-                q = (minor_obs + (hetero_obs / 2)) / adjusted_samples
 
-                if (p + q) != 1:
-                    ValueError("Sum of observed allele frequencies (p + q) does not equal one.")
+                # num_calls = len(pop_calls) - len(missing_idxs)
+                allele_1_idxs = set(numpy.where(split_allele_calls[0] == "1")[0])
+                allele_2_idxs = set(numpy.where(split_allele_calls[1] == "1")[0])
 
-                hetero_exp, major_exp, minor_exp = HWEFilter._get_expected(p, q, adjusted_samples)
+                if len(allele_1_idxs) + len(allele_2_idxs) > 0:
+                    hetero_obs_idxs = allele_1_idxs & allele_2_idxs
+                    num_hetero = len(hetero_obs_idxs)
 
-                if hetero_exp > 0:
-                    hetero_test = ((hetero_obs - hetero_exp) ** 2) / hetero_exp
-                    major_test = ((major_obs - major_exp) ** 2) / major_exp
-                    minor_test = ((minor_obs - minor_exp) ** 2) / minor_exp
+                    # Missing = total - het - (allele 1 - het) - (allele 2 - het)
+                    num_calls = len(allele_1_idxs) + len(allele_2_idxs) - num_hetero
+                    num_missing = len(pop_sample_idxs) - num_calls
 
-                    if pop_name not in hwe_values:
-                        hwe_values[pop_name] = {}
+                    num_homo = len(pop_calls) - num_hetero - num_missing
+                    num_major_obs = num_homo - len(allele_1_idxs)
+                    num_minor_obs = num_homo - num_major_obs
 
-                    hwe_values[pop_name][allele_id] = stats.chisqprob(sum([hetero_test, major_test, minor_test]), 1)
+                    p = (num_major_obs + (num_hetero / 2)) / num_calls
+                    q = (num_minor_obs + (num_hetero / 2)) / num_calls
+
+                    if (p + q) != 1:
+                        ValueError("Sum of observed allele frequencies (p + q) does not equal one.")
+
+                    # Get expected counts under HWE
+                    hetero_exp = num_calls * (2 * p * q)
+                    major_exp = num_calls * (p ** 2)
+                    minor_exp = num_calls * (q ** 2)
+
+                    if hetero_exp > 0:
+                        hetero_test = ((num_hetero - hetero_exp) ** 2) / hetero_exp
+                        major_test = ((num_major_obs - major_exp) ** 2) / major_exp
+                        minor_test = ((num_minor_obs - minor_exp) ** 2) / minor_exp
+
+                        hwe_values[pop_name][snp_def.allele_id] = stats.chisqprob(
+                            sum([hetero_test, major_test, minor_test]), 1)
+
+            if snp_idx % 5000 == 0:
+                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
 
         return hwe_values
 
-    @staticmethod
-    def _get_observed(calls):
-        """" Get observed counts in the genotype for each SNP """
-        return calls.count(Dataset.heterozygous), calls.count(Dataset.homozygous_major), \
-               calls.count(Dataset.homozygous_minor)
-
-    @staticmethod
-    def _get_expected(p, q, adjusted_samples):
-        """ Get expected counts under HWE """
-        return adjusted_samples * (2 * p * q), adjusted_samples * (p ** 2), adjusted_samples * (q ** 2)
 
 HWEFilter()

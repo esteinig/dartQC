@@ -1,11 +1,14 @@
 import logging
+
+import numpy
 import pandas
 
-from Dataset import Dataset
-from FilterResult import FilterResult
-from PipelineOptions import Filter
+from dartqc.Dataset import Dataset
+from dartqc.FilterResult import FilterResult
+from dartqc.PipelineOptions import Filter
 
 log = logging.getLogger(__file__)
+
 
 class MinSampleDataFilter(Filter):
     def get_name(self):
@@ -25,16 +28,43 @@ class MinSampleDataFilter(Filter):
 
         filtered_calls = dataset.get_filtered_calls()
 
-        # Convert calls from tuple to 0,1,2,- for pandas comparison/sum to work
-        simple_calls = Dataset.encode_single(filtered_calls)
+        # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.stack(numpy_matrix, axis=2)  # [SNPs][samples][calls] -> [SNPs][calls][samples]
+        numpy_matrix = numpy.stack(numpy_matrix, axis=1)  # [SNPs][calls][samples] -> [calls][samples][SNPs]
+        numpy_matrix = numpy_matrix[0]  # Only get first allele calls (if "-" -> missing)
 
-        df = pandas.DataFrame(simple_calls)
-        mind = (df == dataset.encoded_missing).sum(axis=1)
-        mind /= len(dataset.snps)  # Series
+        ignored_samples = numpy.asarray([True if dataset.samples[idx] in dataset.filtered.samples else False
+                                         for idx in range(len(dataset.samples))])
 
-        for idx, min_data in enumerate(mind):
-            if (1 - min_data) < threshold:
+        for idx, sample_calls in enumerate(numpy_matrix):
+            if ignored_samples[idx]:
+                continue
+
+            # first_allele_calls = numpy.dstack(sample_calls)[0][0]  # Get just the first allele (if "-" => missing)
+            missing_idxs = numpy.where(sample_calls == "-")[0]
+            missing = len(missing_idxs) / len(dataset.snps)
+
+            if (1 - missing) < threshold:
                 silenced.silenced_sample(dataset.samples[idx].id)
+
+            if idx % 1000 == 0:
+                log.debug("Completed {} of {}".format(idx, len(numpy_matrix)))
+
+
+        # # Convert calls from tuple to 0,1,2,- for pandas comparison/sum to work
+        # simple_calls = Dataset.encode_single(filtered_calls)
+        #
+        # df = pandas.DataFrame(simple_calls)
+        # mind = (df == dataset.encoded_missing).sum(axis=1)
+        # mind /= len(dataset.snps)  # Series
+        #
+        # for idx, min_data in enumerate(mind):
+        #     if (1 - min_data) < threshold:
+        #         silenced.silenced_sample(dataset.samples[idx].id)
+        #
+        #     if idx % 100 == 0:
+        #         log.debug("Completed {} of {}".format(idx, len(mind)))
 
         return silenced
 
