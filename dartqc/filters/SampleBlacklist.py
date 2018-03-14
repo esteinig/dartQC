@@ -13,10 +13,16 @@ class MinSNPDataFilter(Filter):
         return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
-        return "sample_blacklist"
+        return "Sample Blacklist"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--sample_blacklist"]
 
     def get_cmd_help(self) -> str:
         return "Remove samples before filtering - Pattern: [[sample_id, sample_id, ...], ...]"
+
+    def get_description(self) -> str:
+        return "Remove list of samples before filtering"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

@@ -70,15 +70,18 @@ def main():
         exit(0)
 
     if args["list_inputs"]:
-        print(list(PipelineOptions.input_types.keys()))
+        for type in PipelineOptions.input_types.values():
+            print("{}: {}".format(type.get_name(), type.get_description()))
         exit(0)
 
     if args["list_filters"]:
-        print(list(PipelineOptions.filter_types.keys()))
+        for type in PipelineOptions.filter_types.values():
+            print("{} ({}): {}".format(type.get_name(), ",".join(type.get_cmd_names()), type.get_description()))
         exit(0)
 
     if args["list_outputs"]:
-        print(list(PipelineOptions.output_types.keys()))
+        for type in PipelineOptions.output_types.values():
+            print("{}: {}".format(type.get_name(), type.get_description()))
         exit(0)
 
     # Clean up args so they aren't output later...

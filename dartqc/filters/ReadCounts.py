@@ -11,16 +11,22 @@ log = logging.getLogger(__file__)
 
 class ReadCountsFilter(Filter):
     def get_order(self) -> int:
-        return 0
+        return 2
 
     def get_cmd_type(self):
         return Filter.LIST_OF_FLOAT
 
     def get_name(self) -> str:
-        return "read_counts"
+        return "Read Counts"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--read_counts"]
 
     def get_cmd_help(self) -> str:
         return "Silence call if read count is < given value"
+
+    def get_description(self) -> str:
+        return "Silence call if read count is < given value (0 to inf where bigger requires better quality data)"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

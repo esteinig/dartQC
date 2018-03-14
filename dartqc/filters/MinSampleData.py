@@ -13,10 +13,10 @@ log = logging.getLogger(__file__)
 
 class MinSampleDataFilter(Filter):
     def get_name(self):
-        return "min_sample"
+        return "Min Sample Data"
 
-    def get_alt_cmd_names(self) -> [str]:
-        return ["--mind"]
+    def get_cmd_names(self) -> [str]:
+        return ["--min_sample","--mind"]
 
     def get_order(self) -> int:
         return 10
@@ -25,7 +25,10 @@ class MinSampleDataFilter(Filter):
         return Filter.LIST_OF_FLOAT
 
     def get_cmd_help(self) -> str:
-        return "filter samples > missingness per sample"
+        return "filter samples > missingness per sample. Pattern: [.7,.8,.9]"
+
+    def get_description(self):
+        return "filter samples > missingness per sample (0 to 1 decimal -> bigger requires more data)"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

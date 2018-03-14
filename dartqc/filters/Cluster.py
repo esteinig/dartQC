@@ -30,10 +30,16 @@ class ClusterFilter(Filter):
         return Filter.LIST_OF_FLOAT
 
     def get_name(self) -> str:
-        return "cluster"
+        return "Cluster"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--cluster"]
 
     def get_cmd_help(self) -> str:
-        return "remove SNPs in similar sequence clusters (cd-hit-est, value is clustering cloeseness/distance/identity). Pattern: [0.95,0.99]"
+        return "Remove SNPs in similar sequence clusters (cd-hit-est, value is clustering cloeseness/distance/identity). Pattern: [0.95,0.99]"
+
+    def get_description(self):
+        return "Remove SNPs in similar sequence clusters (Decimal value from 0 to 1 -> bigger value requires closer sequence match)"
 
     def filter(self, dataset: Dataset, identity: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

@@ -11,15 +11,18 @@ log = logging.getLogger(__file__)
 
 class SNPMetricFilter(PipelineOptions.Filter):
     def get_name(self) -> str:
-        return "metric"
+        return "SNP Metric"
 
-    def get_alt_cmd_names(self):
-        return ["--rep_average"]
+    def get_cmd_names(self):
+        return ["--metric", "--rep_average"]
 
     def get_cmd_help(self) -> str:
         return "Filter based on a quality metric provided in the data (dataset.all_headers).  " \
                "Pattern: [<col_name><comparison><value>] such as [RepAvg>0.2,RepAvg>0.3].  " \
                "Comparisons includ <, > and ="
+
+    def get_description(self) -> str:
+        return "Filter based on a quality metric provided in the data (make sure the header matches exactly!)"
 
     def get_cmd_type(self):
         return lambda s: [(re.split(r'[<=>]', item)[0], re.findall(r'[<=>]', item)[0], float(re.split(r'[<=>]', item)[1]))

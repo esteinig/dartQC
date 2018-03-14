@@ -20,10 +20,16 @@ class HWEFilter(Filter):
         return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
-        return "hwe"
+        return "HWE"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--hwe"]
 
     def get_cmd_help(self) -> str:
         return "filter snps <= p-value of hardy-weinberg test - Pattern: [(HWE thresh, # req. passing pops, ignored pop name(s), ...),...] if # req. passing pops is missing/None then pops are ignored."
+
+    def get_description(self):
+        return "filter snps <= p-value of hardy-weinberg test (0 to 1 decimal -> bigger means better HWE match)"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
 

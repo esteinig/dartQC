@@ -79,12 +79,12 @@ class FilterResult:
                 Calls silenced:    {} Calls of {} ({:.1f}%) across {} SNPs
                 Calls changed:     {} Calls of {} ({:.1f}%) across {} SNPs
                 """.format(filter, "at " + str(threshold) if threshold is not None else "",
-                           len(self.samples), len(dataset.samples), len(self.samples) / len(dataset.samples),
-                           len(self.snps), len(dataset.snps), len(self.snps) / len(dataset.snps),
-                           tot_filtered_calls, tot_calls, tot_filtered_calls / tot_calls, len(self.calls),
-                           tot_changed_calls, tot_calls,tot_changed_calls / tot_calls, len(self.call_changes)))
+                           len(self.samples), len(dataset.samples), len(self.samples) / len(dataset.samples) * 100.0,
+                           len(self.snps), len(dataset.snps), len(self.snps) / len(dataset.snps) * 100.0,
+                           tot_filtered_calls, tot_calls, tot_filtered_calls / tot_calls * 100.0, len(self.calls),
+                           tot_changed_calls, tot_calls,tot_changed_calls / tot_calls * 100.0, len(self.call_changes)))
 
-        log.debug("Test 1")
+        # log.debug("Test 1")
         if incl_summary:
             all_missing_idxs = numpy.asarray([dataset.calls[snp.allele_id] for snp in dataset.snps])
             all_missing_idxs = numpy.dstack(all_missing_idxs)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
@@ -96,14 +96,14 @@ class FilterResult:
             snp_idx_map = {snp_def.allele_id: idx for idx, snp_def in enumerate(dataset.snps)}
             num_samples = len(dataset.samples)
 
-            log.debug("Test 1.5")
+            # log.debug("Test 1.5")
 
             # Find all missing calls
             tot_missing_calls = 0
             for snp_idx, snp_def in enumerate(dataset.snps):
                 tot_missing_calls += len(all_missing_idxs[snp_idx])
 
-            log.debug("Test 4")
+            # log.debug("Test 4")
 
             # Add count of silenced SNPs
             sum_all_silenced_calls = 0
@@ -112,7 +112,7 @@ class FilterResult:
                 # all_filtered_calls[allele_id] = [sample_def.id for sample_def in dataset.samples]
                 sum_all_silenced_calls += num_samples - len(all_missing_idxs[snp_idx_map[allele_id]])
 
-            log.debug("Test 2")
+            # log.debug("Test 2")
 
             #  Add count of silenced samples
             silenced_sample_idxs = [sample_idxs[sample_id] for sample_id in self.samples]
@@ -124,7 +124,7 @@ class FilterResult:
                         # silenced_slice = numpy_matrix[snp_def.allele_id][silenced_sample_idxs]
                         # sum_all_silenced_calls += len(silenced_slice) - len(numpy.where(silenced_slice == "-")[0])
 
-            log.debug("Test 3")
+            # log.debug("Test 3")
 
             # Add count of silenced calls
             for allele_id, sample_ids in self.calls.items():
@@ -137,7 +137,7 @@ class FilterResult:
                     # sum_all_silenced_calls += len(numpy.where(silenced_slice != "-")[0])
 
 
-            log.debug("Test 5")
+            # log.debug("Test 5")
             filter_msg += textwrap.dedent("""        
                     Total missing calls:  {} ({:.1f}%)
                     Total Calls silenced: {} of {} ({:.1f}%)
@@ -147,7 +147,7 @@ class FilterResult:
                                sum_all_silenced_calls, tot_calls, sum_all_silenced_calls / tot_calls * 100.0,
                                tot_calls - tot_missing_calls - sum_all_silenced_calls,
                                (tot_calls - tot_missing_calls - sum_all_silenced_calls) / tot_calls * 100.0))
-            log.debug("Test 6")
+            # log.debug("Test 6")
         else:
             filter_msg += "----------------------------------------------\n"
 

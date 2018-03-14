@@ -16,8 +16,11 @@ class Filter:
     def get_name(self) -> str:
         raise NotImplemented()
 
-    def get_alt_cmd_names(self) -> [str]:
-        return []
+    def get_description(self) -> str:
+        raise NotImplemented()
+
+    def get_cmd_names(self) -> [str]:
+        raise NotImplemented()
 
     def get_cmd_type(self):
         raise NotImplemented()

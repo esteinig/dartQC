@@ -11,16 +11,22 @@ log = logging.getLogger(__file__)
 
 class HetCompFilter(Filter):
     def get_order(self) -> int:
-        return 5
+        return 4
 
     def get_cmd_type(self):
         return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
-        return "count_comp"
+        return "Count Comparison"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--count_comp"]
 
     def get_cmd_help(self) -> str:
         return "Comparison of read counts between alleles - Pattern: [[min_ratio, max_ratio],...] where < min ratio = homozygous, > max ratio = heterozygous, calls between are silenced"
+
+    def get_description(self):
+        return "Comparison of read counts between alleles (0 to 1 decimal values where < min ratio = homozygous, > max ratio = heterozygous, calls between are silenced"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

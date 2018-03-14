@@ -17,13 +17,16 @@ class MinSNPDataFilter(Filter):
         return Filter.LIST_OF_FLOAT
 
     def get_name(self) -> str:
-        return "min_snp"
+        return "Min SNP Data"
 
-    def get_alt_cmd_names(self) -> [str]:
-        return ["--call_rate"]
+    def get_cmd_names(self) -> [str]:
+        return ["--min_snp","--call_rate"]
 
     def get_cmd_help(self) -> str:
         return "filter snps <= call rate of snp"
+
+    def get_description(self) -> str:
+        return "filter snps <= call rate of snp (0 to 1 decimal -> bigger requires more data)"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

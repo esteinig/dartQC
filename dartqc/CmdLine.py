@@ -60,7 +60,7 @@ class CmdLine:
 
         # Add all configured filter types
         for filter_name, filter in PipelineOptions.filter_types.items():
-            filter_parser.add_argument("--" + filter_name, *filter.get_alt_cmd_names(), dest=filter_name,
+            filter_parser.add_argument(*filter.get_cmd_names(), dest=filter_name,
                                        type=filter.get_cmd_type(), help=filter.get_cmd_help())
 
         # # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]

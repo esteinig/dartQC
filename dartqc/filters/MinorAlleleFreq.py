@@ -19,10 +19,16 @@ class MAFFilter(Filter):
         return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
-        return "maf"
+        return "MAF"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--maf"]
 
     def get_cmd_help(self) -> str:
         return "filter snps <= minor allele frequency - Pattern: [[MAF thresh, # req. passing pops, ignored pop name(s), ...],...] if # req. passing pops is missing/None then pops are ignored."
+
+    def get_description(self):
+        return "filter snps <= minor allele frequency (0 to 0.5 decimal where bigger means more heterozygous).  Make sure MAF value is larger than 1/# samples or it will do nothing"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         maf_thresh = float(threshold[0])

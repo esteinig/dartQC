@@ -7,16 +7,22 @@ from dartqc.PipelineOptions import Filter
 
 class MinSNPDataFilter(Filter):
     def get_order(self) -> int:
-        return 0
+        return 1
 
     def get_cmd_type(self):
         return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
-        return "snp_blacklist"
+        return "SNP Blacklist"
+
+    def get_cmd_names(self) -> [str]:
+        return ["--snp_blacklist"]
 
     def get_cmd_help(self) -> str:
         return "Remove SNPs before filtering - Pattern: [[allele_id, allele_id, ...], ...]"
+
+    def get_description(self) -> str:
+        return "Remove list of SNPs before filtering"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

@@ -25,15 +25,16 @@ class DartInput(Input):
         return "dart"
 
     def get_description(self) -> str:
-        return "DArT GBS data comes as 2 files: calls & read counts.\n" \
-               "JSON mapping files are used to map columns/rows.\n" \
+        return "DArT GBS data comes as 2 files: calls & read counts. " \
+               "JSON mapping files are used to map columns/rows. " \
                "Note: Its easiest to run first without the JSON mapping files to generate them - then fix any problems."
 
     def read(self, working_dir: str, batch_id: str, files: [str], unknown_args: [] = None, **kwargs):
         # Dart reader takes potentially 4 files: calls, read counts & a json mapping for each
 
         # Work out which file is which based on file names
-        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files, silent="--generate_mappings" in unknown_args)
+        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(
+            working_dir, files, silent="--generate_mappings" in unknown_args)
 
         # Identify if this is excel instead of CSV (+get the sheet #)
         calls_excel_sheet = unknown_args[
@@ -111,7 +112,7 @@ class DartInput(Input):
                  "{} SNPs in calls but not in counts: {}\n"
                  "{} SNPs in counts but not in calls: {}\n"
                  "{} Samples in calls but not in counts: {}\n"
-                 "{} Samples in calls but not in counts: {}\n".format(
+                 "{} Samples in counts but not in calls: {}\n".format(
             len(counts_missing_snps), counts_missing_snps,
             len(call_missing_snps), call_missing_snps,
             len(counts_missing_samples), counts_missing_samples,
@@ -124,11 +125,13 @@ class DartInput(Input):
             del read_counts[snp]
 
         # Delete missing samples from call & read count data
-        count_missing_sample_idxs = [idx for idx, sample_id in enumerate(count_sample_names) if sample_id in counts_missing_samples]
+        count_missing_sample_idxs = [idx for idx, sample_id in enumerate(count_sample_names) if
+                                     sample_id in counts_missing_samples]
         for allele_id in calls:
             numpy.delete(calls[allele_id], count_missing_sample_idxs, axis=0)
 
-        call_missing_sample_idxs = [idx for idx, sample_id in enumerate(call_sample_names) if sample_id in call_missing_samples]
+        call_missing_sample_idxs = [idx for idx, sample_id in enumerate(call_sample_names) if
+                                    sample_id in call_missing_samples]
         for allele_id in calls:
             numpy.delete(read_counts[allele_id], call_missing_sample_idxs, axis=0)
 
@@ -136,7 +139,8 @@ class DartInput(Input):
         snp_defs = [snp for snp in call_snp_defs if snp.allele_id in read_counts.keys()]
         sample_defs = [sample for sample in call_sample_defs if sample.id in count_sample_names]
 
-        log.info("Data contains {} samples and {} SNPs and {} calls\n".format(len(sample_defs), len(snp_defs), len(sample_defs) * len(snp_defs)))
+        log.info("Data contains {} samples and {} SNPs and {} calls\n".format(len(sample_defs), len(snp_defs),
+                                                                              len(sample_defs) * len(snp_defs)))
 
         if len(sample_defs) == 0 or len(snp_defs) == 0:
             log.warning("There is no data (0 SNPs or samples) to filter - exiting")
@@ -172,7 +176,8 @@ class DartInput(Input):
         log.info("Collapsing read counts for {} ({:.0f}%) replicate sample"
                  .format(num_replicates, (num_replicates / len(count_sample_names)) * 100))
 
-        collapsed_counts = DartInput._collapse_replicates(read_counts, replicates, snp_defs, sample_defs, count_sample_names)
+        collapsed_counts = DartInput._collapse_replicates(read_counts, replicates, snp_defs, sample_defs,
+                                                          count_sample_names)
 
         log.info("Extracting replicate counts (stored separately from dataset.read_counts)")
 
@@ -265,11 +270,10 @@ class DartInput(Input):
 
         return calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file
 
-
     @staticmethod
     def _read_pops_file(sample_defs: [SampleDef], pops_file: str) -> [SampleDef]:
         with open(pops_file, "r") as file:
-            line = file.readline() # Ignore first line -> headers
+            line = file.readline()  # Ignore first line -> headers
             line = file.readline()
             while line is not None and line != "":
                 try:
@@ -285,7 +289,8 @@ class DartInput(Input):
                         log.warning("Sample in pop file doesn't exist in dataset: " + sample_id)
 
                 except Exception as e:
-                    log.warning("Invalid populations row: {} - each row should contain: <sample_id>,<population>".format(line))
+                    log.warning(
+                        "Invalid populations row: {} - each row should contain: <sample_id>,<population>".format(line))
 
                 line = file.readline()
 
@@ -297,7 +302,8 @@ class DartInput(Input):
 
         numpy_matrix = numpy.asarray([counts[snp.allele_id] for snp in snps])
 
-        numpy_matrix = numpy.stack([numpy.sum(numpy_matrix[:, replicates[sample.id]], axis=1) for sample in sample_defs], axis=1)
+        numpy_matrix = numpy.stack(
+            [numpy.sum(numpy_matrix[:, replicates[sample.id]], axis=1) for sample in sample_defs], axis=1)
 
         results = {snp.allele_id: numpy_matrix[idx] for idx, snp in enumerate(snps)}
 
@@ -385,7 +391,8 @@ class DartInput(Input):
                         clone_id = clone_id.split("|")[0]  # Remove any extra crap (sometimes allele ID is given...)
 
                         if clone_id not in allele_id:
-                            log.warning("Clone ID {} doesn't match allele ID {} on row {}".format(clone_id, allele_id, row_index))
+                            log.warning("Clone ID {} doesn't match allele ID {} on row {}".format(clone_id, allele_id,
+                                                                                                  row_index))
 
                         if allele_id is None or clone_id is None or len(allele_id) == 0 or len(clone_id) == 0:
                             log.error("Row {} is missing allele ID or clone ID: {}".format(row_index, row))
@@ -400,7 +407,7 @@ class DartInput(Input):
                                 all_headers[header] = row[idx]
 
                             snp_def = SNPDef(clone_id, allele_id, sequence_ref=row[mapping.sequence_column],
-                                             rep_average=row[mapping.rep_avg_column], all_headers=all_headers)
+                                             rep_average=row[mapping.replication_column], all_headers=all_headers)
 
                             # Read the value
                             if numeric:
@@ -437,9 +444,11 @@ class DartInput(Input):
                             # Set SNP def values that are only available on the second row.
                             snp_def.sequence = row[mapping.sequence_column]
 
-                            snp_def.snp = row[mapping.snp_column]
+                            snp_def.snp = snp_code_1
                             if snp_def.snp not in snp_def.allele_id:
-                                log.warning("SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id, row_index))
+                                log.warning(
+                                    "SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id,
+                                                                                   row_index))
                             snp_def.all_headers["SNP"] = snp_def.snp
 
                             # Read in the second rows data
@@ -467,8 +476,8 @@ class DartInput(Input):
                     except Exception as e:
                         exc_type, exc_obj, exc_tb = sys.exc_info()
                         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                        log.error("({}:{}) {} - Exception reading {} row {}: {}"
-                                  .format(fname, exc_tb.tb_lineno, str(e), file_path, row_index, row))
+                        log.error("({}:{}) {} - Exception reading {} row {}"
+                                  .format(fname, exc_tb.tb_lineno, str(e), file_path, row_index))
                         was_error = True
 
                     data_row_idx += 1
@@ -531,7 +540,8 @@ class DartMapping:
         ]
     }
 
-    def __init__(self):
+    def __init__(self, sample_row=None, data_row=None, pop_row=None, clone_column=None, allele_column=None,
+                 sequence_column=None, replication_column=None, data_column=None, **kwargs):
         """
         guess the specifications of input file and converting to input for DartReader
 
@@ -539,16 +549,16 @@ class DartMapping:
 
         """
 
-        self.sample_row = None
-        self.data_row = None
-        self.pop_row = None
+        self.sample_row = sample_row
+        self.data_row = data_row
+        self.pop_row = pop_row
 
-        self.clone_column = None
-        self.allele_column = None
-        self.sequence_column = None
-        self.rep_avg_column = None
-        self.data_column = None
-        self.snp_column = None
+        self.clone_column = clone_column
+        self.allele_column = allele_column
+        self.sequence_column = sequence_column
+        self.replication_column = replication_column
+        self.data_column = data_column
+        # self.snp_column = snp_column
         # self._reindex()
 
     @staticmethod
@@ -627,9 +637,10 @@ class DartMapping:
     def read_json(file_path: str):
         with open(file_path, "r") as file:
             mappings_dict = json.load(file)
-            mappings = DartMapping()
-            for key in mappings_dict:
-                setattr(mappings, key, mappings_dict[key])
+
+            mappings = DartMapping(**mappings_dict)
+            # for key in mappings_dict:
+            #     setattr(mappings, key, mappings_dict[key])
 
             mappings._zero_index()
 
