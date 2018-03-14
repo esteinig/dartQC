@@ -16,8 +16,8 @@ import re
 
 # Need these unused imports to load the __init__.py scripts which auto load the extension points
 from dartqc import filters
-from dartqc import input
 from dartqc import output
+from dartqc import input
 
 from dartqc import PipelineOptions
 from dartqc import Pipeline
@@ -77,7 +77,7 @@ def main():
         exit(0)
 
     if args["list_outputs"]:
-        print(list(PipelineOptions.filter_types.keys()))
+        print(list(PipelineOptions.output_types.keys()))
         exit(0)
 
     # Clean up args so they aren't output later...
@@ -128,7 +128,7 @@ def main():
         Pipeline.filter(dataset, unknown_args, **args)
 
     if args["subparser"] == "output":
-        Pipeline.output(dataset, args["types"], args["set"], args["filter"], unknown_args, **args)
+        Pipeline.output(dataset, unknown_args=unknown_args, **args)
 
     log.debug("\nRun time: " + str(round((time.time() - start), 2)) + "s")
 
@@ -148,9 +148,22 @@ def setup_logging(working_dir, batch_id):
     logger.addHandler(file_handler)
 
     # Console logs
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(log_formatter)
-    logger.addHandler(consoleHandler)
+    # Stderr
+    consoleErrHandler = logging.StreamHandler(sys.stderr)
+    consoleErrHandler.setFormatter(log_formatter)
+    consoleErrHandler.setLevel(logging.WARNING)
+    logger.addHandler(consoleErrHandler)
+
+    # Stdout
+    class InfoFilter(logging.Filter):
+        def filter(self, rec):
+            return rec.levelno in (logging.DEBUG, logging.INFO)
+
+    consoleOutHandler = logging.StreamHandler(sys.stdout)
+    consoleOutHandler.setFormatter(log_formatter)
+    consoleOutHandler.addFilter(InfoFilter())
+    consoleOutHandler.setLevel(logging.DEBUG)
+    logger.addHandler(consoleOutHandler)
 
 
 

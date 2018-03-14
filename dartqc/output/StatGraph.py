@@ -3,8 +3,8 @@ import os
 
 import logging
 
-from Dataset import Dataset
-from PipelineOptions import Output
+from dartqc.Dataset import Dataset
+from dartqc.PipelineOptions import Output
 
 log = logging.getLogger(__file__)
 

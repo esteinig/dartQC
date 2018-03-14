@@ -3,6 +3,7 @@ import logging
 import textwrap
 
 # from dartqc.Dataset import Dataset
+import numpy
 
 log = logging.getLogger(__file__)
 
@@ -66,8 +67,8 @@ class FilterResult:
         return allele_id in self.snps or sample_id in self.samples or (allele_id in self.calls and sample_id in self.calls[allele_id])
 
     def log(self, filter: str, threshold: float, dataset, fp, incl_summary: bool = False) -> None:
-        tot_filtered_calls = sum([len(samples) for snp, samples in self.calls.items()])
-        tot_calls = sum([len(samples) for snp, samples in dataset.calls.items()])
+        tot_filtered_calls = sum([len(silenced_calls) for snp, silenced_calls in self.calls.items()])
+        tot_calls = len(dataset.samples) * len(dataset.snps)
 
         tot_changed_calls = sum([len(samples) for snp, samples in self.call_changes.items()])
 
@@ -83,47 +84,60 @@ class FilterResult:
                            tot_filtered_calls, tot_calls, tot_filtered_calls / tot_calls, len(self.calls),
                            tot_changed_calls, tot_calls,tot_changed_calls / tot_calls, len(self.call_changes)))
 
+        log.debug("Test 1")
         if incl_summary:
+            all_missing_idxs = numpy.asarray([dataset.calls[snp.allele_id] for snp in dataset.snps])
+            all_missing_idxs = numpy.dstack(all_missing_idxs)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
+            all_missing_idxs = numpy.dstack(all_missing_idxs)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
+            all_missing_idxs = all_missing_idxs[0]  # Only get first allele calls (if "-" -> missing)
+            all_missing_idxs = [numpy.where(all_missing_idxs[snp_idx] == "-")[0] for snp_idx, snp_def in enumerate(dataset.snps)]
+
+            sample_idxs = {sample_def.id: idx for idx, sample_def in enumerate(dataset.samples)}
+            snp_idx_map = {snp_def.allele_id: idx for idx, snp_def in enumerate(dataset.snps)}
+            num_samples = len(dataset.samples)
+
+            log.debug("Test 1.5")
+
+            # Find all missing calls
+            tot_missing_calls = 0
+            for snp_idx, snp_def in enumerate(dataset.snps):
+                tot_missing_calls += len(all_missing_idxs[snp_idx])
+
+            log.debug("Test 4")
+
+            # Add count of silenced SNPs
             sum_all_silenced_calls = 0
-            all_filtered_calls = {}
+            # all_filtered_calls = {}
             for allele_id in self.snps:
-                all_filtered_calls[allele_id] = [sample_def.id for sample_def in dataset.samples]
-                sum_all_silenced_calls += len(dataset.samples) - dataset.calls[allele_id].tolist().count(
-                    dataset.missing)
+                # all_filtered_calls[allele_id] = [sample_def.id for sample_def in dataset.samples]
+                sum_all_silenced_calls += num_samples - len(all_missing_idxs[snp_idx_map[allele_id]])
 
-            for sample_id in self.samples:
+            log.debug("Test 2")
+
+            #  Add count of silenced samples
+            silenced_sample_idxs = [sample_idxs[sample_id] for sample_id in self.samples]
+            if len(silenced_sample_idxs) > 0:
                 for snp_def in dataset.snps:
-                    if snp_def.allele_id not in all_filtered_calls:
-                        all_filtered_calls[snp_def.allele_id] = []
+                    if snp_def.allele_id not in self.snps:
+                        sum_all_silenced_calls += len(silenced_sample_idxs) - len(numpy.intersect1d(silenced_sample_idxs, all_missing_idxs[snp_idx_map[snp_def.allele_id]]))
 
-                    sample_idx = 0
-                    while sample_id != dataset.samples[sample_idx].id:
-                        sample_idx += 1
+                        # silenced_slice = numpy_matrix[snp_def.allele_id][silenced_sample_idxs]
+                        # sum_all_silenced_calls += len(silenced_slice) - len(numpy.where(silenced_slice == "-")[0])
 
-                    if sample_id not in all_filtered_calls[snp_def.allele_id] and dataset.calls[snp_def.allele_id][
-                        sample_idx] != dataset.missing:
-                        all_filtered_calls[snp_def.allele_id].append(sample_id)
-                        sum_all_silenced_calls += 1
+            log.debug("Test 3")
 
+            # Add count of silenced calls
             for allele_id, sample_ids in self.calls.items():
-                if allele_id not in all_filtered_calls:
-                    all_filtered_calls[allele_id] = []
+                if allele_id not in self.snps:
+                    call_idxs = [sample_idxs[sample_id] for sample_id in sample_ids if sample_id not in self.samples]
 
-                for sample_id in sample_ids:
-                    sample_idx = 0
-                    while sample_id != dataset.samples[sample_idx].id:
-                        sample_idx += 1
+                    sum_all_silenced_calls += len(call_idxs) - len(numpy.intersect1d(call_idxs, all_missing_idxs[snp_idx_map[allele_id]]))
 
-                    if sample_id not in all_filtered_calls[allele_id] \
-                            and tuple(dataset.calls[allele_id][sample_idx]) != dataset.missing:
-                        all_filtered_calls[allele_id].append(sample_id)
-                        sum_all_silenced_calls += 1
+                    # silenced_slice = numpy_matrix[allele_id][call_idxs]
+                    # sum_all_silenced_calls += len(numpy.where(silenced_slice != "-")[0])
 
-            # if filter == "Final Results":
-            #     test3 = 1
 
-            tot_missing_calls = sum([samples.tolist().count(dataset.missing) for snp, samples in dataset.calls.items()])
-
+            log.debug("Test 5")
             filter_msg += textwrap.dedent("""        
                     Total missing calls:  {} ({:.1f}%)
                     Total Calls silenced: {} of {} ({:.1f}%)
@@ -133,6 +147,7 @@ class FilterResult:
                                sum_all_silenced_calls, tot_calls, sum_all_silenced_calls / tot_calls * 100.0,
                                tot_calls - tot_missing_calls - sum_all_silenced_calls,
                                (tot_calls - tot_missing_calls - sum_all_silenced_calls) / tot_calls * 100.0))
+            log.debug("Test 6")
         else:
             filter_msg += "----------------------------------------------\n"
 

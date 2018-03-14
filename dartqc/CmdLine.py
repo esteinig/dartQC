@@ -13,7 +13,9 @@ from dartqc import PipelineOptions
 
 class CmdLine:
     def __init__(self):
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser("GBS filtering to improve the quality of downstream analysis "
+                                         "(eg. silences SNPs, samples and calls that are unlikely to be correct).\n"
+                                         "NOTE:  Parameters cannot have spaces (eg. read_count of [3, 5, 7] will not work use [3,5,7] instead)!\n\nOptions: ")
 
         parser.add_argument("--version", "-v", dest="version", action="store_true", help="print version and exit")
 
@@ -35,7 +37,7 @@ class CmdLine:
 
         subparsers = parser.add_subparsers(help='Command-line interface for DartQC')
 
-        prepare_parser = subparsers.add_parser("read")
+        prepare_parser = subparsers.add_parser("read", help="Read files into the Dataset structure (first step to use DartQC)")
 
         prepare_parser.add_argument("--type", "-t", type=str, default="dart", required=False,
                                     dest="type", help="Type of input data (eg. genotype provider).  "
@@ -46,7 +48,7 @@ class CmdLine:
 
         prepare_parser.set_defaults(subparser='read')
 
-        validate_parser = subparsers.add_parser("rename")
+        validate_parser = subparsers.add_parser("rename", help="Rename clone IDs based on exact sequence matched (may be used with read)")
 
         validate_parser.add_argument("--id_list", "-i", default="id_list.csv", type=str,
                                      required=True, dest="id_list",
@@ -54,11 +56,11 @@ class CmdLine:
 
         validate_parser.set_defaults(subparser='rename')
 
-        filter_parser = subparsers.add_parser("filter")
+        filter_parser = subparsers.add_parser("filter", help="Do the filtering (requires dataset generated with read)")
 
         # Add all configured filter types
         for filter_name, filter in PipelineOptions.filter_types.items():
-            filter_parser.add_argument("--" + filter_name, dest=filter_name,
+            filter_parser.add_argument("--" + filter_name, *filter.get_alt_cmd_names(), dest=filter_name,
                                        type=filter.get_cmd_type(), help=filter.get_cmd_help())
 
         # # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]
@@ -99,21 +101,20 @@ class CmdLine:
         #                            dest="remove_clusters", help="remove snps in identical sequence clusters")
         # filter_parser.add_argument("--identity", default=0.95, type=float,
         #                            dest="identity", help="remove snps in identical sequence clusters")
-
         filter_parser.add_argument("--outputs", default={},
                                    type=lambda s: {k: v.split(",") for item in re.split(r"],", re.sub(r"[{} ]", "", s))
                                                    for k, v in dict([re.sub(r"[\[\] ]", "", item).split(":")]).items()},
                                    required=False,
-                                   dest="outputs", help="Specify outputs for each filter type")
+                                   dest="outputs", help="Specify outputs for each filter type. Pattern: {filter_name:[output_name,output_name, ...],filter_name:...}")
 
         filter_parser.add_argument("--order", "-o", default=[],
                                    type=lambda s: [item for item in s.split(',')],
-                                   required=False, dest="data", help="Which filters should generate ped & map files")
+                                   required=False, dest="data", help="Specify a custom filter order (don't include for default/recommended). Pattern: [filter_name,filter_name,filter_name,...]")
 
         filter_parser.set_defaults(subparser='filter')
 
         output_parser = subparsers.add_parser("output",
-                                              help="Primarily for user interface to allow generation of output types on click")
+                                              help="Generate any output type after filtering has been run (eg. no need to re-filter if you just want extra outputs)")
 
         output_parser.add_argument("--types", type=lambda s: [type for type in s.split(",")],
                                      required=True, dest="types",
@@ -124,6 +125,9 @@ class CmdLine:
 
         output_parser.add_argument("--filter", type=str, default=None, dest="filter",
                                      help="FilterResult to generate output data from - 'final' or leave blank for final results")
+
+        output_parser.add_argument("--encoding", type=str, default=None, dest="encoding",
+                                     help="Preferred output encoding: None/missing or 11 (--,11,01,10), 012 (-, 0, 1, 2), AB (--,AA,AB,BB), ACTG (--, AC, AA,CC for A>C SNP)")
 
         output_parser.set_defaults(subparser='output')
 

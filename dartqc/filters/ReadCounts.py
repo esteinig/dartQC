@@ -38,7 +38,7 @@ class ReadCountsFilter(Filter):
 
             # Note: Using the commented numpy_matrix way may be slightly faster at expense of some memory
             fail_idxs = numpy.sum(dataset.read_counts[snp_def.allele_id], axis=1)
-            fail_idxs = numpy.where(fail_idxs[snp_idx] <= threshold)[0].tolist()
+            fail_idxs = numpy.where(fail_idxs <= threshold)[0].tolist()
 
             # fail_idxs = numpy_matrix[snp_idx]
 

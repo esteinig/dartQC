@@ -13,6 +13,9 @@ class SNPMetricFilter(PipelineOptions.Filter):
     def get_name(self) -> str:
         return "metric"
 
+    def get_alt_cmd_names(self):
+        return ["--rep_average"]
+
     def get_cmd_help(self) -> str:
         return "Filter based on a quality metric provided in the data (dataset.all_headers).  " \
                "Pattern: [<col_name><comparison><value>] such as [RepAvg>0.2, RepAvg>0.3]"

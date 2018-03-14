@@ -18,6 +18,9 @@ class MinSNPDataFilter(Filter):
     def get_name(self) -> str:
         return "min_snp"
 
+    def get_alt_cmd_names(self) -> [str]:
+        return ["--call_rate"]
+
     def get_cmd_help(self) -> str:
         return "filter snps <= call rate of snp"
 

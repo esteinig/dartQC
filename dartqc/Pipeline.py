@@ -125,7 +125,7 @@ def filter(dataset, unkown_args: [], **kwargs):
         # Open file to save filter params to (document what this filter set is)
         params_file = os.path.join(filter_folder, PARAMS_FILE)
         with open(params_file, "w") as params_out:
-            log.info("\n==================== Set {} ====================".format(idx + 1))
+            log.info("\n==================== Set {}: {} ====================".format(idx + 1, filter_folder))
 
             # Dump all args to make sure anything isn't missed.
             params_out.write("Set {} run at {}\n".format(idx + 1, datetime.datetime.now()))
@@ -213,7 +213,7 @@ def filter(dataset, unkown_args: [], **kwargs):
             params_out.flush()
 
 
-def output(dataset, types: [str], set: str, filter: str, unkown_args: [], **kwargs):
+def output(dataset, types: [str], set: str, filter: str, encoding: str, unknown_args: [], **kwargs):
     folder = dataset.working_dir
 
     # Add in all filtered snps/samples/calls/changes up to the specified filter
@@ -228,18 +228,24 @@ def output(dataset, types: [str], set: str, filter: str, unkown_args: [], **kwar
         params_path = os.path.join(folder, PARAMS_FILE)
 
         # Once the folder is identified - read in the filter order to correctly add in all previous filters
-        with open(params_path, "r") as params_file:
-            params_file.readline()  # Skip line - set & time
-            params_file.readline()  # Skip line - known args
-            params_file.readline()  # Skip line - unknown args
+        try:
+            with open(params_path, "r") as params_file:
+                params_file.readline()  # Skip line - set & time
+                params_file.readline()  # Skip line - known args
+                params_file.readline()  # Skip line - unknown args
 
-            filters = json.loads(params_file.readline().split(":")[1])
+                filters = params_file.readline().split(":")[1].strip()
+                filters = re.sub(r"[\[\]\' ]", "", filters).split(",")
 
-            for aFilter in filters:
-                dataset.filter(FilterResult.read_json(aFilter + ".json"))
+                for aFilter in filters:
+                    aFilter_path = os.path.join(folder, aFilter + ".json")
+                    dataset.filter(FilterResult.read_json(aFilter_path))
 
-                if aFilter == filter:
-                    break
+                    if aFilter == filter:
+                        break
+        except FileNotFoundError as ex:
+            log.error("Incorrect working dir or set: {}".format(ex))
+            return
     else:
         # If this is in the parent folder, there are no results so filter means nothing
         if filter is not None:
@@ -247,4 +253,4 @@ def output(dataset, types: [str], set: str, filter: str, unkown_args: [], **kwar
             filter = ""
 
     for output_type in types:
-        PipelineOptions.output_types[output_type].write(filter, folder, dataset, unkown_args, **kwargs)
+        PipelineOptions.output_types[output_type].write(filter, folder, encoding, dataset, unknown_args, **kwargs)

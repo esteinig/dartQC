@@ -34,9 +34,10 @@ class SNPDef:
 
 
 class SampleDef:
-    def __init__(self, id: str, population: str = "pop"):
+    def __init__(self, id: str, population: str = "pop", all_headers: {} = None):
         self.id = id
         self.population = population
+        self.all_headers = all_headers if all_headers is not None else {}
 
     def __repr__(self):
         return self.id

@@ -11,6 +11,9 @@ class Filter:
     def get_name(self) -> str:
         raise NotImplemented()
 
+    def get_alt_cmd_names(self) -> [str]:
+        return []
+
     def get_cmd_type(self):
         raise NotImplemented()
 
@@ -48,13 +51,18 @@ class Output:
     def get_description(self) -> str:
         raise NotImplemented()
 
-    def write(self, filter_name: str, folder: str, dataset: Dataset, unknown_args: [], **kwargs) -> None:
+    def write(self, filter_name: str, folder: str, encoding: str, dataset: Dataset, unknown_args: [], **kwargs) -> None:
         raise NotImplemented()
 
+if "input_types" not in globals():
+    global input_types
+    input_types = {}
 
-input_types = {}
-output_types = {}
-filter_types = {}
+    global output_types
+    output_types = {}
+
+    global filter_types
+    filter_types = {}
 
 
 def add_filter(filter: Filter):

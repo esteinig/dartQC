@@ -14,6 +14,9 @@ class MinSampleDataFilter(Filter):
     def get_name(self):
         return "min_sample"
 
+    def get_alt_cmd_names(self) -> [str]:
+        return ["--mind"]
+
     def get_order(self) -> int:
         return 10
 

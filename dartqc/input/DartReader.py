@@ -3,6 +3,7 @@ import json
 import os
 
 import logging
+from collections import OrderedDict
 
 import numpy
 import pandas
@@ -31,13 +32,8 @@ class DartInput(Input):
     def read(self, working_dir: str, batch_id: str, files: [str], unknown_args: [] = None, **kwargs):
         # Dart reader takes potentially 4 files: calls, read counts & a json mapping for each
 
-        if len(files) < 2:
-            log.error(
-                "DaRT Reader requires at least 2 files: call data & read counts (you may/should also provide a json mapping file each as well)")
-            sys.exit(1)
-
         # Work out which file is which based on file names
-        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files)
+        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files, silent="--generate_mappings" in unknown_args)
 
         # Identify if this is excel instead of CSV (+get the sheet #)
         calls_excel_sheet = unknown_args[
@@ -57,25 +53,34 @@ class DartInput(Input):
         # Read the mapping/scheme files in or auto-create new ones
         calls_mapping = None
         counts_mapping = None
-        if calls_mapping_file is None:
+        if calls_mapping_file is None and calls_file is not None:
             # Attempt to auto create mapping files if they don't exist
             log.info("Guessing call column/row mappings")
             calls_mapping = DartMapping.guess_mappings(calls_file)
 
             # Save as a template for editing externally
             calls_mapping.write_json(calls_file)
-        else:
+        elif calls_mapping_file is not None:
             calls_mapping = DartMapping.read_json(calls_mapping_file)
 
-        if counts_mapping_file is None:
+        if counts_mapping_file is None and counts_file is not None:
             # Attempt to auto create mapping files if they don't exist
             log.info("Guessing read count column/row mappings")
             counts_mapping = DartMapping.guess_mappings(counts_file)
 
             # Save as a template for editing externally
             counts_mapping.write_json(counts_file)
-        else:
+        elif counts_mapping_file is not None:
             counts_mapping = DartMapping.read_json(counts_mapping_file)
+
+        # Custom Dart parameter to allow generation of mappings only
+        if "--generate_mappings" in unknown_args:
+            sys.exit(0)
+
+        if len(files) < 2:
+            log.error(
+                "DaRT Reader requires at least 2 files: call data & read counts (you may/should also provide a json mapping file each as well)")
+            sys.exit(1)
 
         start_time = time.time()
 
@@ -119,18 +124,23 @@ class DartInput(Input):
             del read_counts[snp]
 
         # Delete missing samples from call & read count data
-        for sample in reversed(counts_missing_samples):
-            for allele_id in calls:
-                del calls[allele_id][call_sample_names.index(sample)]
-        for sample in reversed(call_missing_samples):
-            for allele_id in read_counts:
-                del read_counts[allele_id][count_sample_names.index(sample)]
+        count_missing_sample_idxs = [idx for idx, sample_id in enumerate(count_sample_names) if sample_id in counts_missing_samples]
+        for allele_id in calls:
+            numpy.delete(calls[allele_id], count_missing_sample_idxs, axis=0)
+
+        call_missing_sample_idxs = [idx for idx, sample_id in enumerate(call_sample_names) if sample_id in call_missing_samples]
+        for allele_id in calls:
+            numpy.delete(read_counts[allele_id], call_missing_sample_idxs, axis=0)
 
         # Get the union of SNP & sample definitions
         snp_defs = [snp for snp in call_snp_defs if snp.allele_id in read_counts.keys()]
         sample_defs = [sample for sample in call_sample_defs if sample.id in count_sample_names]
 
         log.info("Data contains {} samples and {} SNPs and {} calls\n".format(len(sample_defs), len(snp_defs), len(sample_defs) * len(snp_defs)))
+
+        if len(sample_defs) == 0 or len(snp_defs) == 0:
+            log.warning("There is no data (0 SNPs or samples) to filter - exiting")
+            sys.exit(0)
 
         # Validate that all call values are one of: (-,-), (1,0), (0,1), (1,1)
         invalid_call_values = []
@@ -182,7 +192,7 @@ class DartInput(Input):
                        replicated_samples, replicate_counts)
 
     @staticmethod
-    def _identify_files(working_dir: str, files: [str]) -> [str]:
+    def _identify_files(working_dir: str, files: [str], silent: bool = False) -> [str]:
         files = sorted(files)
         pops_file = None
 
@@ -195,9 +205,9 @@ class DartInput(Input):
                          idx > 0 and file.startswith(files[idx - 1][0:files[idx - 1].rfind(".")])]
         data_files = [file for file in files if file not in mapping_files and (pops_file is None or file != pops_file)]
 
-        if len(data_files) != 2:
-            log.error("\n\nPossible error working out correct files:\n"
-                      "\tMake sure scheme/mapping file names start with their related data files name (excl. extension)\n"
+        if len(data_files) != 2 and not silent:
+            log.error("Possible error working out correct files:\n"
+                      "\tMake sure scheme/mapping file names start with their related data files name (excluding extension)\n"
                       "\tName the population file pops.csv or populations.csv\n"
                       "\tMake sure the calls file name contains data or call\n"
                       "\tMake sure the read counts file contains count or depth\n\n")
@@ -223,7 +233,7 @@ class DartInput(Input):
         if counts_file is None and len(data_files) > 0:
             counts_file = data_files.pop()
 
-        if counts_file is None or calls_file is None:
+        if (counts_file is None or calls_file is None) and not silent:
             log.error("Missing calls {} and/or counts file {}\n"
                       "Either the files CMD line option is missing or the files are incorrectly named"
                       .format(calls_file, counts_file))
@@ -242,9 +252,9 @@ class DartInput(Input):
             counts_file[0: counts_file.rfind(".")]) else None
 
         # Make relative paths work from the working dir rather than the present working directory (pwd)
-        if not os.path.isabs(calls_file):
+        if calls_file is not None and not os.path.isabs(calls_file):
             calls_file = os.path.join(working_dir, calls_file)
-        if not os.path.isabs(counts_file):
+        if counts_file is not None and not os.path.isabs(counts_file):
             counts_file = os.path.join(working_dir, counts_file)
         if pops_file is not None and not os.path.isabs(pops_file):
             pops_file = os.path.join(working_dir, pops_file)
@@ -385,7 +395,10 @@ class DartInput(Input):
                         if data_row_idx % 2 == 0:
                             # First row for each SNP - read in full SNP details + call
 
-                            all_headers = {header: row[idx] for idx, header in enumerate(headers)}
+                            all_headers = OrderedDict()
+                            for idx, header in enumerate(headers):
+                                all_headers[header] = row[idx]
+
                             snp_def = SNPDef(clone_id, allele_id, sequence_ref=row[mapping.sequence_column],
                                              rep_average=row[mapping.rep_avg_column], all_headers=all_headers)
 
@@ -427,6 +440,7 @@ class DartInput(Input):
                             snp_def.snp = row[mapping.snp_column]
                             if snp_def.snp not in snp_def.allele_id:
                                 log.warning("SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id, row_index))
+                            snp_def.all_headers["SNP"] = snp_def.snp
 
                             # Read in the second rows data
 

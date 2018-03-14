@@ -3,15 +3,15 @@ import os
 
 import logging
 
-from Dataset import Dataset
-from PipelineOptions import Output
+from dartqc.Dataset import Dataset
+from dartqc.PipelineOptions import Output
 
 log = logging.getLogger(__file__)
 
 
-class CSVOutput(Output):
+class FilteredCSVOutput(Output):
     def get_name(self) -> str:
-        return "csv"
+        return "filtered"
 
     def get_description(self) -> str:
         return "Output the genotype in CSV format (1 SNP per row, 1 sample per column)"
@@ -37,4 +37,4 @@ class CSVOutput(Output):
             csv_out.flush()
 
 
-CSVOutput()
+FilteredCSVOutput()

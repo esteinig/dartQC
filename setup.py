@@ -16,4 +16,4 @@ setup(name='dartqc',
       packages=["dartqc", "dartqc.filters", "dartqc.input", "dartqc.output"],
       scripts=['bin/filter.py', 'bin/install.py', 'bin/CreatePBSScript.py'],
       package_dir={"dartqc": "dartqc", "filters": "dartqc/filters", "input": "dartqc/input", "output": "dartqc/output"},
-      package_data={"dartqc": ["env/dartqc.yaml"]}, requires=['simplejson'])
+      package_data={"dartqc": ["env/dartqc.yaml"]}, requires=['simplejson', 'numpy'])

@@ -4,8 +4,8 @@ import os
 import logging
 import numpy
 
-from Dataset import Dataset
-from PipelineOptions import Output
+from dartqc.Dataset import Dataset
+from dartqc.PipelineOptions import Output
 
 log = logging.getLogger(__file__)
 
@@ -17,7 +17,7 @@ class PlinkOutput(Output):
     def get_description(self) -> str:
         return "Output as PED and MAP files"
 
-    def write(self, filter_name: str, folder: str, dataset: Dataset, unknown_args: [], **kwargs) -> None:
+    def write(self, filter_name: str, folder: str, encoding:str, dataset: Dataset, unknown_args: [], **kwargs) -> None:
         file_path = os.path.join(folder, filter_name + "_" + self.get_name())
 
         ped_file = file_path + '.ped'
@@ -31,34 +31,73 @@ class PlinkOutput(Output):
             ped_writer = csv.writer(map_out, delimiter="\t")
             ped_writer.writerows(map_data)
 
+        log.info("Writing PED file")
+
         filtered_calls = dataset.get_filtered_calls()
 
-        # Convert from (0,1) type tuples to ACTG strings (eg. AA, TA, etc)
-        snp_call_matrix = []
-        for allele_id, snp_calls in filtered_calls.items():
-            snp_vals = dataset.get_snp_def(allele_id).snp.split(":")[1].split(">")
+        # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
+        numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
+        numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
 
-            # Convert to ACTG values such as AC, TG, etc. instead of 0,1 or 1,0 etc.
-            calls = numpy.asarray([snp_vals[0] + snp_vals[1] if tuple(call) == Dataset.heterozygous
-                     else snp_vals[0] + snp_vals[0] if tuple(call) == Dataset.homozygous_major
-            else snp_vals[1] + snp_vals[1] if tuple(call) == Dataset.homozygous_minor
-            else "00" for call in snp_calls])
-            snp_call_matrix.append(calls)
+        del filtered_calls
 
-        sample_call_matrix = numpy.dstack(snp_call_matrix)[0]
+        # Convert from (0,1) type tuples to requested encoding
+        for snp_idx, snp_def in enumerate(dataset.snps):
+            if encoding == "ACTG":
+                # Find the two possible letters for this SNP
+                snp_vals = snp_def.snp.split(":")[1].split(">")
 
-        plink_rows = []
-        for idx, sample_def in enumerate(dataset.samples):
-            ped_row = [sample_def.population, sample_def.id, "0", "0", "0", "0"]
-            row_calls = [call_letter for call_str in sample_call_matrix[idx] for call_letter in call_str]
+                # Replace all 0's & 1's with ACTG's - missing stays same
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
 
-            ped_row.extend(row_calls)
-            plink_rows.append(ped_row)
+            elif encoding == "012":
+                # Find indexes for 0's and 1's in first allele.
+                major = numpy.where(numpy_matrix[0][snp_idx] == "1")
+                minor = numpy.where(numpy_matrix[0][snp_idx] == "1")
 
-        log.info("Writing PED file")
+                # Identify het's as where the second allele has a 1 in the same location as the first allele
+                het = numpy.intersect1d(numpy.where(numpy_matrix[1][snp_idx] == "1"), major)
+
+                # Remove het's from major and minor homo's
+                major = numpy.setdiff1d(major, het, True)
+                minor = numpy.setdiff1d(minor, het, True)
+
+                # Replace the first allele values (-,0,1) with new encoding (-,0,1,2)
+                numpy.put(numpy_matrix[0][snp_idx], het, "0")
+                numpy.put(numpy_matrix[0][snp_idx], minor, "1")
+                numpy.put(numpy_matrix[0][snp_idx], major, "2")
+
+            elif encoding == "AB":
+                snp_vals = ["A", "B"]
+
+                # Replace all 0's & 1's with A's and B's - missing stays same
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
+
+        if encoding == "012":
+            # All data is only in the first allele - so grab it now and drop the second row
+            numpy_matrix = numpy_matrix[0]
+        else:
+            # Reshape the matrix so that there are 2 times the SNPs ([calls][SNPs][Samples] -> [2*SNPs][samples])
+            # (eg. basically the double row format dart has)
+            numpy_matrix = numpy.reshape(numpy_matrix, (1, numpy_matrix.shape[1] * 2, numpy_matrix.shape[2]), order='F')[0]
+
+        # Swap the axis directions ([SNPs][samples] -> [samples][SNPs])
+        # Eg. For each sample there is 1 col per value (012 encoding only has 1 value but ACTG/AB has 2 per call)
+        numpy_matrix = numpy.dstack(numpy_matrix)[0]  # [val][SNPs][samples] -> [samples][SNPs][val]
+
         with open(ped_file, 'w') as ped_out:
-            for row in plink_rows:
-                ped_out.write("\t".join(row) + "\n")
+            for idx, sample_def in enumerate(dataset.samples):
+                sample_details = [sample_def.population, sample_def.id, "0", "0", "0", "0"]
+
+                ped_out.write("\t".join(sample_details + numpy_matrix[idx].tolist()) + "\n")
                 ped_out.flush()
 
                 # MAP Formatting

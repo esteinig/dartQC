@@ -31,7 +31,7 @@ class ClusterFilter(Filter):
         return "cluster"
 
     def get_cmd_help(self) -> str:
-        return "remove snps in identical sequence clusters"
+        return "remove SNPs in similar sequence clusters (cd-hit-est, value is clustering cloeseness/distance/identity)"
 
     def filter(self, dataset: Dataset, identity: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
