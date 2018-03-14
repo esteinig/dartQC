@@ -17,15 +17,13 @@ class HWEFilter(Filter):
         return 201
 
     def get_cmd_type(self):
-        return lambda s: [re.sub(r'[\(\)]', "", item).split(",")
-                          for item in re.split(r"\),\(", re.sub(r'[\[\] ]', "", s))
-                          if len(s.strip()) > 0]
+        return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
         return "hwe"
 
     def get_cmd_help(self) -> str:
-        return "filter snps <= p-value of hardy-weinberg test - Pattern: [[HWE thresh, # req. passing pops, ignored pop name(s), ...],...] if # req. passing pops is missing/None then pops are ignored."
+        return "filter snps <= p-value of hardy-weinberg test - Pattern: [(HWE thresh, # req. passing pops, ignored pop name(s), ...),...] if # req. passing pops is missing/None then pops are ignored."
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
 

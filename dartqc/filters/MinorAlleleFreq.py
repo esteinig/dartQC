@@ -16,9 +16,7 @@ class MAFFilter(Filter):
         return 200
 
     def get_cmd_type(self):
-        return lambda s: [re.sub(r'[\(\)]', "", item).split(",")
-                          for item in re.split(r"\),\(", re.sub(r'[\[\] ]', "", s))
-                          if len(s.strip()) > 0]
+        return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
         return "maf"

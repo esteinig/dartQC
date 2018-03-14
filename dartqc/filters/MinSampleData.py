@@ -2,6 +2,7 @@ import logging
 
 import numpy
 import pandas
+import re
 
 from dartqc.Dataset import Dataset
 from dartqc.FilterResult import FilterResult
@@ -21,7 +22,7 @@ class MinSampleDataFilter(Filter):
         return 10
 
     def get_cmd_type(self):
-        return lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')]
+        return Filter.LIST_OF_FLOAT
 
     def get_cmd_help(self) -> str:
         return "filter samples > missingness per sample"

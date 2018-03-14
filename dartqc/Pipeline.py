@@ -89,6 +89,10 @@ def filter(dataset, unkown_args: [], **kwargs):
 
     :return:
     """
+
+    if "outputs" in kwargs and "encoding" not in kwargs["outputs"]:
+        kwargs["outputs"]["encoding"] = "ACTG"
+
     # Default filter order is based off the order added to filter_types dictionary in Filters.py
     num_sets = 0  # Max # params in any filter (# of sets) -> pad out any filters with less params using last value
     enabled_filters = []
@@ -191,7 +195,7 @@ def filter(dataset, unkown_args: [], **kwargs):
                     for output_type in PipelineOptions.output_types:
                         if "outputs" in kwargs and aFilter in kwargs["outputs"] and output_type \
                                 in kwargs["outputs"][aFilter]:
-                            PipelineOptions.output_types[output_type].write(aFilter, filter_folder, dataset, unkown_args,
+                            PipelineOptions.output_types[output_type].write(aFilter, filter_folder, kwargs["outputs"]["encoding"], dataset, unkown_args,
                                                                             **kwargs)
 
                     log.info("Completed {} filter in: {}s\n".format(aFilter, time.time() - start))
@@ -207,7 +211,7 @@ def filter(dataset, unkown_args: [], **kwargs):
             for output_type in PipelineOptions.output_types:
                 if "outputs" in kwargs and "final" in kwargs["outputs"] and output_type \
                         in kwargs["outputs"]["final"]:
-                    PipelineOptions.output_types[output_type].write("final", filter_folder, dataset, unkown_args,
+                    PipelineOptions.output_types[output_type].write("final", filter_folder, kwargs["outputs"]["encoding"], dataset, unkown_args,
                                                                     **kwargs)
 
             params_out.flush()

@@ -5,6 +5,8 @@ import shutil
 from subprocess import call
 
 import logging
+
+import re
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
@@ -25,13 +27,13 @@ class ClusterFilter(Filter):
         return 100
 
     def get_cmd_type(self):
-        return lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')]
+        return Filter.LIST_OF_FLOAT
 
     def get_name(self) -> str:
         return "cluster"
 
     def get_cmd_help(self) -> str:
-        return "remove SNPs in similar sequence clusters (cd-hit-est, value is clustering cloeseness/distance/identity)"
+        return "remove SNPs in similar sequence clusters (cd-hit-est, value is clustering cloeseness/distance/identity). Pattern: [0.95,0.99]"
 
     def filter(self, dataset: Dataset, identity: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

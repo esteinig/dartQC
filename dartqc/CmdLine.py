@@ -105,7 +105,7 @@ class CmdLine:
                                    type=lambda s: {k: v.split(",") for item in re.split(r"],", re.sub(r"[{} ]", "", s))
                                                    for k, v in dict([re.sub(r"[\[\] ]", "", item).split(":")]).items()},
                                    required=False,
-                                   dest="outputs", help="Specify outputs for each filter type. Pattern: {filter_name:[output_name,output_name, ...],filter_name:...}")
+                                   dest="outputs", help="Specify outputs for each filter type. Pattern: {filter_name:[output_name,output_name, ...],filter_name:...}.  There are 2 special options: filter_name of final will generate outputs after all filters are run, use a filter_name of encoding with a single value of 11,AB,ACTG or 012 (ref. output option type) to set the encoding type of all outputs")
 
         filter_parser.add_argument("--order", "-o", default=[],
                                    type=lambda s: [item for item in s.split(',')],

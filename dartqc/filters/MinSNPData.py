@@ -1,5 +1,6 @@
 import logging
 import numpy
+import re
 
 from dartqc.FilterResult import FilterResult
 from dartqc.Dataset import Dataset
@@ -13,7 +14,7 @@ class MinSNPDataFilter(Filter):
         return 11
 
     def get_cmd_type(self):
-        return lambda s: [float(item.strip()) if len(item.strip()) > 0 else None for item in s[1:-1].split(',')]
+        return Filter.LIST_OF_FLOAT
 
     def get_name(self) -> str:
         return "min_snp"

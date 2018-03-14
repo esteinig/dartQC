@@ -1,10 +1,15 @@
 from collections import OrderedDict
 
+import re
+
 from dartqc.Dataset import Dataset
 from dartqc.FilterResult import FilterResult
 
 
 class Filter:
+    LIST_OF_FLOAT = lambda s: [float(item) if len(item) > 0 else None for item in re.sub(r'[()\[\] ]', "", s).split(",")]
+    LIST_OF_LISTS = lambda s: [re.sub(r'[()\[\] ]', "", item).split(",") for item in re.split(r"[)\]],[(\[]", re.sub(r'(^[(\[]{2})|([)\]]{2}$)', r"\1", s)) if len(s.strip()) > 0]
+
     def __init__(self):
         add_filter(self)
 

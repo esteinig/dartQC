@@ -2,21 +2,19 @@ import logging
 import numpy
 import re
 
-from dartqc import PipelineOptions
+from dartqc.PipelineOptions import Filter
 from dartqc.Dataset import Dataset
 from dartqc.FilterResult import FilterResult
 
 log = logging.getLogger(__file__)
 
 
-class HetCompFilter(PipelineOptions.Filter):
+class HetCompFilter(Filter):
     def get_order(self) -> int:
         return 5
 
     def get_cmd_type(self):
-        return lambda s: [re.sub(r'[\(\)]', "", item).split(",")
-                          for item in re.split(r"\),\(", re.sub(r'[\[\] ]', "", s))
-                          if len(s.strip()) > 0]
+        return Filter.LIST_OF_LISTS
 
     def get_name(self) -> str:
         return "count_comp"
