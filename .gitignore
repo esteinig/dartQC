@@ -13,3 +13,4 @@
 *.npz
 *.clstr
 *.log
+__pycache__
