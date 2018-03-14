@@ -10,6 +10,7 @@ import sys
 
 cdhit_config = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))), "cdhit.txt")
 
+
 def main():
     parser = argparse.ArgumentParser()
 

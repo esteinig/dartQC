@@ -14,3 +14,4 @@
 *.clstr
 *.log
 __pycache__
+/bin/cdhit.txt
