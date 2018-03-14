@@ -10,3 +10,6 @@
 .idea
 .idea/*
 /build/
+*.npz
+*.clstr
+*.log
