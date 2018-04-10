@@ -48,7 +48,7 @@ class CSVOutput(Output):
             elif encoding == "012":
                 # Find indexes for 0's and 1's in first allele.
                 major = numpy.where(numpy_matrix[0][snp_idx] == "1")
-                minor = numpy.where(numpy_matrix[0][snp_idx] == "1")
+                minor = numpy.where(numpy_matrix[1][snp_idx] == "1")
 
                 # Identify het's as where the second allele has a 1 in the same location as the first allele
                 het = numpy.intersect1d(numpy.where(numpy_matrix[1][snp_idx] == "1"), major)

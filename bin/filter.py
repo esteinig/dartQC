@@ -100,7 +100,7 @@ def main():
     log = logging.getLogger(__file__)
 
     log.info("Filtering started at " + datetime.date.strftime(datetime.date.today(), "%d/%m/%y")
-                 + "\nArgs: " + str(sys.argv) + "\n"
+             + "\nArgs: " + str(sys.argv) + "\n"
              + "Unknown args: " + str(unknown_args) + "\n")
 
     # Workflows
@@ -129,12 +129,44 @@ def main():
         dataset.write_json(dataset_path)
 
     if args["subparser"] == "filter":
-        Pipeline.filter(dataset, unknown_args, **args)
+        sys_args = sys.argv
+        filter_found = False
+        filter_data = []
+        current_filter = None
+        needs_output = False
+        for i, arg in enumerate(sys_args):
+            if filter_found:
+                if arg.find("--") == 0:
+                    for filter_def in PipelineOptions.filter_types.values():
+                        if arg in filter_def.get_cmd_names():
+                            current_filter = {
+                                "name": filter_def.get_name(),
+                                "def": filter_def,
+                                "outputs": {}
+                            }
+                            filter_data.append(current_filter)
+                            break
+                elif current_filter is not None and "params" not in current_filter:
+                    current_filter["params"] = current_filter["def"].get_cmd_type()(arg)
+                elif arg == "-o" or arg == "--output":
+                    needs_output = True
+                elif needs_output:
+                    anOutput = arg.split(":")
+
+                    current_filter["outputs"][anOutput[0]] = anOutput[1] if len(anOutput) > 1 else None
+                else:
+                    # Something else was found - this is probably the end of the filters.
+                    current_filter = None
+            else:
+                filter_found = arg == "filter"
+
+    Pipeline.filter(dataset, filter_data, unknown_args, **args)
 
     if args["subparser"] == "output":
         Pipeline.output(dataset, unknown_args=unknown_args, **args)
 
     log.debug("\nRun time: " + str(round((time.time() - start), 2)) + "s")
+
 
 def setup_logging(working_dir, batch_id):
     logger = logging.getLogger("")
@@ -168,7 +200,6 @@ def setup_logging(working_dir, batch_id):
     consoleOutHandler.addFilter(InfoFilter())
     consoleOutHandler.setLevel(logging.DEBUG)
     logger.addHandler(consoleOutHandler)
-
 
 
 main()

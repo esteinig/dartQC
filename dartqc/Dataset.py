@@ -244,6 +244,19 @@ class Dataset:
 
         self.filtered = filtered
 
+        info_path = path[:path.rfind(".")] + "_info.json"
+        dataset_info = {
+            "samples": [sample_def.id for sample_def in self.samples],
+            "snps": [snp_def.allele_id for snp_def in self.snps],
+            "pops": {sample_def.population: 0 for sample_def in self.samples}
+        }
+
+        for sample_def in self.samples:
+            dataset_info["pops"][sample_def.population] += 1
+
+        with open(info_path, "w") as info_out:
+            json.dump(dataset_info, indent=4, fp=info_out)
+
         # test = numpy.asarray(self.__dict__)
         # numpy.savez(path, working_dir=self.working_dir, batch_id=self.batch_id, snps=self.snps, samples=self.samples,
         #             type=self.type, calls=self.calls, read_counts=self.read_counts, replicates=self.replicates,

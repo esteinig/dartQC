@@ -73,7 +73,8 @@ class ReadCountsFilter(Filter):
 
         for sample_id in dataset.filtered.samples:
             for allele_id, samples in silenced.calls.items():
-                samples.remove(sample_id)
+                if sample_id in samples:
+                    samples.remove(sample_id)
 
         for allele_id, samples in dataset.filtered.calls:
             if allele_id in silenced.calls:

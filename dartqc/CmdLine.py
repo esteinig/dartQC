@@ -56,12 +56,18 @@ class CmdLine:
 
         validate_parser.set_defaults(subparser='rename')
 
-        filter_parser = subparsers.add_parser("filter", help="Do the filtering (requires dataset generated with read)")
+        filter_parser = subparsers.add_parser("filter", help="Do the filtering (requires dataset generated with read)\n"
+                                                             "Filter & output args can be repeated and the order is relevant!\n\n"
+                                                             "Eg. --min_sample [0.6] -o csv:ACTG --maf [3,5,7] -o csv:ACTG --min_sample [0.9] -o dart -o csv:11 -o csv:ACTG")
 
         # Add all configured filter types
         for filter_name, filter in PipelineOptions.filter_types.items():
             filter_parser.add_argument(*filter.get_cmd_names(), dest=filter_name,
                                        type=filter.get_cmd_type(), help=filter.get_cmd_help())
+
+
+        filter_parser.add_argument("--output", "-o", default=None, type=str, required=False, dest="output",
+                                   help="Specify an output type & encoding for the preceeding filter.  Pattern: output_type:encoding - eg. csv:11.  Each filter may have many outputs")
 
         # # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]
         # filter_parser.add_argument("--ignore_pops", "-i", default=False, dest="ignore_pops",
@@ -101,15 +107,16 @@ class CmdLine:
         #                            dest="remove_clusters", help="remove snps in identical sequence clusters")
         # filter_parser.add_argument("--identity", default=0.95, type=float,
         #                            dest="identity", help="remove snps in identical sequence clusters")
-        filter_parser.add_argument("--outputs", default={},
-                                   type=lambda s: {k: v.split(",") for item in re.split(r"],", re.sub(r"[{} ]", "", s))
-                                                   for k, v in dict([re.sub(r"[\[\] ]", "", item).split(":")]).items()},
-                                   required=False,
-                                   dest="outputs", help="Specify outputs for each filter type. Pattern: {filter_name:[output_name,output_name, ...],filter_name:...}.  There are 2 special options: filter_name of final will generate outputs after all filters are run, use a filter_name of encoding with a single value of 11,AB,ACTG or 012 (ref. output option type) to set the encoding type of all outputs")
 
-        filter_parser.add_argument("--order", "-o", default=[],
-                                   type=lambda s: [item for item in s.split(',')],
-                                   required=False, dest="data", help="Specify a custom filter order (don't include for default/recommended). Pattern: [filter_name,filter_name,filter_name,...]")
+        # filter_parser.add_argument("--outputs", default={},
+        #                            type=lambda s: {k: v.split(",") for item in re.split(r"],", re.sub(r"[{}]", "", s))
+        #                                            for k, v in dict([re.sub(r"[\[\]]", "", item).split(":")]).items()},
+        #                            required=False,
+        #                            dest="outputs", help="Specify outputs for each filter type. Pattern: {filter_name:[output_name,output_name, ...],filter_name:...}.  There are 2 special options: filter_name of final will generate outputs after all filters are run, use a filter_name of encoding with a single value of 11,AB,ACTG or 012 (ref. output option type) to set the encoding type of all outputs")
+        #
+        # filter_parser.add_argument("--order", default=[],
+        #                            type=lambda s: [item for item in s.split(',')],
+        #                            required=False, dest="order", help="Specify a custom filter order (don't include for default/recommended). Pattern: [filter_name,filter_name,filter_name,...]")
 
         filter_parser.set_defaults(subparser='filter')
 

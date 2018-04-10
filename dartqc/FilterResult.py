@@ -66,6 +66,12 @@ class FilterResult:
     def is_call_filtered(self, allele_id, sample_id):
         return allele_id in self.snps or sample_id in self.samples or (allele_id in self.calls and sample_id in self.calls[allele_id])
 
+    def get_tot_silenced_calls(self):
+        return sum([len(silenced_calls) for snp, silenced_calls in self.calls.items()])
+
+    def get_tot_changed_calls(self):
+        return sum([len(samples) for snp, samples in self.call_changes.items()])
+
     def log(self, filter: str, threshold: float, dataset, fp, incl_summary: bool = False) -> None:
         tot_filtered_calls = sum([len(silenced_calls) for snp, silenced_calls in self.calls.items()])
         tot_calls = len(dataset.samples) * len(dataset.snps)

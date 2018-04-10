@@ -19,10 +19,10 @@ class MinSNPDataFilter(Filter):
         return ["--snp_blacklist"]
 
     def get_cmd_help(self) -> str:
-        return "Remove SNPs before filtering - Pattern: [[allele_id, allele_id, ...], ...]"
+        return "Remove SNPs - Pattern: [[allele_id, allele_id, ...], ...]"
 
     def get_description(self) -> str:
-        return "Remove list of SNPs before filtering"
+        return "Remove list of SNPs"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

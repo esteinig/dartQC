@@ -83,41 +83,53 @@ def rename_clone_ids(dataset, official_ids: str):
     log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
 
 
-def filter(dataset, unkown_args: [], **kwargs):
+def filter(dataset, filters: [], unkown_args: [], **kwargs):
     """
     Complete all filtering
 
     :return:
     """
 
-    if "outputs" in kwargs and "encoding" not in kwargs["outputs"]:
-        kwargs["outputs"]["encoding"] = "ACTG"
-
-    # Default filter order is based off the order added to filter_types dictionary in Filters.py
     num_sets = 0  # Max # params in any filter (# of sets) -> pad out any filters with less params using last value
-    enabled_filters = []
-    for filter_type in PipelineOptions.filter_types.keys():
-        if filter_type in kwargs and kwargs[filter_type] is not None and len(kwargs[filter_type]) > 0:
-            enabled_filters.append(filter_type)
-            if len(kwargs[filter_type]) > num_sets:
-                num_sets = len(kwargs[filter_type])
+    for filter_data in filters:
+        if len(filter_data["params"]) > num_sets:
+            num_sets = len(filter_data["params"])
 
-    # Remove unknown filters (eg. typo) or filters which aren't actually enabled.
-    filter_order = [] if "order" not in kwargs else kwargs["order"]
-    for aFilter in filter_order:
-        if aFilter not in enabled_filters:
-            filter_order.remove(aFilter)
+    #
+    # if "outputs" in kwargs and "encoding" not in kwargs["outputs"]:
+    #     kwargs["outputs"]["encoding"] = "ACTG"
+    # Default filter order is based off the order added to filter_types dictionary in Filters.py
+    # num_sets = 0  # Max # params in any filter (# of sets) -> pad out any filters with less params using last value
+    # enabled_filters = []
+    # for filter_type in PipelineOptions.filter_types.keys():
+    #     if filter_type in kwargs and kwargs[filter_type] is not None and len(kwargs[filter_type]) > 0:
+    #         enabled_filters.append(filter_type)
+    #         if len(kwargs[filter_type]) > num_sets:
+    #             num_sets = len(kwargs[filter_type])
+    # # Remove unknown filters (eg. typo) or filters which aren't actually enabled.
+    # filter_order = [] if "order" not in kwargs else kwargs["order"]
+    # for aFilter in filter_order:
+    #     if aFilter not in enabled_filters:
+    #         filter_order.remove(aFilter)
+    #
+    # # Add all missing filters to the filter order.
+    # for aFilter in enabled_filters:
+    #     if aFilter not in filter_order:
+    #         filter_order.append(aFilter)
 
-    # Add all missing filters to the filter order.
-    for aFilter in enabled_filters:
-        if aFilter not in filter_order:
-            filter_order.append(aFilter)
+    # Whenever a set changes record which sets/filters cannot be reused going forward.
+    reusable = []
+    for set_idx in range(num_sets):
+        reusable.append([])
+        for filter_data in filters:
+            reusable[set_idx].append([i for i in range(set_idx) if i != set_idx])
 
     count = 0
     set_folders = []
-    for idx in range(num_sets):
+    for set_idx in range(num_sets):
         dataset.clear_filters()
 
+        # Find an unused filter folder & create it
         filter_folder = None
         while filter_folder is None or os.path.exists(filter_folder):
             filter_folder = os.path.join(dataset.working_dir, "Filter_" + str(count))
@@ -126,79 +138,109 @@ def filter(dataset, unkown_args: [], **kwargs):
         os.mkdir(filter_folder)
         set_folders.append(filter_folder)
 
+        set_summary = "FILTER,PARAMS,SILENCED SAMPLES,SILENCED SNPS,SILENCED CALLS,CHANGED CALLS\n"
+
         # Open file to save filter params to (document what this filter set is)
         params_file = os.path.join(filter_folder, PARAMS_FILE)
         with open(params_file, "w") as params_out:
-            log.info("\n==================== Set {}: {} ====================".format(idx + 1, filter_folder))
+            log.info("\n==================== Set {}: {} ====================".format(set_idx + 1, filter_folder))
 
             # Dump all args to make sure anything isn't missed.
-            params_out.write("Set {} run at {}\n".format(idx + 1, datetime.datetime.now()))
-            params_out.write("All known args: {}\n".format(json.dumps(kwargs)))
+            params_out.write("Set {} run at {}\n".format(set_idx + 1, datetime.datetime.now()))
+            params_out.write("Args: {}\n".format(",".join(sys.argv)))
             params_out.write("Unknown args: {}\n".format(json.dumps(unkown_args)))
-            params_out.write("Filter order: {}\n\n\n".format(filter_order))
+            params_out.write("Filters: {}\n\n\n".format([filter_data["name"] for filter_data in filters]))
 
             # Do the filtering
-            reuse_results = False
-            for filter_idx, aFilter in enumerate(filter_order):
-                # Look at previous sets completed and if exaactly the same, just copy over the filter results.
-                for prev_set_num in range(idx):
-                    reuse_results = True
-                    for filter_name in [name for name in filter_order[:filter_idx + 1]]:
-                        this_filter_threshold = kwargs[filter_name][len(kwargs[filter_name]) - 1] if len(kwargs[filter_name]) <= idx else \
-                            kwargs[filter_name][idx]
+            for filter_idx, filter_data in enumerate(filters):
+                # Find the threshold/filtering prarms
+                filter_threshold = filter_data["params"][len(filter_data["params"]) - 1] if len(filter_data["params"]) <= set_idx else filter_data["params"][set_idx]
 
-                        # Get the previous sets params & pad to max num sets.
-                        prev_filter_threshold = kwargs[filter_name][len(kwargs[filter_name]) - 1] if len(kwargs[filter_name]) <= prev_set_num else \
-                            kwargs[filter_name][prev_set_num]
+                set_summary += '{},"{}"'.format(filter_data["name"], filter_threshold)
 
-                        if this_filter_threshold != prev_filter_threshold:
-                            reuse_results = False
-                            break
+                # Update the re-usability (only check things that are still reusable)
+                for aSet in range(num_sets):
+                    if aSet != set_idx and aSet in reusable[set_idx][filter_idx]:
+                        other_thresh = filter_data["params"][len(filter_data["params"]) - 1] if len(filter_data["params"]) <= aSet else filter_data["params"][aSet]
 
-                    # Everything matches :) - skip the filtering and just copy the results
-                    if reuse_results:
-                        prev_results_path = os.path.join(set_folders[prev_set_num], aFilter + ".json")
-                        this_results_path = os.path.join(filter_folder, aFilter + ".json")
-                        dataset.filter(FilterResult.read_json(prev_results_path))
-                        shutil.copy(prev_results_path, this_results_path)
+                        # If the params don't match they are not re-usable going forward
+                        if filter_threshold != other_thresh:
+                            for i in range(filter_idx, len(filters)):
+                                if aSet in reusable[set_idx][i]:
+                                    reusable[set_idx][i].remove(aSet)   # Remove re-usability of aSet from this set
 
-                        log.info("Skipped {} (Re-use results found from set {}): {}\n".format(aFilter, prev_set_num, this_results_path))
-                        break
+                                if set_idx in reusable[aSet][i]:
+                                    reusable[aSet][i].remove(set_idx)   # Remove re-usability of this set by aSet
 
-                if not reuse_results:
+                if len(reusable[set_idx][filter_idx]) > 0:
+                    # A previously run filter is reusable!  Just copy the results
+                    prev_set_num = reusable[set_idx][filter_idx][0]
+                    prev_results_path = os.path.join(set_folders[prev_set_num], filter_data["name"] + ".json")
+                    this_results_path = os.path.join(filter_folder, filter_data["name"] + ".json")
+                    results = FilterResult.read_json(prev_results_path)
+                    dataset.filter(results)
+                    shutil.copy(prev_results_path, this_results_path)
+
+                    log.info("Skipped {} (Re-use results found from set {}): {}\n".format(filter_data["name"], prev_set_num, this_results_path))
+                    set_summary += ",{},{},{},{}\n".format(len(results.samples), len(results.snps), results.get_tot_silenced_calls(), results.get_tot_changed_calls())
+
+                else:
+
+                    # # Look at previous sets completed and if exaactly the same, just copy over the filter results.
+                    # for prev_set_num in range(set_idx):
+                    #     reuse_results = True
+                    #     for filter_name in [name for name in filter_order[:filter_idx + 1]]:
+                    #         this_filter_threshold = kwargs[filter_name][len(kwargs[filter_name]) - 1] if len(
+                    #             kwargs[filter_name]) <= set_idx else \
+                    #             kwargs[filter_name][set_idx]
+                    #
+                    #         # Get the previous sets params & pad to max num sets.
+                    #         prev_filter_threshold = kwargs[filter_name][len(kwargs[filter_name]) - 1] if len(
+                    #             kwargs[filter_name]) <= prev_set_num else \
+                    #             kwargs[filter_name][prev_set_num]
+                    #
+                    #         if this_filter_threshold != prev_filter_threshold:
+                    #             reuse_results = False
+                    #             break
+                    #
+                    #     # Everything matches :) - skip the filtering and just copy the results
+                    #     if reuse_results:
+                    #         prev_results_path = os.path.join(set_folders[prev_set_num], aFilter + ".json")
+                    #         this_results_path = os.path.join(filter_folder, aFilter + ".json")
+                    #         dataset.filter(FilterResult.read_json(prev_results_path))
+                    #         shutil.copy(prev_results_path, this_results_path)
+                    #
+                    #         log.info("Skipped {} (Re-use results found from set {}): {}\n".format(aFilter, prev_set_num,
+                    #                                                                               this_results_path))
+                    #         break
+                    #
+                    # if not reuse_results:
+
                     start = time.time()
-                    log.info("Running {} filtering".format(aFilter))
+                    log.info("Running {} filtering with {}".format(filter_data["name"], filter_threshold))
 
-                    # Get the params & pad to max num sets.
-                    filter_threshold = kwargs[aFilter][len(kwargs[aFilter]) - 1] if len(kwargs[aFilter]) <= idx else \
-                        kwargs[aFilter][idx]
-
-                    # Record this filter was run and with what params.
-                    # params_out.write(aFilter + ": " + str(filter_threshold) + "\n")
 
                     # Do the filtering
-                    results = PipelineOptions.filter_types[aFilter].filter(dataset, filter_threshold, unkown_args, **kwargs)
+                    results = PipelineOptions.filter_types[filter_data["name"]].filter(dataset, filter_threshold, unkown_args, **kwargs)
 
                     # Print filtering results to log & console
-                    results.log(aFilter, filter_threshold, dataset, params_out)
+                    results.log(filter_data["name"], filter_threshold, dataset, params_out)
 
                     # Dump the FilterResult to the datasets folder to allow for future dynamic output generation
-                    results_path = os.path.join(filter_folder, aFilter + ".json")
-                    log.info("Writing {} filter results to {}".format(aFilter, results_path))
+                    results_path = os.path.join(filter_folder, filter_data["name"] + ".json")
+                    log.info("Writing {} filter results to {}".format(filter_data["name"], results_path))
                     results.write_json(results_path)
 
                     # Record what was filtered in the dataset so silenced calls can be pulled out
                     # Note:  This doesn't actually modify the call data, just allows a filtered copy to be grabbed
                     dataset.filter(results)
 
-                    # Output data at all requested points.
-                    for output_type in PipelineOptions.output_types:
-                        if "outputs" in kwargs and aFilter in kwargs["outputs"] and output_type \
-                                in kwargs["outputs"][aFilter]:
-                            PipelineOptions.output_types[output_type].write(aFilter, filter_folder, kwargs["outputs"]["encoding"], dataset, unkown_args,
-                                                                            **kwargs)
+                    for output_type, encoding in filter_data["outputs"].items():
+                        PipelineOptions.output_types[output_type].write(filter_data["name"], filter_folder, encoding, dataset, unkown_args, **kwargs)
 
-                    log.info("Completed {} filter in: {}s\n".format(aFilter, time.time() - start))
+                    log.info("Completed {} filter in: {}s\n".format(filter_data["name"], time.time() - start))
+
+                    set_summary += ",{},{},{},{}\n".format(len(results.samples), len(results.snps), results.get_tot_silenced_calls(), results.get_tot_changed_calls())
 
             dataset.filtered.log("Final Results", None, dataset, params_out, True)
 
@@ -211,10 +253,19 @@ def filter(dataset, unkown_args: [], **kwargs):
             for output_type in PipelineOptions.output_types:
                 if "outputs" in kwargs and "final" in kwargs["outputs"] and output_type \
                         in kwargs["outputs"]["final"]:
-                    PipelineOptions.output_types[output_type].write("final", filter_folder, kwargs["outputs"]["encoding"], dataset, unkown_args,
+                    PipelineOptions.output_types[output_type].write("final", filter_folder,
+                                                                    kwargs["outputs"]["encoding"], dataset, unkown_args,
                                                                     **kwargs)
 
             params_out.flush()
+
+            set_summary += "TOTAL SILENCED,,{},{},{},{}\n".format(len(dataset.filtered.samples), len(dataset.filtered.snps), dataset.filtered.get_tot_silenced_calls(), dataset.filtered.get_tot_changed_calls())
+            set_summary += "TOTAL IN DATASET,,{},{},{},{}".format(len(dataset.samples), len(dataset.snps), len(dataset.samples) * len(dataset.snps), len(dataset.samples) * len(dataset.snps))
+
+            csv_file = os.path.join(filter_folder, "filter_summary.csv")
+            with open(csv_file, "w") as csv_out:
+                csv_out.write(set_summary)
+                csv_out.flush()
 
 
 def output(dataset, types: [str], set: str, filter: str, encoding: str, unknown_args: [], **kwargs):

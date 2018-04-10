@@ -19,10 +19,10 @@ class MinSNPDataFilter(Filter):
         return ["--sample_blacklist"]
 
     def get_cmd_help(self) -> str:
-        return "Remove samples before filtering - Pattern: [[sample_id, sample_id, ...], ...]"
+        return "Remove samples - Pattern: [[sample_id, sample_id, ...], ...]"
 
     def get_description(self) -> str:
-        return "Remove list of samples before filtering"
+        return "Remove list of samples"
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

@@ -18,7 +18,7 @@ class SNPMetricFilter(PipelineOptions.Filter):
 
     def get_cmd_help(self) -> str:
         return "Filter based on a quality metric provided in the data (dataset.all_headers).  " \
-               "Pattern: [<col_name><comparison><value>] such as [RepAvg>0.2,RepAvg>0.3].  " \
+               "Pattern: [<col_name><comparison><value>] such as [RepAvg>0.8,RepAvg>0.9].  " \
                "Comparisons includ <, > and ="
 
     def get_description(self) -> str:
@@ -26,7 +26,7 @@ class SNPMetricFilter(PipelineOptions.Filter):
 
     def get_cmd_type(self):
         return lambda s: [(re.split(r'[<=>]', item)[0], re.findall(r'[<=>]', item)[0], float(re.split(r'[<=>]', item)[1]))
-                          if len(item.strip()) > 0 else None for item in re.sub(r'(^[(\[]{2})|([)\]]{2}$)', r"\1", s).split(',')]
+                          if len(item.strip()) > 0 else None for item in re.sub(r'(^[(\[]{2})|([)\]]{2}$)', "", s).split(',')]
 
     def get_order(self) -> int:
         return 5
