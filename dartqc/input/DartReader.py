@@ -207,7 +207,7 @@ class DartInput(Input):
                 break
 
         mapping_files = [file for idx, file in enumerate(files) if
-                         idx > 0 and os.path.basename(file).startswith(os.path.basename(files[idx - 1])[0:files[idx - 1].rfind(".")])]
+                         idx > 0 and os.path.basename(file).startswith(os.path.basename(files[idx - 1])[0:os.path.basename(files[idx - 1]).rfind(".")])]
         data_files = [file for file in files if file not in mapping_files and (pops_file is None or file != pops_file)]
 
         if len(data_files) != 2 and not silent:
@@ -532,7 +532,7 @@ class DartMapping:
         "sequence_column": [
             "AlleleSequence"
         ],
-        "rep_avg_column": [
+        "replication_column": [
             "RepAvg"
         ],
         "snp_column": [
