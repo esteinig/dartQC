@@ -160,7 +160,7 @@ def main():
             else:
                 filter_found = arg == "filter"
 
-    Pipeline.filter(dataset, filter_data, unknown_args, **args)
+        Pipeline.filter(dataset, filter_data, unknown_args, **args)
 
     if args["subparser"] == "output":
         Pipeline.output(dataset, unknown_args=unknown_args, **args)

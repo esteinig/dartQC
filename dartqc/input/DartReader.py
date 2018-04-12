@@ -179,7 +179,7 @@ class DartInput(Input):
         collapsed_counts = DartInput._collapse_replicates(read_counts, replicates, snp_defs, sample_defs,
                                                           count_sample_names)
 
-        log.info("Extracting replicate counts (stored separately from dataset.read_counts)")
+        log.info("Identifying replicate counts")
 
         replicated_samples = [sample_id for sample_id, idxs in replicates.items() if len(idxs) > 1]
         replicate_counts = {

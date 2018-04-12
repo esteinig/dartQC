@@ -26,7 +26,7 @@ class SNPMetricFilter(PipelineOptions.Filter):
 
     def get_cmd_type(self):
         return lambda s: [(re.split(r'[<=>]', item)[0], re.findall(r'[<=>]', item)[0], float(re.split(r'[<=>]', item)[1]))
-                          if len(item.strip()) > 0 else None for item in re.sub(r'(^[(\[]{2})|([)\]]{2}$)', "", s).split(',')]
+                          if len(item.strip()) > 0 else None for item in re.sub(r'[)(\]\[]', "", s).split(',')]
 
     def get_order(self) -> int:
         return 5
