@@ -34,7 +34,7 @@ class MinSNPDataFilter(Filter):
         filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # Get calls as matrix & trim back to only first allele's call (much quicker processing)
-        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
         numpy_matrix = numpy_matrix[0]  # Only get first allele calls (if "-" -> missing)
