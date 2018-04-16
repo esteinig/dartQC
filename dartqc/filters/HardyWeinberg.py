@@ -33,7 +33,6 @@ class HWEFilter(Filter):
 
     def filter(self, dataset: Dataset, threshold: [str], unknown_args: [], **kwargs) -> FilterResult:
 
-        # TODO:  Update to work with pops as per MAF
         hwe_thresh = float(threshold[0])
 
         no_pops = True
@@ -48,15 +47,17 @@ class HWEFilter(Filter):
             for pop in threshold[2:]:
                 ignored_pops.append(pop)
 
-        ignored_snps = numpy.asarray([True if snp_def.allele_id in dataset.filtered.snps else False
-                                      for idx, snp_def in enumerate(dataset.snps)])
+        # ignored_snps = numpy.asarray([True if snp_def.allele_id in dataset.filtered.snps else False
+        #                               for idx, snp_def in enumerate(dataset.snps)])
 
         all_hwe_values = HWEFilter.calculate_hwe(dataset, not no_pops)
+
+        filtered_snps = [snp_def for snp_def in dataset.snps if snp_def.allele_id not in dataset.filtered.snps]
 
         log.info("HWE values calculated - filtering")
 
         silenced = FilterResult()
-        snp_pop_good_cnts = {snp.allele_id: 0 for snp in dataset.snps}
+        snp_pop_good_cnts = {snp.allele_id: 0 for snp in filtered_snps}
 
         # For all populations, how many exceed the required MAF threshold
         for pop_name, pop_hwe in all_hwe_values.items():
@@ -65,16 +66,16 @@ class HWEFilter(Filter):
                     snp_pop_good_cnts[allele_id] += 1 if hwe_val > hwe_thresh else 0
 
         # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
-                continue
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             if req_success_pops is None or snp_pop_good_cnts[snp_def.allele_id] < req_success_pops:
                 silenced.silenced_snp(snp_def.allele_id)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return silenced
 
@@ -88,25 +89,24 @@ class HWEFilter(Filter):
 
         log.info("Calculating HWE values")
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
-        pops = {"pop": list(range(len(dataset.samples)))}
+        pops = {"pop": list(range(len(filtered_samples)))}
         if use_pops:
-            pops = {k: v for k, v in dataset.get_populations().items()}
+            pops = {k: v for k, v in dataset.get_populations(filtered_samples).items()}
 
         # Remove blacklisted populations (ignore these samples)
         for pop_name in pops:
             if pops_blackilst is not None and pop_name in pops_blackilst:
                 del pops[pop_name]
 
-        ignored_snps = numpy.asarray([True if snp_def.allele_id in dataset.filtered.snps else False
-                                      for idx, snp_def in enumerate(dataset.snps)])
+        # ignored_snps = []
 
         hwe_values = {pop: {} for pop in pops}
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
-                continue
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             for pop_name, pop_sample_idxs in pops.items():
                 pop_calls = filtered_calls[snp_def.allele_id][pop_sample_idxs]
@@ -150,7 +150,7 @@ class HWEFilter(Filter):
                             sum([hetero_test, major_test, minor_test]), 1)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return hwe_values
 

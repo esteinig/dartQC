@@ -33,27 +33,27 @@ class MinSampleDataFilter(Filter):
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
-        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.stack(numpy_matrix, axis=2)  # [SNPs][samples][calls] -> [SNPs][calls][samples]
         numpy_matrix = numpy.stack(numpy_matrix, axis=1)  # [SNPs][calls][samples] -> [calls][samples][SNPs]
         numpy_matrix = numpy_matrix[0]  # Only get first allele calls (if "-" -> missing)
 
-        ignored_samples = numpy.asarray([True if dataset.samples[idx] in dataset.filtered.samples else False
-                                         for idx in range(len(dataset.samples))])
+        # ignored_samples = numpy.asarray([True if filtered_samples[idx] in dataset.filtered.samples else False
+        #                                  for idx in range(len(dataset.samples))])
 
         for idx, sample_calls in enumerate(numpy_matrix):
-            if ignored_samples[idx]:
-                continue
+            # if ignored_samples[idx]:
+            #     continue
 
             # first_allele_calls = numpy.dstack(sample_calls)[0][0]  # Get just the first allele (if "-" => missing)
             missing_idxs = numpy.where(sample_calls == "-")[0]
-            missing = len(missing_idxs) / len(dataset.snps)
+            missing = len(missing_idxs) / len(filtered_snps)
 
-            if (1 - missing) < threshold:
-                silenced.silenced_sample(dataset.samples[idx].id)
+            if (1 - missing) <= threshold:
+                silenced.silenced_sample(filtered_samples[idx].id)
 
             if idx % 1000 == 0:
                 log.debug("Completed {} of {}".format(idx, len(numpy_matrix)))

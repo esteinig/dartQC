@@ -34,16 +34,16 @@ class HetCompFilter(Filter):
         min_ratio = float(threshold[0])
         max_ratio = float(threshold[1])
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
-        ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-                                      for idx in range(len(dataset.snps))])
+        # ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
+        #                               for idx in range(len(filtered_snps))])
 
         # TODO: Convert to do maths across whole matrix
 
-        for snp_idx, snp_def in enumerate(dataset.snps):
-            if ignored_snps[snp_idx]:
-                continue
+        for snp_idx, snp_def in enumerate(filtered_snps):
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             allele_id = snp_def.allele_id
             snp_counts = dataset.read_counts[snp_def.allele_id]
@@ -56,11 +56,11 @@ class HetCompFilter(Filter):
             #                         else ratio if ratio < 1 else 1 / ratio for ratio in ratios])
             #
             # silence_idxs = numpy.where((ratios > min_ratio) & (ratios < max_ratio))[0].tolist()
-            # silenced.calls[allele_id] = [dataset.samples[idx].id for idx in silence_idxs]
+            # silenced.calls[allele_id] = [filtered_samples[idx].id for idx in silence_idxs]
             #
             # homo_idxs = numpy.where(ratios < min_ratio)[0].tolist()
             # homo_idxs = [idx for idx in homo_idxs if tuple(dataset.calls[allele_id][idx]) == Dataset.heterozygous]
-            # silenced.call_changes[allele_id] = {dataset.samples[idx].id: Dataset.homozygous_major
+            # silenced.call_changes[allele_id] = {filtered_samples[idx].id: Dataset.homozygous_major
             #                                     if first_allele_cnts[idx] > second_allele_cnts[idx]
             #                                     else Dataset.homozygous_minor for idx in silence_idxs}
 
@@ -74,11 +74,11 @@ class HetCompFilter(Filter):
                 if (sample_read_count[0] == 0 or sample_read_count[1] == 0):
                     if filtered_calls[allele_id][idx][0] == "1" and filtered_calls[allele_id][idx][1] == "1":
                         if sample_read_count[0] == 0 and sample_read_count[1] == 0:
-                            silenced.calls[allele_id].append(dataset.samples[idx].id)
+                            silenced.calls[allele_id].append(filtered_samples[idx].id)
                         elif sample_read_count[0] > sample_read_count[1]:
-                            silenced.call_changes[allele_id][dataset.samples[idx].id] = Dataset.homozygous_minor
+                            silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_minor
                         else:
-                            silenced.call_changes[allele_id][dataset.samples[idx].id] = Dataset.homozygous_minor
+                            silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_minor
 
                     continue
 
@@ -94,11 +94,11 @@ class HetCompFilter(Filter):
                     if sample_read_count[0] > sample_read_count[1]:
                         homo_call = Dataset.homozygous_major
 
-                    silenced.add_call_change(allele_id, dataset.samples[idx].id, homo_call)
+                    silenced.add_call_change(allele_id, filtered_samples[idx].id, homo_call)
                 elif ratio > max_ratio \
                         and (filtered_calls[allele_id][idx][0] != "1" or filtered_calls[allele_id][idx][1] != "1"):
 
-                    rep_counts = dataset.replicate_counts[allele_id][dataset.replicates.index(dataset.samples[idx].id)]
+                    rep_counts = dataset.replicate_counts[allele_id][dataset.replicates.index(filtered_samples[idx].id)]
 
                     homo_replicate = False
                     for counts in rep_counts:
@@ -107,20 +107,20 @@ class HetCompFilter(Filter):
 
                     if not homo_replicate:
                         # Het
-                        silenced.add_call_change(allele_id, dataset.samples[idx].id, Dataset.heterozygous)
+                        silenced.add_call_change(allele_id, filtered_samples[idx].id, Dataset.heterozygous)
 
                         log.warning(
                             "Homozygous call converted to heterozygous (1,1) based on read count ratio of {:0.3f},"
                             " total counts: {:2d} & {:2d} replicate counts: {}  original call: {} - {}:{}"
                             .format(ratio, sample_read_count[0], sample_read_count[1],
                                     rep_counts, dataset.calls[allele_id][idx], allele_id,
-                                    dataset.samples[idx].id))
+                                    filtered_samples[idx].id))
                 else:
                     # Uncertain
-                    silenced.silenced_call(allele_id, dataset.samples[idx].id)
+                    silenced.silenced_call(allele_id, filtered_samples[idx].id)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return silenced
 

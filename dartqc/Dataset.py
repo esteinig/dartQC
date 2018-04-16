@@ -15,6 +15,8 @@ except ImportError:
 
 from dartqc.FilterResult import FilterResult
 
+import copy
+
 log = logging.getLogger(__file__)
 
 
@@ -147,65 +149,67 @@ class Dataset:
         start = time.time()
 
         # Get a copy of orig calls.
-        filtered_calls = numpy.copy(self.calls).tolist()
-        # filtered_snps = [snp_def for snp_def in self.snps]
-        # filtered_samples = [sample_def for sample_def in self.samples]
+        # filtered_calls = numpy.copy(self.calls).tolist()
+        filtered_calls = copy.deepcopy(self.calls)
+        filtered_snps = copy.copy(self.snps)
+        filtered_samples = copy.copy(self.samples)
 
         # Silence whole SNPs
         for allele_id in self.filtered.snps:
-            # snp_idx = None
-            #
-            # for idx, snp_def in enumerate(filtered_snps):
-            #     if snp_def.allele_id == allele_id:
-            #         snp_idx = idx
-            #         break
-            #
-            # if snp_idx is None:
-            #     log.error("Silenced SNP not found!")
-            #     continue
-            #
-            # numpy.delete(filtered_calls, snp_idx, 0)
-            # del filtered_snps[snp_idx]
+            snp_idx = None
+
+            for idx, snp_def in enumerate(filtered_snps):
+                if snp_def.allele_id == allele_id:
+                    snp_idx = idx
+                    break
+
+            if snp_idx is None:
+                log.error("Silenced SNP not found!")
+                continue
+
+            del filtered_calls[allele_id]
+            del filtered_snps[snp_idx]
 
             # Need to actually remove from dataset - otherwise it creates invalid missingness!
-            filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
+            # filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
 
         # Silenece whole samples
-        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
         for sample_id in self.filtered.samples:
-            # sample_idx = None
-            # for idx, aSample_id in filtered_samples:
-            #     if sample_id == aSample_id:
-            #         sample_idx = idx
-            #         break
-            #
-            # if sample_idx is None:
-            #     log.error("Silenced Sample not found!")
-            #     continue
-            #
-            # numpy.delete(filtered_calls, sample_idx, 1)
+            sample_idx = None
+            for idx, sample_def in enumerate(filtered_samples):
+                if sample_id == sample_def.id:
+                    sample_idx = idx
+                    break
+
+            if sample_idx is None:
+                log.error("Silenced Sample not found!")
+                continue
+
+            numpy.delete(filtered_calls, sample_idx, 1)
+            del filtered_samples[idx]
 
             # Delete the sample column entirely - otherwise it creates invalid missingness
-            for allele_id in filtered_calls:
-                filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+            # for allele_id in filtered_calls:
+            #     filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
 
         # Silence calls
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
         for allele_id, samples in self.filtered.calls.items():
             # Check that this SNP hasn't already been silenced
-            # if allele_id in filtered_snps:
-            for sample_id in samples:
-                # Check that this sample hasn't been silenced
-                # if sample_id in filtered_samples:
-                filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+            if allele_id in filtered_snps:
+                for sample_id in samples:
+                    # Check that this sample hasn't been silenced
+                    if sample_id in filtered_samples:
+                        filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
 
         # Change calls
         for allele_id, changes in self.filtered.call_changes.items():
             # Check that this SNP hasn't already been silenced
-            # if allele_id in filtered_snps:
-            for sample_id, new_val in changes.items():
+            if allele_id in filtered_snps:
+                for sample_id, new_val in changes.items():
                     # Check that this sample hasn't been silenced
-                    # if sample_id in filtered_samples:
-                filtered_calls[allele_id][sample_idxs[sample_id]] = new_val
+                    if sample_id in filtered_samples:
+                        filtered_calls[allele_id][sample_idxs[sample_id]] = new_val
 
         # filtered_calls = {}
         # for snp, calls in self.calls.items():
@@ -215,10 +219,48 @@ class Dataset:
         #             self.filtered.calls[snp]) else ("-", "-") for idx, call in enumerate(calls)])
         #     else:
         #         filtered_calls[snp] = numpy.asarray([["-", "-"] for sample in self.samples])
-        #
+
         log.info("Time to get filtered dataset: {:.1f}".format(time.time() - start))
 
-        return filtered_calls #, filtered_snps, filtered_samples
+        return filtered_calls, filtered_snps, filtered_samples
+
+
+    # def get_filtered_calls(self) -> {str: []}:
+    #     """
+    #     Return a copy of self.calls which have all set calls silenced
+    #     :param set_name: Name/idx of the parameter set to silence for
+    #     :return: Calls dict {snp: [calls]}
+    #     """
+    #
+    #     start = time.time()
+    #
+    #     # Get a copy of orig calls.
+    #     filtered_calls = numpy.copy(self.calls).tolist()
+    #
+    #     # Silence whole SNPs
+    #     for allele_id in self.filtered.snps:
+    #         filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
+    #
+    #     # Silenece whole samples
+    #     sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+    #     for sample_id in self.filtered.samples:
+    #         # Delete the sample column entirely - otherwise it creates invalid missingness
+    #         for allele_id in filtered_calls:
+    #             filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+    #
+    #     # Silence calls
+    #     for allele_id, samples in self.filtered.calls.items():
+    #         for sample_id in samples:
+    #             filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
+    #
+    #     # Change calls
+    #     for allele_id, changes in self.filtered.call_changes.items():
+    #         for sample_id, new_val in changes.items():
+    #             filtered_calls[allele_id][sample_idxs[sample_id]] = new_val
+    #
+    #     log.info("Time to get filtered dataset: {:.1f}".format(time.time() - start))
+    #
+    #     return filtered_calls #, filtered_snps, filtered_samples
 
     def is_snp_filtered(self, allele_id):
         return allele_id in self.filtered.snps
@@ -248,10 +290,13 @@ class Dataset:
 
         return sample_def
 
-    def get_populations(self):
+    def get_populations(self, samples=None):
         pops = {}
 
-        for idx, sample_def in enumerate(self.samples):
+        if samples is None:
+            samples = self.samples
+
+        for idx, sample_def in enumerate(samples):
             if sample_def.population not in pops:
                 pops[sample_def.population] = []
 

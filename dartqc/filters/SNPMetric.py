@@ -38,10 +38,9 @@ class SNPMetricFilter(PipelineOptions.Filter):
             if snp_def.allele_id in dataset.filtered.snps:
                 continue
 
-            if threshold[1] == ">" and float(snp_def.all_headers[threshold[0]]) < threshold[2]:
+            if threshold[1] == ">" and float(snp_def.all_headers[threshold[0]]) > threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)
-            elif threshold[1] == "<" and float(
-                    snp_def.all_headers[threshold[0]]) > threshold[2]:
+            elif threshold[1] == "<" and float(snp_def.all_headers[threshold[0]]) < threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)
             elif threshold[1] == "=" and float(snp_def.all_headers[threshold[0]]) != threshold[2]:
                 silenced.silenced_snp(snp_def.allele_id)
@@ -49,5 +48,6 @@ class SNPMetricFilter(PipelineOptions.Filter):
                 log.error("Invalid comparison type: {} only < = or > are supported".format(threshold[1]))
 
         return silenced
+
 
 SNPMetricFilter()

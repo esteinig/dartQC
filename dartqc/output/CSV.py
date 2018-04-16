@@ -23,10 +23,10 @@ class CSVOutput(Output):
 
         log.info("Outputting CSV")
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
-        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
         numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
@@ -34,7 +34,7 @@ class CSVOutput(Output):
         del filtered_calls
 
         # Convert from (0,1) type tuples to requested encoding
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             if encoding == "ACTG":
                 # Find the two possible letters for this SNP
                 snp_vals = snp_def.snp.split(":")[1].split(">")
@@ -80,12 +80,12 @@ class CSVOutput(Output):
 
 
         with open(file_path, "w") as file_out:
-            headers = [""] + [sample_def.id for sample_def in dataset.samples]
+            headers = [""] + [sample_def.id for sample_def in filtered_samples]
 
             writer = csv.writer(file_out, lineterminator='\n')
             writer.writerow(headers)
 
-            for idx, snp_def in enumerate(dataset.snps):
+            for idx, snp_def in enumerate(filtered_snps):
                 writer.writerow([snp_def.allele_id] + numpy_matrix[idx].tolist())
 
 

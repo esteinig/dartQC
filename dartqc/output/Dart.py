@@ -26,10 +26,14 @@ class CSVOutput(Output):
         if encoding is not None and encoding != "11":
             log.warning("Only the 11 encoding is supported for the Dart output type - {} ignored".format(encoding))
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
+
+        if len(filtered_calls) == 0:
+            log.info("All data has been silenced - nothing to output")
+            return
 
         # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
-        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
+        numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
         numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
@@ -39,13 +43,13 @@ class CSVOutput(Output):
         with open(file_path, "w") as file_out:
             writer = csv.writer(file_out, lineterminator='\n')
 
-            pops_row = [""] * len(dataset.snps[0].all_headers) + [sample_def.population for sample_def in dataset.samples]
-            samples_row = list(dataset.snps[0].all_headers.keys()) + [sample_def.id for sample_def in dataset.samples]
+            pops_row = [""] * len(filtered_snps[0].all_headers) + [sample_def.population for sample_def in filtered_samples]
+            samples_row = list(filtered_snps[0].all_headers.keys()) + [sample_def.id for sample_def in filtered_samples]
 
             writer.writerow(pops_row)
             writer.writerow(samples_row)
 
-            for snp_idx, snp_def in enumerate(dataset.snps):
+            for snp_idx, snp_def in enumerate(filtered_snps):
                 snp_headers = list(snp_def.all_headers.values())
 
                 writer.writerow(snp_headers + numpy_matrix[0][snp_idx].tolist())

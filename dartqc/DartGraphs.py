@@ -7,11 +7,115 @@
 # from matplotlib import patches
 # from matplotlib import colors
 #
-# import dartqc.SimpleException
-# from dartqc.DartModules import SNPModule
-# from dartqc.DartUtils import stamp
-#
 # GRAPH_IMG_TYPE = ".jpg"
+#
+#
+# class Graph:
+#     SCATTERPLOT = 0
+#     LINE_GRAPH = 1
+#     BAR_GRAPH = 2
+#
+#     sets = []
+#
+#     def __init__(self, title:str, graph_type: int, x_label: str=None, y_label: str=None, x_ticks: []=None, x_tick_labels: []=None,
+#                  y_ticks: []=None, y_tick_labels: []=None, width: int=15, height: int=9):
+#         self.tilte = title
+#
+#         self.x_label = x_label
+#         self.x_ticks = x_ticks
+#         self.x_tick_labels = x_tick_labels
+#
+#         self.y_label = y_label
+#         self.y_tick_labels = y_tick_labels
+#         self.y_ticks = y_ticks
+#
+#         self.graph_type = graph_type
+#
+#         self.width = width
+#         self.height = height
+#
+#     def add_set(self, x_data: [], y_data: [], legend: str=None, color=None):
+#         if color is None:
+#             color = random.choice(list(colors.get_named_colors_mapping().keys()))
+#
+#         if legend is None:
+#             legend = "Set {}".format(len(self.sets) + 1)
+#
+#         if y_data is None and self.graph_type == self.BAR_GRAPH:
+#             y_data = [i for i in range(len(x_data))]
+#
+#         self.sets.append(GraphSet(x_data, y_data, legend, color))
+#
+#     def to_file(self, file_path):
+#         fig, ax = pyplot.subplots()
+#         fig.set_size_inches(self.width, self.height)
+#
+#         legend_handles = []
+#
+#         for set_idx, set in enumerate(self.sets):
+#             if self.graph_type == self.SCATTERPLOT:
+#                 for idx, y_val in enumerate(set.y_data):
+#                     ax.scatter(set.x_data[idx], y_val, color=set.color)
+#             elif self.graph_type == self.BAR_GRAPH:
+#                 width = .8 / len(set.y_data)
+#
+#                 for idx, y_val in enumerate(set.y_data):
+#                     ax.bar(set.x_data[idx], y_val, width, color=set.color)
+#             else:
+#                 raise Exception("Invalid graph type: {}".format(self.graph_type))
+#
+#             patch = patches.Patch(color=set.color, label=set.legend)
+#             legend_handles.append(patch)
+#
+#         pyplot.legend(handles=legend_handles)
+#
+#         # Make the labels look nicer.
+#         ax.set_title(self.title, fontdict={'weight': 'bold', 'size': 'large'})
+#
+#         # X labels/ticks
+#         if self.x_label is not None:
+#             ax.set_xlabel(self.x_label, fontdict={'weight': 'bold'})
+#
+#         if self.x_ticks is not None:
+#             ax.set_xticks(self.x_ticks)
+#
+#         if self.x_tick_labels is not None:
+#             ax.set_xticklabels(self.x_tick_labels, fontdict={'style': 'italic'}, rotation=45)
+#
+#         # Make the x-axis labels align correctly
+#         for tick in ax.xaxis.get_majorticklabels():
+#             tick.set_horizontalalignment("right")
+#
+#         # Y labels/ticks
+#         if self.y_label is not None:
+#             ax.set_ylabel(self.y_label, fontdict={'weight': 'bold'})
+#
+#         if self.y_ticks is not None:
+#             ax.set_yticks(self.y_ticks)
+#
+#         if self.y_tick_labels is not None:
+#             ax.set_yticklabels(self.y_tick_labels, fontdict={'style': 'italic'})
+#
+#         # Save the graph to file
+#         pyplot.savefig(file_path, bbox_inches='tight', transparent=True)
+#
+#         pyplot.close(fig)
+#
+#
+# class GraphSet:
+#     legend = None
+#     color = None
+#
+#     x_data = []
+#     y_data = []
+#
+#     def __init__(self, x_data: [], y_data: [], legend: str = None, color: str=None):
+#             self.x_data = x_data
+#             self.y_data = y_data
+#             self.legend = legend
+#             self.color = color
+#
+#
 #
 # class DartGraphs:
 #
@@ -24,6 +128,7 @@
 #         DartGraphs.avg_reads_per_snp(read_data, os.path.join(output_dir, project + "_AvgReadsPerSNP" + GRAPH_IMG_TYPE), color='blue')
 #         DartGraphs.avg_rep_across_snp(data, os.path.join(output_dir, project + "_AvgRepAcrossSNP" + GRAPH_IMG_TYPE), color='blue')
 #         DartGraphs.het_across_snp(data, os.path.join(output_dir, project + "_HetAcrossSNP" + GRAPH_IMG_TYPE), color='blue')
+#
 #
 #     @staticmethod
 #     def create_plots(data, read_data, attrs, name, output_dir, project, color=None, legend=None):

@@ -73,8 +73,15 @@ class FilterResult:
         return sum([len(samples) for snp, samples in self.call_changes.items()])
 
     def log(self, filter: str, threshold: float, dataset, fp, incl_summary: bool = False) -> None:
+        if not incl_summary:
+            filtered_snps = [snp_def for snp_def in dataset.snps if snp_def.allele_id not in dataset.filtered.snps]
+            filtered_samples = [sample_def for sample_def in dataset.samples if sample_def.id not in dataset.filtered.samples]
+        else:
+            filtered_snps = dataset.snps
+            filtered_samples = dataset.samples
+
         tot_filtered_calls = sum([len(silenced_calls) for snp, silenced_calls in self.calls.items()])
-        tot_calls = len(dataset.samples) * len(dataset.snps)
+        tot_calls = len(filtered_samples) * len(filtered_snps)
 
         tot_changed_calls = sum([len(samples) for snp, samples in self.call_changes.items()])
 
@@ -85,13 +92,15 @@ class FilterResult:
                 Calls silenced:    {} Calls of {} ({:.1f}%) across {} SNPs
                 Calls changed:     {} Calls of {} ({:.1f}%) across {} SNPs
                 """.format(filter, "at " + str(threshold) if threshold is not None else "",
-                           len(self.samples), len(dataset.samples), len(self.samples) / len(dataset.samples) * 100.0,
-                           len(self.snps), len(dataset.snps), len(self.snps) / len(dataset.snps) * 100.0,
-                           tot_filtered_calls, tot_calls, tot_filtered_calls / tot_calls * 100.0, len(self.calls),
-                           tot_changed_calls, tot_calls,tot_changed_calls / tot_calls * 100.0, len(self.call_changes)))
+                           len(self.samples), len(filtered_samples), 0 if len(filtered_samples) == 0 else len(self.samples) / len(filtered_samples) * 100.0,
+                           len(self.snps), len(filtered_snps), 0 if len(filtered_snps) == 0 else len(self.snps) / len(filtered_snps) * 100.0,
+                           tot_filtered_calls, tot_calls, 0 if tot_calls == 0 else tot_filtered_calls / tot_calls * 100.0, len(self.calls),
+                           tot_changed_calls, tot_calls,0 if tot_calls == 0 else tot_changed_calls / tot_calls * 100.0, len(self.call_changes)))
 
         # log.debug("Test 1")
         if incl_summary:
+            tot_calls = len(dataset.snps) * len(dataset.samples)
+
             all_missing_idxs = numpy.asarray([dataset.calls[snp.allele_id] for snp in dataset.snps])
             all_missing_idxs = numpy.dstack(all_missing_idxs)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
             all_missing_idxs = numpy.dstack(all_missing_idxs)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
@@ -115,7 +124,7 @@ class FilterResult:
             sum_all_silenced_calls = 0
             # all_filtered_calls = {}
             for allele_id in self.snps:
-                # all_filtered_calls[allele_id] = [sample_def.id for sample_def in dataset.samples]
+                # all_filtered_calls[allele_id] = [sample_def.id for sample_def in filtered_samples]
                 sum_all_silenced_calls += num_samples - len(all_missing_idxs[snp_idx_map[allele_id]])
 
             # log.debug("Test 2")

@@ -51,13 +51,15 @@ class MAFFilter(Filter):
         # Calculate the MAF value for each SNP (using pops as per CMD args)
         all_maf = MAFFilter.calculate_maf(dataset, not no_pops, ignored_pops)
 
+        filtered_snps = [snp_def for snp_def in dataset.snps if snp_def.allele_id not in dataset.filtered.snps]
+
         log.info("MAF values calculated - filtering")
 
         silenced = FilterResult()
-        snp_pop_good_cnts = {snp.allele_id: 0 for snp in dataset.snps}
+        snp_pop_good_cnts = {snp.allele_id: 0 for snp in filtered_snps}
 
-        ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-                                      for idx in range(len(dataset.snps))])
+        # ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
+        #                               for idx in range(len(dataset.snps))])
 
         # For all populations, how many exceed the required MAF threshold
         for pop_name, pop_maf in all_maf.items():
@@ -66,17 +68,17 @@ class MAFFilter(Filter):
                     snp_pop_good_cnts[allele_id] += 1 if pop_maf[allele_id] > maf_thresh else 0
 
 
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
-                continue
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
             if req_success_pops is None or snp_pop_good_cnts[snp_def.allele_id] < req_success_pops:
                 silenced.silenced_snp(snp_def.allele_id)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return silenced
 
@@ -89,31 +91,27 @@ class MAFFilter(Filter):
 
         log.info("Calculating MAF values")
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # If not using populations, just add all samples as the default 'pop' population.
-        pops = {"pop": list(range(len(dataset.samples)))}
+        pops = {"pop": list(range(len(filtered_samples)))}
         if use_pops:
-            pops = {k: v for k, v in dataset.get_populations().items()}
+            pops = {k: v for k, v in dataset.get_populations(filtered_samples).items()}
 
         # Remove blacklisted populations (ignore these samples)
         for pop_name in pops:
             if pops_blackilst is not None and pop_name in pops_blackilst:
                 del pops[pop_name]
 
-        ignored_snps = []
-        if allele_list is None:
-            ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-                                          for idx in range(len(dataset.snps))])
-        else:
-            ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps
-                                          or dataset.snps[idx].allele_id not in allele_list else False
-                                          for idx in range(len(dataset.snps))])
+        ignored_snps = None
+        if allele_list is not None:
+            ignored_snps = numpy.asarray([True if filtered_snps[idx].allele_id not in allele_list else False
+                                          for idx in range(len(filtered_snps))])
 
         maf_values = {pop: {} for pop in pops}
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
+            if ignored_snps is not None and ignored_snps[snp_idx]:
                 continue
 
             for pop_name, pop_sample_idxs in pops.items():
@@ -125,7 +123,7 @@ class MAFFilter(Filter):
                 num_allele_1 = len(numpy.where(split_allele_calls[0] == "1")[0])
                 num_allele_2 = len(numpy.where(split_allele_calls[1] == "1")[0])
 
-                num_calls = len(pop_calls) - num_missing
+                num_calls = (len(pop_calls) - num_missing) * 2
 
                 if num_calls > 0:
                     freq_allele_one = num_allele_1 / num_calls
@@ -136,7 +134,7 @@ class MAFFilter(Filter):
                     maf_values[pop_name][snp_def.allele_id] = 0
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return maf_values
 

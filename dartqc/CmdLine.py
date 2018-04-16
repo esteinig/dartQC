@@ -65,7 +65,6 @@ class CmdLine:
             filter_parser.add_argument(*filter.get_cmd_names(), dest=filter_name,
                                        type=filter.get_cmd_type(), help=filter.get_cmd_help())
 
-
         filter_parser.add_argument("--output", "-o", default=None, type=str, required=False, dest="output",
                                    help="Specify an output type & encoding for the preceeding filter.  Pattern: output_type:encoding - eg. csv:11.  Each filter may have many outputs")
 
@@ -120,21 +119,16 @@ class CmdLine:
 
         filter_parser.set_defaults(subparser='filter')
 
-        output_parser = subparsers.add_parser("output",
-                                              help="Generate any output type after filtering has been run (eg. no need to re-filter if you just want extra outputs)")
+        output_parser = subparsers.add_parser("output", help="Generate any output type after filtering has been run (eg. no need to re-filter if you just want extra outputs)")
 
         output_parser.add_argument("--types", type=lambda s: [type for type in s.split(",")],
-                                     required=True, dest="types",
-                                     help="Output type(s) to generate")
+                                   required=True, dest="types",
+                                   help="Output type(s) to generate. Pattern: output_type:encoding - encoding is optional and defaults to ACTG")
 
         output_parser.add_argument("--set", type=str, default=None, dest="set",
-                                     help="Set or set folder (eg. 1 or Filter_1) - leave blank for unfiltered dataset")
+                                   help="Set or set folder (eg. 1 or Filter_1) - leave blank for unfiltered dataset")
 
-        output_parser.add_argument("--filter", type=str, default=None, dest="filter",
-                                     help="FilterResult to generate output data from - 'final' or leave blank for final results")
-
-        output_parser.add_argument("--encoding", type=str, default=None, dest="encoding",
-                                     help="Preferred output encoding: None/missing or 11 (--,11,01,10), 012 (-, 0, 1, 2), AB (--,AA,AB,BB), ACTG (--, AC, AA,CC for A>C SNP)")
+        output_parser.add_argument("--filter", type=str, default=None, dest="filter", help="FilterResult to generate output data from - 'final' or leave blank for final results")
 
         output_parser.set_defaults(subparser='output')
 

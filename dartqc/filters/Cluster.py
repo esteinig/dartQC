@@ -100,11 +100,10 @@ class ClusterFilter(Filter):
     def _run_cdhit(fasta_path, identity=0.95, word_size=5, description_length=0, out_path=None):
         """ Run CDHIT-EST for sequences, install with sudo apt install cd-hit on Ubuntu """
 
-        cdhit_path = None
-        with open(cdhit_config, "r") as settings:
-            cdhit_path = settings.readline()
-
-        assert cdhit_path is not None, "cdhit path isn't configured.  Configure by running install.py with --cdhit_path <path>"
+        cdhit_path = "cd-hit-est.exe"
+        if os.path.isfile(cdhit_config):
+            with open(cdhit_config, "r") as settings:
+                cdhit_path = settings.readline()
 
         if out_path.endswith(".clstr"):
             out_path = out_path[:-6]

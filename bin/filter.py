@@ -154,6 +154,7 @@ def main():
                     anOutput = arg.split(":")
 
                     current_filter["outputs"][anOutput[0]] = anOutput[1] if len(anOutput) > 1 else None
+                    needs_output = False
                 else:
                     # Something else was found - this is probably the end of the filters.
                     current_filter = None

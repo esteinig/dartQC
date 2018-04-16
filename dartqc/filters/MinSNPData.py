@@ -31,7 +31,7 @@ class MinSNPDataFilter(Filter):
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
 
-        filtered_calls = dataset.get_filtered_calls()
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # Get calls as matrix & trim back to only first allele's call (much quicker processing)
         numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in dataset.snps])
@@ -39,22 +39,22 @@ class MinSNPDataFilter(Filter):
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
         numpy_matrix = numpy_matrix[0]  # Only get first allele calls (if "-" -> missing)
 
-        ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-                                      for idx in range(len(dataset.snps))])
+        # ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
+        #                               for idx in range(len(dataset.snps))])
 
-        for snp_idx, snp_def in enumerate(dataset.snps):
+        for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
-                continue
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             # first_allele_calls = numpy.dstack(filtered_calls[snp_def.allele_id])[0][0]
             missing_idxs = numpy.where(numpy_matrix[snp_idx] == "-")[0]
-            perc_data = 1 - len(missing_idxs) / len(dataset.samples)
-            if perc_data < threshold:
+            perc_data = 1 - len(missing_idxs) / len(filtered_samples)
+            if perc_data <= threshold:
                 silenced.silenced_snp(snp_def.allele_id)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
         return silenced
 
