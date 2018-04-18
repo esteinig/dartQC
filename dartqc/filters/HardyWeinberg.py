@@ -3,7 +3,7 @@ import re
 import logging
 
 import numpy
-from scipy.stats import stats
+from scipy import stats
 
 from dartqc.Dataset import Dataset
 from dartqc.FilterResult import FilterResult
@@ -156,3 +156,6 @@ class HWEFilter(Filter):
 
 
 HWEFilter()
+
+if not stats.chisqprob:
+    stats.chisqprob = lambda chisq, df: stats.chi2.sf(chisq, df)
