@@ -96,9 +96,10 @@ class HWEFilter(Filter):
             pops = {k: v for k, v in dataset.get_populations(filtered_samples).items()}
 
         # Remove blacklisted populations (ignore these samples)
-        for pop_name in pops:
-            if pops_blackilst is not None and pop_name in pops_blackilst:
-                del pops[pop_name]
+        if pops_blackilst is not None:
+            for pop_name in pops_blackilst:
+                if pop_name in pops:
+                    del pops[pop_name]
 
         # ignored_snps = []
 

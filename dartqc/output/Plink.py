@@ -49,12 +49,14 @@ class PlinkOutput(Output):
                 # Find the two possible letters for this SNP
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
-                # Replace all 0's & 1's with ACTG's - missing stays same
+                # Replace all 0's & 1's with ACTG's - missing replaced with 0
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
 
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "-"), "0")
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "-"), "0")
             elif encoding == "012":
                 # Find indexes for 0's and 1's in first allele.
                 major = numpy.where(numpy_matrix[0][snp_idx] == "1")
@@ -75,11 +77,14 @@ class PlinkOutput(Output):
             elif encoding == "AB":
                 snp_vals = ["A", "B"]
 
-                # Replace all 0's & 1's with A's and B's - missing stays same
+                # Replace all 0's & 1's with A's and B's - replace missing with 0
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
+
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "-"), "0")
+                numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "-"), "0")
 
         if encoding == "012":
             # All data is only in the first allele - so grab it now and drop the second row
@@ -95,9 +100,9 @@ class PlinkOutput(Output):
 
         with open(ped_file, 'w') as ped_out:
             for idx, sample_def in enumerate(filtered_samples):
-                sample_details = [sample_def.population, sample_def.id, "0", "0", "0", "0"]
+                sample_details = [sample_def.population, sample_def.id, "0", "0", "0", "-9"]
 
-                ped_out.write("\t".join(sample_details + numpy_matrix[idx].tolist()) + "\n")
+                ped_out.write("\t".join(sample_details + numpy_matrix[idx].tolist()) + "\r\n")
                 ped_out.flush()
 
                 # MAP Formatting

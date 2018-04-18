@@ -74,7 +74,7 @@ class MAFFilter(Filter):
             #     continue
 
             # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
-            if req_success_pops is None or snp_pop_good_cnts[snp_def.allele_id] < req_success_pops:
+            if (no_pops and snp_pop_good_cnts[snp_def.allele_id] < 1) or (not no_pops and snp_pop_good_cnts[snp_def.allele_id] < req_success_pops):
                 silenced.silenced_snp(snp_def.allele_id)
 
             if snp_idx % 5000 == 0:
@@ -99,9 +99,10 @@ class MAFFilter(Filter):
             pops = {k: v for k, v in dataset.get_populations(filtered_samples).items()}
 
         # Remove blacklisted populations (ignore these samples)
-        for pop_name in pops:
-            if pops_blackilst is not None and pop_name in pops_blackilst:
-                del pops[pop_name]
+        if pops_blackilst is not None:
+            for pop_name in pops_blackilst:
+                if pop_name in pops:
+                    del pops[pop_name]
 
         ignored_snps = None
         if allele_list is not None:
