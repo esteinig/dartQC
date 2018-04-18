@@ -157,5 +157,5 @@ class HWEFilter(Filter):
 
 HWEFilter()
 
-if not stats.chisqprob:
+if not hasattr(stats, "chisqprob"):
     stats.chisqprob = lambda chisq, df: stats.chi2.sf(chisq, df)
