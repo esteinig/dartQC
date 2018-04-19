@@ -23,17 +23,17 @@ class PlinkOutput(Output):
         ped_file = file_path + '.ped'
         map_file = file_path + '.map'
 
+        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
+
         log.info("Writing MAP file")
 
         # Write .map file - seems like its just a listing of allele ID's?
-        map_data = [["0", snp_def, "0", "0"] for snp_def in dataset.snps]
+        map_data = [["0", snp_def, "0", "0"] for snp_def in filtered_snps]
         with open(map_file, 'w') as map_out:
             ped_writer = csv.writer(map_out, delimiter="\t")
             ped_writer.writerows(map_data)
 
         log.info("Writing PED file")
-
-        filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
 
         # Get calls as matrix - swap SNP/sample axes & trim back to only first allele's call (much quicker processing)
         numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])

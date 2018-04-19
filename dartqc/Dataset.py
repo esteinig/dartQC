@@ -197,21 +197,23 @@ class Dataset:
             #     filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
 
         # Silence calls
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(filtered_samples)}
+        snp_idxs = {snp_def.allele_id: idx for idx, snp_def in enumerate(filtered_snps)}
         for allele_id, samples in self.filtered.calls.items():
             # Check that this SNP hasn't already been silenced
-            if allele_id in filtered_snps:
+            if allele_id in snp_idxs:
                 for sample_id in samples:
                     # Check that this sample hasn't been silenced
-                    if sample_id in filtered_samples:
+                    if sample_id in sample_idxs:
                         filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
 
         # Change calls
         for allele_id, changes in self.filtered.call_changes.items():
             # Check that this SNP hasn't already been silenced
-            if allele_id in filtered_snps:
+            if allele_id in snp_idxs:
                 for sample_id, new_val in changes.items():
                     # Check that this sample hasn't been silenced
-                    if sample_id in filtered_samples:
+                    if sample_id in sample_idxs:
                         filtered_calls[allele_id][sample_idxs[sample_id]] = new_val
 
         # filtered_calls = {}
@@ -227,6 +229,53 @@ class Dataset:
 
         return filtered_calls, filtered_snps, filtered_samples
 
+    def get_filtered_counts(self) -> ():
+        filtered_read_counts = copy.deepcopy(self.read_counts)
+        filtered_snps = copy.copy(self.snps)
+        filtered_samples = copy.copy(self.samples)
+
+        for allele_id in self.filtered.snps:
+            snp_idx = None
+
+            for idx, snp_def in enumerate(filtered_snps):
+                if snp_def.allele_id == allele_id:
+                    snp_idx = idx
+                    break
+
+            if snp_idx is None:
+                log.error("Silenced SNP not found!")
+                continue
+
+            del filtered_read_counts[allele_id]
+            del filtered_snps[snp_idx]
+
+        # Silenece whole samples
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+        del_sample_idxs = []
+        for sample_id in self.filtered.samples:
+            sample_idx = sample_idxs[sample_id]
+
+            if sample_idx is None:
+                log.error("Silenced Sample not found!")
+                continue
+
+            del_sample_idxs.append(sample_idx)
+
+        for idx in sorted(del_sample_idxs, reverse=True):
+            del filtered_samples[idx]
+
+        # Delete samples from numpy (do at end with array for performance)
+        for allele_id, counts in filtered_read_counts.items():
+            filtered_read_counts[allele_id] = numpy.delete(counts, del_sample_idxs, 0)
+
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(filtered_samples)}
+        for allele_id, samples in self.filtered.calls.items():
+            if allele_id in filtered_read_counts:
+                for sample_id in samples:
+                    if sample_id in sample_idxs:
+                        filtered_read_counts[allele_id][sample_idxs[sample_id]] = (0, 0)
+
+        return filtered_read_counts, filtered_snps, filtered_samples
 
     # def get_filtered_calls(self) -> {str: []}:
     #     """

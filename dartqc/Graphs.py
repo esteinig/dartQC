@@ -138,10 +138,13 @@ class GraphTypes:
 
         biggest = ceil(biggest / mag) * mag
 
+        label_divisor = 1000000 if (mag / num_categories) >= 1000000 else 1000 if (mag / num_categories) >= 1000 else 1
+        label_unit = "M" if label_divisor == 1000000 else "k" if label_divisor == 1000 else ""
+
         categories = [round((x / (num_categories + 1)) * biggest) for x in range(1, num_categories + 1)]
         x_tick_labels = [("Less than " if idx == 0
-                          else str(round(categories[idx - 1])) + " to ") + str(round(num)) if idx < num_categories - 1
-                         else "Greater than " + str(round(categories[len(categories) - 2])) for idx, num in enumerate(categories)]
+                          else str(round(categories[idx - 1] / label_divisor)) + " to ") + str(round(num / label_divisor)) + label_unit if idx < num_categories - 1
+                         else "Greater than " + str(round(categories[len(categories) - 2] / label_divisor)) + label_unit for idx, num in enumerate(categories)]
 
         return categories, x_tick_labels, [i for i in range(len(categories))]
 
@@ -170,8 +173,8 @@ class GraphTypes:
         graph = Graph(
             title="Distribution of total read counts per individual",
             graph_type=Graph.BAR_GRAPH,
-            x_label="Number of individuals",
-            y_label="Total read count per individual"
+            y_label="Number of individuals",
+            x_label="Total read count per individual"
         )
 
         all_indiv_read_cnts = []
@@ -225,7 +228,7 @@ class GraphTypes:
                 continue
 
             set_counts = numpy.asarray([counts for allele_id, counts in set_counts.items()])
-            reads_per_snp = numpy.sum(set_counts, axis=(1, 2)) / 2.0
+            reads_per_snp = numpy.sum(set_counts, axis=(1, 2))  # / 2.0
             num_samples = numpy.shape(set_counts)[1]
             avg_reads_per_snp = (reads_per_snp / num_samples).tolist()
 
@@ -422,9 +425,9 @@ class GraphTypes:
                 num_calls = len(numpy.where(swapped_calls[0] != "-")[0])
                 allele_1_idxs = numpy.where(swapped_calls[0] == "1")[0]
                 allele_2_idxs = numpy.where(swapped_calls[1] == "1")[0]
-                homo_idxs = numpy.intersect1d(allele_1_idxs, allele_2_idxs)
+                het_idxs = numpy.intersect1d(allele_1_idxs, allele_2_idxs)
 
-                freq_hetz.append(len(homo_idxs) / num_calls)
+                freq_hetz.append(len(het_idxs) / num_calls)
 
             # freq_hetz = [float(snp_def.all_headers["FreqHomSnp"]) for snp_def in set_calls]
             set_y_data = GraphTypes._to_category_counts(freq_hetz, categories)
@@ -456,7 +459,7 @@ class GraphTypes:
                 continue
 
             counts = numpy.asarray([counts for allele_id, counts in read_counts[idx].items()])
-            reads_per_snp = (numpy.sum(counts, axis=(1, 2)) / 2.0).tolist()
+            reads_per_snp = (numpy.sum(counts, axis=(1, 2))).tolist() #/ 2.0
 
             # log.info("{} - {}".format(len(counts), len(reads_per_snp)))
 

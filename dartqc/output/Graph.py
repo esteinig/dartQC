@@ -30,9 +30,7 @@ class GraphOutput(Output):
 
         maf = MAFFilter.calculate_maf(dataset, False)["pop"]
 
-        filtered_read_counts = copy.deepcopy(dataset.read_counts)
-        for allele_id in dataset.filtered.snps:
-            del filtered_read_counts[allele_id]
+        filtered_read_counts = dataset.get_filtered_counts()[0]
 
         GraphTypes.read_counts_per_individ([filtered_read_counts], colors=["b"]).to_file(os.path.join(folder, filter_name +"_IndividReadCounts" + self.GRAPH_IMG_TYPE))
         GraphTypes.avg_reads_per_snp([filtered_read_counts], colors=["b"]).to_file(os.path.join(folder,filter_name + "_AvgReadsPerSNP" + self.GRAPH_IMG_TYPE))
