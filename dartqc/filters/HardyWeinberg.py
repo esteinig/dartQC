@@ -71,7 +71,7 @@ class HWEFilter(Filter):
             # if ignored_snps[snp_idx]:
             #     continue
 
-            if req_success_pops is None or snp_pop_good_cnts[snp_def.allele_id] < req_success_pops:
+            if (no_pops and snp_pop_good_cnts[snp_def.allele_id] < 1) or (not no_pops and snp_pop_good_cnts[snp_def.allele_id] < req_success_pops):
                 silenced.silenced_snp(snp_def.allele_id)
 
             if snp_idx % 5000 == 0:
