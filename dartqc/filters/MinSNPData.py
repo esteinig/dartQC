@@ -26,7 +26,7 @@ class MinSNPDataFilter(Filter):
         return "filter snps <= call rate of snp"
 
     def get_description(self) -> str:
-        return "filter snps <= call rate of snp (0 to 1 decimal -> bigger requires more data)"
+        return "filter snps missingness per snp (0 to 1 decimal -> bigger requires more data). Also called callrate"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

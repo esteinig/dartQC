@@ -174,26 +174,29 @@ class Dataset:
             # filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
 
         # Silenece whole samples
+        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+        del_sample_idxs = []
         for sample_id in self.filtered.samples:
-            sample_idx = None
-            for idx, sample_def in enumerate(filtered_samples):
-                if sample_id == sample_def.id:
-                    sample_idx = idx
-                    break
+            sample_idx = sample_idxs[sample_id]
 
             if sample_idx is None:
                 log.error("Silenced Sample not found!")
                 continue
 
-            numpy.delete(filtered_calls, sample_idx, 1)
+            del_sample_idxs.append(sample_idx)
+
+        for idx in sorted(del_sample_idxs, reverse=True):
             del filtered_samples[idx]
+
+        # Delete samples from numpy (do at end with array for performance)
+        for allele_id, calls in filtered_calls.items():
+            filtered_calls[allele_id] = numpy.delete(calls, del_sample_idxs, 0)
 
             # Delete the sample column entirely - otherwise it creates invalid missingness
             # for allele_id in filtered_calls:
             #     filtered_calls[allele_id][sample_idxs[sample_id]] = Dataset.missing
 
         # Silence calls
-        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
         for allele_id, samples in self.filtered.calls.items():
             # Check that this SNP hasn't already been silenced
             if allele_id in filtered_snps:

@@ -5,6 +5,7 @@ import re
 from dartqc.PipelineOptions import Filter
 from dartqc.Dataset import Dataset
 from dartqc.FilterResult import FilterResult
+import copy
 
 log = logging.getLogger(__file__)
 
@@ -48,6 +49,15 @@ class HetCompFilter(Filter):
             allele_id = snp_def.allele_id
             snp_counts = dataset.read_counts[snp_def.allele_id]
 
+            sample_idxs = {sample_def.id: idx for idx, sample_def in enumerate(filtered_samples)}
+            del_idxs = []
+            for idx, sample_def in enumerate(dataset.samples):
+                if sample_def.id not in sample_idxs:
+                    del_idxs.append(idx)
+
+            snp_counts = numpy.delete(snp_counts, del_idxs, 0)
+
+
             # first_allele_cnts = snp_counts[:, 0]
             # second_allele_cnts = snp_counts[:, 0]
             #
@@ -71,13 +81,22 @@ class HetCompFilter(Filter):
                     continue
 
                 # Shortcut for any with a 0 read count (must be homo) - this is common (+NaN) so prioritise speed.
-                if (sample_read_count[0] == 0 or sample_read_count[1] == 0):
+                if sample_read_count[0] == 0 or sample_read_count[1] == 0:
                     if filtered_calls[allele_id][idx][0] == "1" and filtered_calls[allele_id][idx][1] == "1":
                         if sample_read_count[0] == 0 and sample_read_count[1] == 0:
+                            if allele_id not in silenced.calls:
+                                silenced.calls[allele_id] = []
+
                             silenced.calls[allele_id].append(filtered_samples[idx].id)
                         elif sample_read_count[0] > sample_read_count[1]:
+                            if allele_id not in silenced.call_changes:
+                                silenced.call_changes[allele_id] = {}
+
                             silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_minor
                         else:
+                            if allele_id not in silenced.call_changes:
+                                silenced.call_changes[allele_id] = {}
+
                             silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_minor
 
                     continue
@@ -98,12 +117,14 @@ class HetCompFilter(Filter):
                 elif ratio > max_ratio \
                         and (filtered_calls[allele_id][idx][0] != "1" or filtered_calls[allele_id][idx][1] != "1"):
 
-                    rep_counts = dataset.replicate_counts[allele_id][dataset.replicates.index(filtered_samples[idx].id)]
-
                     homo_replicate = False
-                    for counts in rep_counts:
-                        if counts[0] == 0 or counts[1] == 0:
-                            homo_replicate = True
+                    rep_counts = sample_read_count
+                    if filtered_samples[idx].id in dataset.replicates:
+                        rep_counts = dataset.replicate_counts[allele_id][dataset.replicates.index(filtered_samples[idx].id)]
+
+                        for counts in rep_counts:
+                            if counts[0] == 0 or counts[1] == 0:
+                                homo_replicate = True
 
                     if not homo_replicate:
                         # Het

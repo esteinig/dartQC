@@ -28,7 +28,7 @@ class MinSampleDataFilter(Filter):
         return "filter samples > missingness per sample. Pattern: [.7,.8,.9]"
 
     def get_description(self):
-        return "filter samples > missingness per sample (0 to 1 decimal -> bigger requires more data)"
+        return "filter missingness per sample (0 to 1 decimal -> bigger requires more data).  Also called MinD/Min data"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

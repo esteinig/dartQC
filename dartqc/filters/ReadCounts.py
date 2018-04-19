@@ -26,7 +26,7 @@ class ReadCountsFilter(Filter):
         return "Silence call if read count is < given value"
 
     def get_description(self) -> str:
-        return "Silence call if read count is < given value (0 to inf where bigger requires better quality data)"
+        return "Silence call if read count is <= given value (1 to inf where bigger requires better quality data). Also called read depth"
 
     def filter(self, dataset: Dataset, threshold: float, unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()

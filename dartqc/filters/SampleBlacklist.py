@@ -28,7 +28,7 @@ class MinSNPDataFilter(Filter):
         silenced = FilterResult()
 
         for sample_id in threshold:
-            silenced.silenced_sample(sample_id)
+            silenced.silenced_sample(re.sub(r"['\"]", "", sample_id))
 
         return silenced
 

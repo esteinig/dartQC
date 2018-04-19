@@ -154,7 +154,6 @@ def filter(dataset, filters: [], unkown_args: [], **kwargs):
             # Do the filtering
             for filter_idx, filter_data in enumerate(filters):
                 if len(dataset.filtered.samples) == len(dataset.samples) or len(dataset.filtered.snps) == len(dataset.snps):
-                    # There is no data left!
                     log.info("All data has been silenced - skipping all further filters")
                     break
 
@@ -218,8 +217,11 @@ def filter(dataset, filters: [], unkown_args: [], **kwargs):
                     # Note:  This doesn't actually modify the call data, just allows a filtered copy to be grabbed
                     dataset.filter(results)
 
-                for output_type, encoding in filter_data["outputs"].items():
-                    PipelineOptions.output_types[output_type].write(filter_name, filter_folder, encoding, dataset, unkown_args, **kwargs)
+                if len(dataset.filtered.samples) == len(dataset.samples) or len(dataset.filtered.snps) == len(dataset.snps):
+                    log.info("All data has been silenced - skipping outputs")
+                else:
+                    for output_type, encoding in filter_data["outputs"].items():
+                        PipelineOptions.output_types[output_type].write(filter_name, filter_folder, encoding, dataset, unkown_args, **kwargs)
 
                 log.info("Completed {} filter in: {}s\n".format(filter_name, time.time() - start))
 
