@@ -100,7 +100,7 @@ class PlinkOutput(Output):
 
         with open(ped_file, 'w') as ped_out:
             for idx, sample_def in enumerate(filtered_samples):
-                sample_details = [sample_def.population, sample_def.id, "0", "0", "0", "-9"]
+                sample_details = [sample_def.population.replace(" ", "_"), sample_def.id.replace(" ", "_"), "0", "0", "0", "-9"]
 
                 ped_out.write("\t".join(sample_details + numpy_matrix[idx].tolist()) + "\r\n")
                 ped_out.flush()
