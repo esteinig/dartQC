@@ -14,7 +14,7 @@ class SNPMetricFilter(PipelineOptions.Filter):
         return "SNP Metric"
 
     def get_cmd_names(self):
-        return ["--metric", "--rep_average"]
+        return ["--metric"]
 
     def get_cmd_help(self) -> str:
         return "Filter based on a quality metric provided in the data (dataset.all_headers).  " \

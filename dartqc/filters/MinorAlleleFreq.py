@@ -132,7 +132,7 @@ class MAFFilter(Filter):
 
                     maf_values[pop_name][snp_def.allele_id] = min(freq_allele_one, freq_allele_two)
                 else:
-                    maf_values[pop_name][snp_def.allele_id] = 0
+                    maf_values[pop_name][snp_def.allele_id] = -.05
 
             if snp_idx % 5000 == 0:
                 log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))

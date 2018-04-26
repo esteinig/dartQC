@@ -3,7 +3,11 @@ import time
 from math import ceil
 
 import logging
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib
 import numpy
+import math
 import os
 from matplotlib import pyplot
 from matplotlib import patches
@@ -40,7 +44,7 @@ class Graph:
 
         self.sets = []
 
-    def add_set(self, x_data: [], y_data: [], legend: str = None, color=None):
+    def add_set(self, x_data: [], y_data: [], z_data: []=None, legend: str = None, color=None):
         if color is None:
             color = random.choice(list(colors.get_named_colors_mapping().keys()))
 
@@ -50,10 +54,15 @@ class Graph:
         if x_data is None and self.graph_type == self.BAR_GRAPH:
             x_data = [i for i in range(len(y_data))]
 
-        self.sets.append(GraphSet(x_data, y_data, legend, color))
+        self.sets.append(GraphSet(x_data, y_data, z_data, legend, color))
 
-    def to_file(self, file_path):
-        fig, ax = pyplot.subplots()
+    def to_file(self, file_path, is_3d: bool=False):
+        if not is_3d:
+            fig, ax = pyplot.subplots()
+        else:
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection='3d')
+
         fig.set_size_inches(self.width, self.height)
 
         legend_handles = []
@@ -61,7 +70,10 @@ class Graph:
         for set_idx, set in enumerate(self.sets):
             if self.graph_type == self.SCATTERPLOT:
                 # for idx, y_val in enumerate(set.y_data):
-                ax.scatter(set.x_data, set.y_data, .5, color=set.color)
+                if set.z_data is None:
+                    ax.scatter(set.x_data, set.y_data, .5, color=set.color)
+                else:
+                    ax.scatter(xs=set.x_data, ys=set.y_data, zs=set.z_data, color=set.color)
             elif self.graph_type == self.BAR_GRAPH:
                 full_width = .8
                 width = full_width / len(self.sets)
@@ -72,7 +84,8 @@ class Graph:
             else:
                 raise Exception("Invalid graph type: {}".format(self.graph_type))
 
-            patch = patches.Patch(color=set.color, label=set.legend)
+            legend_color = colors.to_rgb(set.color[0]) if isinstance(set.color, list) else set.color
+            patch = patches.Patch(color=legend_color, label=set.legend)
             legend_handles.append(patch)
 
         pyplot.legend(handles=legend_handles)
@@ -112,9 +125,10 @@ class Graph:
 
 
 class GraphSet:
-    def __init__(self, x_data: [], y_data: [], legend: str = None, color: str = None):
+    def __init__(self, x_data: [], y_data: [], z_data: []=None, legend: str = None, color: str = None):
         self.x_data = x_data
         self.y_data = y_data
+        self.z_data = z_data
         self.legend = legend
         self.color = color
 
@@ -202,7 +216,7 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
@@ -238,7 +252,7 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
@@ -284,7 +298,7 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
         return graph
 
     # (Graph 4) Distribution of call rates across individuals
@@ -330,7 +344,7 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
@@ -361,13 +375,13 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
     # (Graph 6) Distribution of average repeatability (repAvg) across SNPs
     @staticmethod
-    def avg_rep_across_snp(snp_defs: [[SNPDef]], colors: [] = None, legends: [] = None):
+    def avg_rep_across_snp(rep_avgs: [[{str: float}]], colors: [] = None, legends: [] = None):
         start = time.time()
 
         graph = Graph(
@@ -380,27 +394,22 @@ class GraphTypes:
         categories = [.9, .92, .94, .96, .98, .99, 1]
         graph.x_ticks = [i for i in range(len(categories))]
 
-        for idx, snp_defs in enumerate(snp_defs):
-            if len(snp_defs) == 0:
-                continue
+        for idx, avgs in enumerate(rep_avgs):
+            rep_avg_list = [value for value in avgs.values()]
 
-            # Get the repeatability averages
-            # TODO: Own calc of rep avg.
-            rep_avgs = [float(snp_def.rep_average) for snp_def in snp_defs]
-
-            set_y_data = GraphTypes._to_category_counts(rep_avgs, categories)
+            set_y_data = GraphTypes._to_category_counts(rep_avg_list, categories)
             graph.add_set(x_data=None,
                           y_data=set_y_data,
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
     # (Graph 7) Distribution of Heterozygosity across SNPs
     @staticmethod
-    def het_across_snp(calls: {str:numpy.array}, colors: [] = None, legends: [] = None):
+    def het_across_snp(calls: {str: numpy.array}, colors: [] = None, legends: [] = None):
         start = time.time()
 
         graph = Graph(
@@ -436,7 +445,7 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
@@ -459,7 +468,7 @@ class GraphTypes:
                 continue
 
             counts = numpy.asarray([counts for allele_id, counts in read_counts[idx].items()])
-            reads_per_snp = (numpy.sum(counts, axis=(1, 2))).tolist() #/ 2.0
+            reads_per_snp = (numpy.sum(counts, axis=(1, 2))).tolist()  # / 2.0
 
             # log.info("{} - {}".format(len(counts), len(reads_per_snp)))
 
@@ -471,13 +480,13 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
 
     # (Graph 9) Relationship between Call rate and MAF
     @staticmethod
-    def call_rate_to_maf(calls: [numpy.array], snp_maf, colors:[]=None, legends:[]=None):
+    def call_rate_to_maf(calls: [numpy.array], snp_maf, colors: [] = None, legends: [] = None):
         start = time.time()
 
         graph = Graph(
@@ -514,6 +523,95 @@ class GraphTypes:
                           legend=legends[idx] if legends is not None and len(legends) > idx else None,
                           color=colors[idx] if colors is not None and len(colors) > idx else None)
 
-        log.info(graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+        log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
 
         return graph
+
+    # (Graph 10) Hardy weinberg disequilibrium
+    @staticmethod
+    def maf_to_hwe(maf: [{}], hwe: [{}], read_counts: [{str: numpy.array}], colors: [] = None, legends: [] = None):
+        start = time.time()
+
+        graph = Graph(
+            title="Hardy Weinberg Disequilibrium (Identify over/under clustering)",
+            graph_type=Graph.SCATTERPLOT,
+            y_label="Hardy Weinberg Disequilibrium",
+            x_label="MAF",
+            x_tick_labels=["0", ".1", ".2", ".3", ".4", ".5"],
+            x_ticks=[0, .1, .2, .3, .4, .5]
+        )
+
+        for (idx, maf_values) in enumerate(maf):
+            if len(maf_values) == 0:
+                continue
+
+            # Find MAF for a SNP
+            graph_y_data = list(hwe[idx].values())
+            graph_x_data = list(maf_values.values())
+
+            base_color = "b" if colors is None or len(colors) < idx - 1 else colors[idx]
+            hex_color_str = matplotlib.colors.get_named_colors_mapping()[base_color]
+
+            read_depths = [numpy.mean(numpy.sum(counts, axis=1)) for counts in read_counts[idx].values()]
+            dot_colors = [__class__._blend_colors(matplotlib.colors.to_rgba_array(hex_color_str)[0], [.8, .8, .8, 1], math.log(depth) / math.log(250)) for depth in read_depths]
+
+            graph.add_set(x_data=graph_x_data,
+                          y_data=graph_y_data,
+                          legend=legends[idx] if legends is not None and len(legends) > idx else None,
+                          color=dot_colors)
+
+            log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+
+        return graph
+
+    #
+    # # (Graph 11) Read depth outliers
+    # @staticmethod
+    # def read_depth_outliers(read_counts: [numpy.array], colors: [] = None, legends: [] = None):
+    #     start = time.time()
+    #
+    #     graph = Graph(
+    #         title="Read Depth Outliers",
+    #         graph_type=Graph.SCATTERPLOT,
+    #         y_label="Read Counts",
+    #         x_label="Mean Read Counts",
+    #     )
+    #
+    #     for (idx, set_counts) in enumerate(read_counts):
+    #         if len(set_counts) == 0:
+    #             continue
+    #
+    #         single_counts = numpy.sum([counts for counts in set_counts.values()], axis=2)
+    #
+    #         snp_mean = numpy.mean(single_counts, axis=1)
+    #
+    #
+    #         all_counts = []
+    #         all_std_dev = []
+    #         all_mean = []
+    #         for counts in single_counts:
+    #             all_counts.extend(counts)
+    #             all_std_dev.extend([numpy.std(counts) for val in counts])
+    #             all_mean.extend([numpy.mean(counts) for val in counts])
+    #
+    #         graph.add_set(x_data=all_mean,
+    #                       y_data=all_counts,
+    #                       legend=legends[idx] if legends is not None and len(legends) > idx else None,
+    #                       color=colors[idx] if colors is not None and len(colors) > idx else None)
+    #
+    #     log.info("Graphed " + graph.title + ": " + str(round((time.time() - start), 2)) + "s")
+    #
+    #     return graph
+
+    @staticmethod
+    def _blend_colors(color_1: [], color_2: [], blend: float) -> [float]:
+        blended = [
+            color_1[0] * blend + color_2[0] * 1 - blend,
+            color_1[1] * blend + color_2[1] * 1 - blend,
+            color_1[2] * blend + color_2[2] * 1 - blend,
+            color_1[3] * blend + color_2[3] * 1 - blend
+        ]
+
+        blended = [0 if val < 0 else 1 if val > 1 else val for val in blended]
+
+        return blended

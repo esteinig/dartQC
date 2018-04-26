@@ -86,7 +86,37 @@ class PlinkOutput(Output):
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "-"), "0")
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "-"), "0")
 
-        if encoding == "012":
+            elif encoding == "IUPAC":
+                # Find the two possible letters for this SNP
+                snp_vals = snp_def.snp.split(":")[1].split(">")
+
+                both_snps = snp_vals[0] + snp_vals[1]
+
+                het_val = "R" if both_snps == "AG" or both_snps == "GA" \
+                    else "Y" if both_snps == "CT" or both_snps == "TC" \
+                    else "S" if both_snps == "GC" or both_snps == "CG" \
+                    else "W" if both_snps == "AT" or both_snps == "TA" \
+                    else "K" if both_snps == "GT" or both_snps == "TG" \
+                    else "M" if both_snps == "AC" or both_snps == "CA" \
+                    else "???"
+
+                # Find indexes for 0's and 1's in first allele.
+                major = numpy.where(numpy_matrix[0][snp_idx] == "1")
+                minor = numpy.where(numpy_matrix[1][snp_idx] == "1")
+
+                # Identify het's as where the second allele has a 1 in the same location as the first allele
+                het = numpy.intersect1d(numpy.where(numpy_matrix[1][snp_idx] == "1"), major)
+
+                # Remove het's from major and minor homo's
+                major = numpy.setdiff1d(major, het, True)
+                minor = numpy.setdiff1d(minor, het, True)
+
+                # Replace the first allele values (-,0,1) with new encoding (-,0,1,2)
+                numpy.put(numpy_matrix[0][snp_idx], het, het_val)
+                numpy.put(numpy_matrix[0][snp_idx], minor, snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], major, snp_vals[0])
+
+        if encoding == "012" or encoding == "IUPAC":
             # All data is only in the first allele - so grab it now and drop the second row
             numpy_matrix = numpy_matrix[0]
         else:

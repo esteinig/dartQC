@@ -183,8 +183,7 @@ class DartInput(Input):
 
         replicated_samples = [sample_id for sample_id, idxs in replicates.items() if len(idxs) > 1]
         replicate_counts = {
-            allele_id: numpy.asarray(
-                [counts[replicates[sample_id]] for sample_id in replicated_samples if len(replicates[sample_id]) > 0])
+            allele_id: numpy.asarray([counts[replicates[sample_id]] for sample_id in replicated_samples if len(replicates[sample_id]) > 0])
             for allele_id, counts in read_counts.items()}
 
         log.info("Finished reading data - creating dataset")

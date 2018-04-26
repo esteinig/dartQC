@@ -59,7 +59,7 @@ class Dataset:
     data_cols = ["calls", "read_counts", "replicate_counts"]
 
     def __init__(self, type: str, working_dir: str, batch_id: str, snps: [SNPDef], samples: [SampleDef],
-                 calls: {}, read_counts: {}, replicates: [str], replicate_counts: {}):
+                 calls: {}, read_counts: {}, replicates: [str], replicate_counts: {str: [[]]}):
 
         self.type = type
 
@@ -137,7 +137,7 @@ class Dataset:
             else:
                 self.filtered.call_changes[snp] = changes
 
-        log.info("Time to add filters to dataset: {:.1f}".format(time.time() - start))
+        # log.info("Time to add filters to dataset: {:.1f}".format(time.time() - start))
 
     def get_filtered_calls(self) -> {str: []}:
         """
@@ -225,7 +225,7 @@ class Dataset:
         #     else:
         #         filtered_calls[snp] = numpy.asarray([["-", "-"] for sample in self.samples])
 
-        log.info("Time to get filtered dataset: {:.1f}".format(time.time() - start))
+        # log.info("Time to get filtered dataset: {:.1f}".format(time.time() - start))
 
         return filtered_calls, filtered_snps, filtered_samples
 
@@ -519,7 +519,7 @@ class Dataset:
         # for k, v in dict_val.items():
         #     setattr(dataset, k, v)
 
-        log.info("Time to load dataset from file: {}".format(time.time() - start_time))
+        # log.info("Time to load dataset from file: {:.2f}".format(time.time() - start_time))
 
         return dataset
 

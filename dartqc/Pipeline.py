@@ -223,7 +223,7 @@ def filter(dataset, filters: [], unkown_args: [], **kwargs):
                     for output_type, encoding in filter_data["outputs"].items():
                         PipelineOptions.output_types[output_type].write(filter_name, filter_folder, encoding, dataset, unkown_args, **kwargs)
 
-                log.info("Completed {} filter in: {}s\n".format(filter_name, time.time() - start))
+                log.info("Completed {} filter in: {:.2f}s\n".format(filter_name, time.time() - start))
 
                 set_summary += ",{},{},{},{}\n".format(len(results.samples), len(results.snps), results.get_tot_silenced_calls(), results.get_tot_changed_calls())
 

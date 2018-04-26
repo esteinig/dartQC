@@ -85,16 +85,16 @@ class FilterResult:
 
         tot_changed_calls = sum([len(samples) for snp, samples in self.call_changes.items()])
 
-        filter_msg = textwrap.dedent("""                Filter: {} {}
+        filter_msg = textwrap.dedent("""                Filter Results: {} at {}
                 ----------------------------------------------
-                Samples silenced:  {} of {} ({:.1f}%)
-                SNPs silenced:     {} of {} ({:.1f}%)
-                Calls silenced:    {} Calls of {} ({:.1f}%) across {} SNPs
+                Samples silenced:  {} of {} ({:.1f}%) => {}
+                SNPs silenced:     {} of {} ({:.1f}%) => {}
+                Calls silenced:    {} Calls of {} ({:.1f}%) across {} SNPs => {}
                 Calls changed:     {} Calls of {} ({:.1f}%) across {} SNPs
-                """.format(filter, "at " + str(threshold) if threshold is not None else "",
-                           len(self.samples), len(filtered_samples), 0 if len(filtered_samples) == 0 else len(self.samples) / len(filtered_samples) * 100.0,
-                           len(self.snps), len(filtered_snps), 0 if len(filtered_snps) == 0 else len(self.snps) / len(filtered_snps) * 100.0,
-                           tot_filtered_calls, tot_calls, 0 if tot_calls == 0 else tot_filtered_calls / tot_calls * 100.0, len(self.calls),
+                """.format(filter, str(threshold) if threshold is not None else "",
+                           len(self.samples), len(filtered_samples), 0 if len(filtered_samples) == 0 else len(self.samples) / len(filtered_samples) * 100.0, len(filtered_samples) - len(self.samples),
+                           len(self.snps), len(filtered_snps), 0 if len(filtered_snps) == 0 else len(self.snps) / len(filtered_snps) * 100.0, len(filtered_snps) - len(self.snps),
+                           tot_filtered_calls, tot_calls, 0 if tot_calls == 0 else tot_filtered_calls / tot_calls * 100.0, len(self.calls), tot_calls - tot_filtered_calls,
                            tot_changed_calls, tot_calls,0 if tot_calls == 0 else tot_changed_calls / tot_calls * 100.0, len(self.call_changes)))
 
         # log.debug("Test 1")
