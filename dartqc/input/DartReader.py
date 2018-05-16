@@ -29,7 +29,7 @@ class DartInput(Input):
                "JSON mapping files are used to map columns/rows. " \
                "Note: Its easiest to run first without the JSON mapping files to generate them - then fix any problems."
 
-    def read(self, working_dir: str, batch_id: str, files: [str], unknown_args: [] = None, **kwargs):
+    def read(self, working_dir: str, batch_id: str, files: [str], id_list: str = None, unknown_args: [] = None, **kwargs):
         # Dart reader takes potentially 4 files: calls, read counts & a json mapping for each
 
         # Work out which file is which based on file names
@@ -89,6 +89,22 @@ class DartInput(Input):
         call_snp_defs, call_sample_defs, calls = DartInput._read_double_row_file(calls_file, calls_mapping)
         count_snp_defs, count_sample_defs, read_counts = DartInput._read_double_row_file(counts_file, counts_mapping,
                                                                                          numeric=True)
+        # Rename clone ids for both read counts and calls files
+        if id_list is not None:
+            if not os.path.isabs(id_list):
+                id_list = os.path.join(working_dir, id_list)
+
+            official_ids = {}
+            with open(id_list, "r") as ids_file:
+                ids_file.readline()  # Skip the first line - headers
+
+                for row in ids_file:
+                    parts = re.split(r"[,;\t]", row.strip())
+
+                    official_ids[parts[1]] = parts[0][: parts[0].find("|")].strip() if "|" in parts[0] else parts[0].strip()
+
+            DartInput.rename_clone_ids(call_snp_defs, calls, official_ids)
+            DartInput.rename_clone_ids(count_snp_defs, read_counts, official_ids)
 
         log.info("Time to read files: {}\n".format(time.time() - start_time))
 
@@ -194,6 +210,32 @@ class DartInput(Input):
         # Create and return the dataset - this is the full representation of this genotype for both calls & read counts.
         return Dataset(self.get_name(), working_dir, batch_id, snp_defs, sample_defs, calls, collapsed_counts,
                        replicated_samples, replicate_counts)
+
+
+    @staticmethod
+    def rename_clone_ids(snps, data, official_ids: str):
+        """
+        Rename clone IDs using the reference sequence & SNP loc.
+
+        :return:
+        """
+        renamed = []
+        for snp_def in snps:
+            if snp_def.sequence_ref in official_ids:
+                if official_ids[snp_def.sequence_ref] in snp_def.allele_id:
+                    continue  # Already has the correct name!
+
+                old_allele_id = snp_def.allele_id
+                snp_def.allele_id = official_ids[snp_def.sequence_ref] + snp_def.allele_id[snp_def.allele_id.find("|"):]
+                snp_def.clone_id = official_ids[snp_def.sequence_ref]
+
+                data[snp_def.allele_id] = data[old_allele_id]
+                del data[old_allele_id]
+
+                renamed.append(old_allele_id + "->" + snp_def.allele_id)
+
+        log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
+
 
     @staticmethod
     def _identify_files(working_dir: str, files: [str], silent: bool = False) -> [str]:

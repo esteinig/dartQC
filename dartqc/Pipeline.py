@@ -20,7 +20,7 @@ PARAMS_FILE = "filter_params.txt"
 
 
 def read_data(working_dir: str, batch_id: str, type: str = "dart", files: [str] = None,
-              unknown_args: [] = None) -> Dataset:
+              id_list: str=None, unknown_args: [] = None) -> Dataset:
     """
     Read all files into the dataset structure & save to JSON
 
@@ -36,7 +36,7 @@ def read_data(working_dir: str, batch_id: str, type: str = "dart", files: [str] 
         sys.exit(1)
 
     log.info("Reading input files into dataset: {}".format(files))
-    dataset = PipelineOptions.input_types[type].read(working_dir, batch_id, files, unknown_args)
+    dataset = PipelineOptions.input_types[type].read(working_dir, batch_id, files, id_list, unknown_args)
 
     return dataset
 

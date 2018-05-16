@@ -46,6 +46,10 @@ class CmdLine:
         prepare_parser.add_argument("--files", "-f", type=lambda s: [p for p in s.split(",")],
                                     required=True, dest="files", help="path to input file(s)")
 
+        prepare_parser.add_argument("--id_list", "-i", default=None, type=str,
+                                     required=False, dest="id_list",
+                                     help="path to CSV file with list of official clone IDs that should be used (eg. to fix ID's that Dart outputs wrong)")
+
         prepare_parser.set_defaults(subparser='read')
 
         validate_parser = subparsers.add_parser("rename", help="Rename clone IDs based on exact sequence matched (may be used with read)")

@@ -45,7 +45,7 @@ class Input:
     def get_description(self) -> str:
         raise NotImplemented()
 
-    def read(self, working_dir: str, batch_id: str, files: [str], unknown_args: [] = None, **kwargs) -> Dataset:
+    def read(self, working_dir: str, batch_id: str, files: [str], id_list: str = None, unknown_args: [] = None, **kwargs) -> Dataset:
         raise NotImplemented()
 
 

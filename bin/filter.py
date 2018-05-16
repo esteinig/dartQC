@@ -106,7 +106,7 @@ def main():
     # Workflows
     dataset = None
     if args["subparser"] == "read":
-        dataset = Pipeline.read_data(working_dir, batch_id, args["type"], args["files"], unknown_args)
+        dataset = Pipeline.read_data(working_dir, batch_id, args["type"], args["files"], args["id_list"], unknown_args)
 
     # Load the dataset from json file (must have been read in already)
     dataset_path = os.path.join(working_dir, batch_id + ".npy")
