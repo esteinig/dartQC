@@ -436,7 +436,8 @@ class GraphTypes:
                 allele_2_idxs = numpy.where(swapped_calls[1] == "1")[0]
                 het_idxs = numpy.intersect1d(allele_1_idxs, allele_2_idxs)
 
-                freq_hetz.append(len(het_idxs) / num_calls)
+                if num_calls > 0:
+                    freq_hetz.append(len(het_idxs) / num_calls)
 
             # freq_hetz = [float(snp_def.all_headers["FreqHomSnp"]) for snp_def in set_calls]
             set_y_data = GraphTypes._to_category_counts(freq_hetz, categories)
