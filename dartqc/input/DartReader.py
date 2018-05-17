@@ -309,6 +309,9 @@ class DartInput(Input):
         if counts_mapping_file is not None and not os.path.isabs(counts_mapping_file):
             counts_mapping_file = os.path.join(working_dir, counts_mapping_file)
 
+        log.info("Identified files: Data: {} ({})  Read Counts: {} ({})  Pops: {}"
+                 .format(calls_file, calls_mapping_file, counts_file, counts_mapping_file, pops_file))
+
         return calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file
 
     @staticmethod
@@ -322,7 +325,9 @@ class DartInput(Input):
                 try:
                     sample_id, pop = re.split(r"[,\t;]", line.strip())
 
-                    sample_def = sample_defs[sample_idxs[sample_id.strip()]]
+                    sample_id = sample_id.strip()
+
+                    sample_def = None if sample_id not in sample_idxs else sample_defs[sample_idxs[sample_id]]
                     if sample_def is not None:
                         sample_def.population = pop
                     else:
@@ -330,7 +335,7 @@ class DartInput(Input):
 
                 except Exception as e:
                     log.warning(
-                        "Invalid populations row: {} - each row should contain: <sample_id>,<population>: {}".format(line, e))
+                        "Invalid populations row: {} - each row should contain: <sample_id>,<population>".format(line.strip()))
 
                 line = file.readline()
 
@@ -417,7 +422,7 @@ class DartInput(Input):
                 if row_index == mapping.sample_row:
                     sample_names = row[mapping.data_column:]
 
-                elif row_index == mapping.pop_row:
+                elif mapping.pop_row is not None and row_index == mapping.pop_row:
                     pops = row[mapping.data_column:]
 
                 # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
