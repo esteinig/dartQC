@@ -136,7 +136,7 @@ class HetCompFilter(Filter):
                             .format(ratio, sample_read_count[0], sample_read_count[1],
                                     rep_counts, dataset.calls[allele_id][idx], allele_id,
                                     filtered_samples[idx].id))
-                else:
+                elif ratio >= min_ratio and ratio <= max_ratio:
                     # Uncertain
                     silenced.silenced_call(allele_id, filtered_samples[idx].id)
 
