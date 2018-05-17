@@ -92,7 +92,7 @@ class HetCompFilter(Filter):
                             if allele_id not in silenced.call_changes:
                                 silenced.call_changes[allele_id] = {}
 
-                            silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_minor
+                            silenced.call_changes[allele_id][filtered_samples[idx].id] = Dataset.homozygous_major
                         else:
                             if allele_id not in silenced.call_changes:
                                 silenced.call_changes[allele_id] = {}
