@@ -63,7 +63,7 @@ class HWEFilter(Filter):
         for pop_name, pop_hwe in all_hwe_values.items():
             if pop_name not in ignored_pops:
                 for allele_id, hwe_val in pop_hwe.items():
-                    snp_pop_good_cnts[allele_id] += 1 if hwe_val > hwe_thresh else 0
+                    snp_pop_good_cnts[allele_id] += 1 if hwe_val is not None and hwe_val > hwe_thresh else 0
 
         # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
         for snp_idx, snp_def in enumerate(filtered_snps):
@@ -151,8 +151,8 @@ class HWEFilter(Filter):
                     chi_sq = major_test + hetero_test + minor_test
 
                     hwe_values[pop_name][snp_def.allele_id] = stats.chisqprob(chi_sq, 1)
-                    # else:
-                    #     hwe_values[pop_name][snp_def.allele_id] = -.1
+                else:
+                    hwe_values[pop_name][snp_def.allele_id] = None
 
             if snp_idx % 5000 == 0:
                 log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
@@ -213,6 +213,8 @@ class HWEFilter(Filter):
                     hwe_d = num_major_obs / num_calls - ((2 * num_major_obs + num_hetero) / (2 * num_calls)) ** 2
 
                     hwe_values[pop_name][snp_def.allele_id] = hwe_d
+                else:
+                    hwe_values[pop_name][snp_def.allele_id] = None
 
             if snp_idx % 5000 == 0:
                 log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))

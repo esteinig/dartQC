@@ -65,7 +65,7 @@ class MAFFilter(Filter):
         for pop_name, pop_maf in all_maf.items():
             if pop_name not in ignored_pops:
                 for allele_id in pop_maf.keys():
-                    snp_pop_good_cnts[allele_id] += 1 if pop_maf[allele_id] > maf_thresh else 0
+                    snp_pop_good_cnts[allele_id] += 1 if pop_maf[allele_id] is not None and pop_maf[allele_id] > maf_thresh else 0
 
 
         for snp_idx, snp_def in enumerate(filtered_snps):
@@ -132,7 +132,7 @@ class MAFFilter(Filter):
 
                     maf_values[pop_name][snp_def.allele_id] = min(freq_allele_one, freq_allele_two)
                 else:
-                    maf_values[pop_name][snp_def.allele_id] = -.05
+                    maf_values[pop_name][snp_def.allele_id] = None
 
             if snp_idx % 5000 == 0:
                 log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
