@@ -554,7 +554,7 @@ class GraphTypes:
             hex_color_str = matplotlib.colors.get_named_colors_mapping()[base_color]
 
             read_depths = [numpy.mean(numpy.sum(counts, axis=1)) for counts in read_counts[idx].values()]
-            dot_colors = [__class__._blend_colors(matplotlib.colors.to_rgba_array(hex_color_str)[0], [.8, .8, .8, 1], math.log(depth) / math.log(250)) for depth in read_depths]
+            dot_colors = [__class__._blend_colors(matplotlib.colors.to_rgba_array(hex_color_str)[0], [.8, .8, .8, 1], 0 if depth <= 0 else math.log(depth) / math.log(250)) for depth in read_depths]
 
             graph.add_set(x_data=graph_x_data,
                           y_data=graph_y_data,
