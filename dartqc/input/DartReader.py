@@ -243,7 +243,7 @@ class DartInput(Input):
         pops_file = None
 
         for file in files:
-            if file == "pops.csv" or file == "populations.csv":
+            if "pops.csv" in file or "populations.csv" in file:
                 pops_file = file
                 break
 
@@ -422,7 +422,7 @@ class DartInput(Input):
                 if row_index == mapping.sample_row:
                     sample_names = row[mapping.data_column:]
 
-                elif mapping.pop_row is not None and row_index == mapping.pop_row:
+                elif mapping.pop_row is not None and mapping.pop_row >= 0 and row_index == mapping.pop_row:
                     pops = row[mapping.data_column:]
 
                 # Get reduced data by unique allele ID in double Rows (K: Allele ID, V: Data)
