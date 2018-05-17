@@ -313,6 +313,8 @@ class DartInput(Input):
 
     @staticmethod
     def _read_pops_file(sample_defs: [SampleDef], pops_file: str) -> [SampleDef]:
+        sample_idxs = {sample_def.id: idx for idx, sample_def in enumerate(sample_defs)}
+
         with open(pops_file, "r") as file:
             line = file.readline()  # Ignore first line -> headers
             line = file.readline()
@@ -320,18 +322,15 @@ class DartInput(Input):
                 try:
                     sample_id, pop = re.split(r"[,\t;]", line.strip())
 
-                    found = False
-                    for sample_def in sample_defs:
-                        if sample_def.id == sample_id:
-                            sample_def.population = pop
-                            found = True
-
-                    if not found:
+                    sample_def = sample_defs[sample_idxs[sample_id.strip()]]
+                    if sample_def is not None:
+                        sample_def.population = pop
+                    else:
                         log.warning("Sample in pop file doesn't exist in dataset: " + sample_id)
 
                 except Exception as e:
                     log.warning(
-                        "Invalid populations row: {} - each row should contain: <sample_id>,<population>".format(line))
+                        "Invalid populations row: {} - each row should contain: <sample_id>,<population>: {}".format(line, e))
 
                 line = file.readline()
 

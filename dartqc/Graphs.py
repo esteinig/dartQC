@@ -169,7 +169,7 @@ class GraphTypes:
         for val in values:
             found = False
             for idx, num in enumerate(categories):
-                if val < num:
+                if val is not None and val < num:
                     results[idx] += 1
                     found = True
                     break
