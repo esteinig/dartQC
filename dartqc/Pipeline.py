@@ -80,7 +80,8 @@ def rename_clone_ids(dataset, official_ids: str):
 
             renamed.append(old_allele_id + "->" + snp_def.allele_id)
 
-    log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
+    log.info("Renamed {} SNPs: {}".format(len(renamed), renamed))
+    # log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
 
 
 def filter(dataset, filters: [], unkown_args: [], **kwargs):

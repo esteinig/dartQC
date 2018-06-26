@@ -65,7 +65,7 @@ class PlinkOutput(Output):
                 # Identify het's as where the second allele has a 1 in the same location as the first allele
                 het = numpy.intersect1d(numpy.where(numpy_matrix[1][snp_idx] == "1"), major)
 
-                # Remove het's from major and minor homo's
+                # Remove het's from major and minor homozygous's
                 major = numpy.setdiff1d(major, het, True)
                 minor = numpy.setdiff1d(minor, het, True)
 

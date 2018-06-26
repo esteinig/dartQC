@@ -18,11 +18,11 @@ class SNPMetricFilter(PipelineOptions.Filter):
 
     def get_cmd_help(self) -> str:
         return "Filter based on a quality metric provided in the data (dataset.all_headers).  " \
-               "Pattern: [<col_name><comparison><value>] such as [RepAvg>0.8,RepAvg>0.9].  " \
+               "Pattern: [<col_name><comparison><value>] such as [RepAvg<0.8,RepAvg<0.9].  " \
                "Comparisons includ <, > and ="
 
     def get_description(self) -> str:
-        return "Filter based on a quality metric provided in the data (make sure the header matches exactly!)"
+        return "Filter based on a quality metric provided in the data (make sure the header matches exactly!).  Eg. Remove SNP if value <,> or = threshold"
 
     def get_cmd_type(self):
         return lambda s: [(re.split(r'[<=>]', item)[0], re.findall(r'[<=>]', item)[0], float(re.split(r'[<=>]', item)[1]))
