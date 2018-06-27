@@ -100,10 +100,10 @@ class Dataset:
                 val_errs.append("Read counts missing SNP (miss-named?): " + snp.allele_id)
 
             if len(self.calls[snp.allele_id]) != len(self.samples):
-                val_errs.append("Call samples length incorrect for SNP: " + snp.allele_id)
+                val_errs.append("Call samples length incorrect for SNP: " + snp.allele_id + " - " + str(len(self.calls[snp.allele_id])) + " vs " + str(len(self.samples)))
 
             if len(self.read_counts[snp.allele_id]) != len(self.samples):
-                val_errs.append("Read count samples length incorrect for SNP: " + snp.allele_id)
+                val_errs.append("Read count samples length incorrect for SNP: " + snp.allele_id + " - " + str(len(self.read_counts[snp.allele_id])) + " vs " + str(len(self.samples)))
 
         if len(val_errs) > 0:
             log.error("Dataset read errors: \n{}\n\n".format("\n".join(val_errs)))
@@ -137,7 +137,7 @@ class Dataset:
             else:
                 self.filtered.call_changes[snp] = changes
 
-        # log.info("Time to add filters to dataset: {:.1f}".format(time.time() - start))
+                # log.info("Time to add filters to dataset: {:.1f}".format(time.time() - start))
 
     def get_filtered_calls(self) -> {str: []}:
         """

@@ -121,8 +121,11 @@ class DartInput(Input):
         counts_missing_snps = list(calls.keys() - read_counts.keys())
         call_missing_snps = list(read_counts.keys() - calls.keys())
 
-        counts_missing_samples = [sample for sample in call_sample_names if sample not in count_sample_names]
-        call_missing_samples = [sample for sample in count_sample_names if sample not in call_sample_names]
+        # counts_missing_samples = [sample for sample in call_sample_names if sample not in count_sample_names]
+        # call_missing_samples = [sample for sample in count_sample_names if sample not in call_sample_names]
+
+        counts_missing_samples = {idx: sample for idx, sample in enumerate(call_sample_names) if sample not in count_sample_names}
+        call_missing_samples = {idx: sample for idx, sample in enumerate(count_sample_names) if sample not in call_sample_names}
 
         log.info("Call vs Read Counts miss-match summary\n"
                  "{} SNPs in calls but not in counts: {}\n"
@@ -131,8 +134,8 @@ class DartInput(Input):
                  "{} Samples in counts but not in calls: {}\n".format(
             len(counts_missing_snps), counts_missing_snps,
             len(call_missing_snps), call_missing_snps,
-            len(counts_missing_samples), counts_missing_samples,
-            len(call_missing_samples), call_missing_samples))
+            len(counts_missing_samples), list(counts_missing_samples.values()),
+            len(call_missing_samples), list(call_missing_samples.values())))
 
         # Delete missing SNPs from call & read count data
         for snp in counts_missing_snps:
@@ -140,16 +143,12 @@ class DartInput(Input):
         for snp in call_missing_snps:
             del read_counts[snp]
 
-        # Delete missing samples from call & read count data
-        count_missing_sample_idxs = [idx for idx, sample_id in enumerate(count_sample_names) if
-                                     sample_id in counts_missing_samples]
+        # Delete missing samples from calls & read counts
         for allele_id in calls:
-            numpy.delete(calls[allele_id], count_missing_sample_idxs, axis=0)
+            calls[allele_id] = numpy.delete(calls[allele_id], list(counts_missing_samples.keys()), axis=0)
 
-        call_missing_sample_idxs = [idx for idx, sample_id in enumerate(call_sample_names) if
-                                    sample_id in call_missing_samples]
         for allele_id in calls:
-            numpy.delete(read_counts[allele_id], call_missing_sample_idxs, axis=0)
+            read_counts[allele_id] = numpy.delete(read_counts[allele_id], list(call_missing_samples.keys()), axis=0)
 
         # Get the union of SNP & sample definitions
         snp_defs = [snp for snp in call_snp_defs if snp.allele_id in read_counts.keys()]
@@ -163,13 +162,7 @@ class DartInput(Input):
             sys.exit(0)
 
         # Validate that all call values are one of: (-,-), (1,0), (0,1), (1,1)
-        invalid_call_values = []
-        # cmpl_count = 0
         for allele_id, snp_calls in calls.items():
-            # if cmpl_count % 500 == 0:
-            #     log.debug("Completed {} of {}".format(cmpl_count, len(calls)))
-            # cmpl_count += 1
-
             valid_values = ["-", "0", "1"]
             valid_calls = numpy.in1d(snp_calls, valid_values)
             if not numpy.all(valid_calls):
@@ -181,6 +174,9 @@ class DartInput(Input):
                     calls[allele_id][idx] = ["-", "-"]
 
         # Collapse read count replicates (calls are already collapsed) and make sure they calls and counts have same order
+        # update the count samples for identifying replicates.
+        count_sample_names = [sample for sample in count_sample_names if sample in call_sample_names]
+
         replicates = {}
         for idx, sample_id in enumerate(count_sample_names):
             if sample_id not in replicates:
