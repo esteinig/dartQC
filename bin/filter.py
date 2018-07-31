@@ -64,6 +64,8 @@ def main():
 
     args = vars(cmd_line.args)
     unknown_args = cmd_line.unknown
+    if unknown_args is None:
+        unknown_args = []
 
     if args["version"]:
         print("0.1.5")
@@ -106,7 +108,7 @@ def main():
     # Workflows
     dataset = None
     if args["subparser"] == "read":
-        dataset = Pipeline.read_data(working_dir, batch_id, args["type"], args["files"], args["id_list"], unknown_args)
+        dataset = Pipeline.read_data(working_dir, batch_id, args["type"], args["files"], args["id_list"], unknown_args=unknown_args)
 
     # Load the dataset from json file (must have been read in already)
     dataset_path = os.path.join(working_dir, batch_id + ".npy")

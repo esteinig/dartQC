@@ -36,7 +36,7 @@ def read_data(working_dir: str, batch_id: str, type: str = "dart", files: [str] 
         sys.exit(1)
 
     log.info("Reading input files into dataset: {}".format(files))
-    dataset = PipelineOptions.input_types[type].read(working_dir, batch_id, files, id_list, unknown_args)
+    dataset = PipelineOptions.input_types[type].read(working_dir, batch_id, files, id_list, unknown_args=unknown_args)
 
     return dataset
 

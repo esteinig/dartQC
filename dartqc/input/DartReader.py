@@ -32,9 +32,11 @@ class DartInput(Input):
     def read(self, working_dir: str, batch_id: str, files: [str], id_list: str = None, unknown_args: [] = None, **kwargs):
         # Dart reader takes potentially 4 files: calls, read counts & a json mapping for each
 
+        if unknown_args is None:
+            unknown_args = []
+
         # Work out which file is which based on file names
-        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(
-            working_dir, files, silent="--generate_mappings" in unknown_args)
+        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files, silent="--generate_mappings" in unknown_args)
 
         # Identify if this is excel instead of CSV (+get the sheet #)
         calls_excel_sheet = unknown_args[
@@ -207,7 +209,6 @@ class DartInput(Input):
         return Dataset(self.get_name(), working_dir, batch_id, snp_defs, sample_defs, calls, collapsed_counts,
                        replicated_samples, replicate_counts)
 
-
     @staticmethod
     def rename_clone_ids(snps, data, official_ids: str):
         """
@@ -231,7 +232,6 @@ class DartInput(Input):
                 renamed.append(old_allele_id + "->" + snp_def.allele_id)
 
         log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
-
 
     @staticmethod
     def _identify_files(working_dir: str, files: [str], silent: bool = False) -> [str]:
