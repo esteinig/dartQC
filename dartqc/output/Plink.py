@@ -28,7 +28,7 @@ class PlinkOutput(Output):
         log.info("Writing MAP file")
 
         # Write .map file - seems like its just a listing of allele ID's?
-        map_data = [["0", snp_def, "0", "0"] for snp_def in filtered_snps]
+        map_data = [["0", snp_def.allele_id, "0", "0"] for snp_def in filtered_snps]
         with open(map_file, 'w') as map_out:
             ped_writer = csv.writer(map_out, delimiter="\t")
             ped_writer.writerows(map_data)
@@ -39,7 +39,7 @@ class PlinkOutput(Output):
         numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
-        numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
+        # numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
 
         del filtered_calls
 

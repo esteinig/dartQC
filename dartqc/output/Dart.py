@@ -36,7 +36,7 @@ class CSVOutput(Output):
         numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
-        numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
+        # numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
 
         del filtered_calls
 
@@ -51,6 +51,9 @@ class CSVOutput(Output):
 
             for snp_idx, snp_def in enumerate(filtered_snps):
                 snp_headers = list(snp_def.all_headers.values())
+
+                snp_headers[list(snp_def.all_headers.keys()).index("AlleleID")] = snp_def.allele_id
+                snp_headers[list(snp_def.all_headers.keys()).index("CloneID")] = snp_def.clone_id
 
                 writer.writerow(snp_headers + numpy_matrix[0][snp_idx].tolist())
 

@@ -173,7 +173,7 @@ class Dataset:
             # Need to actually remove from dataset - otherwise it creates invalid missingness!
             # filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
 
-        # Silenece whole samples
+        # Silence whole samples
         sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
         del_sample_idxs = []
         for sample_id in self.filtered.samples:

@@ -59,6 +59,9 @@ def rename_clone_ids(dataset, official_ids: str):
 
             reference[parts[1]] = parts[0][: parts[0].find("|")].strip() if "|" in parts[0] else parts[0].strip()
 
+        if len(set(reference.values())) != len(reference.values()):
+            log.warning("Official ID list has duplicates in the sequence column (eg. same clone being renamed twice)!")
+
     renamed = []
     for snp_def in dataset.snps:
         if snp_def.sequence_ref in reference:

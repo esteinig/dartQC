@@ -29,7 +29,7 @@ class CSVOutput(Output):
         numpy_matrix = numpy.asarray([filtered_calls[snp.allele_id] for snp in filtered_snps])
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][samples][calls] -> [samples][calls][SNPs]
         numpy_matrix = numpy.dstack(numpy_matrix)  # [SNPs][calls][samples] -> [calls][SNPs][samples]
-        numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
+        # numpy_matrix = numpy_matrix  # Only get first allele calls (if "-" -> missing)
 
         del filtered_calls
 
