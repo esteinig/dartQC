@@ -257,15 +257,16 @@ class DartInput(Input):
         calls_file = None
         counts_file = None
 
-        # Identify which file is the calls/data and wich is the read counts based on file names
+        # Identify which file is the calls/data and which is the read counts based on file names
         for idx in reversed(range(len(data_files))):
             file = data_files[idx]
-            file_name = file[file.find("\\"):] if "\\" in file else file[file.find("/"):] if "/" in file else file
+            # file_name = file[file.find("\\"):] if "\\" in file else file[file.find("/"):] if "/" in file else file
+            file_name = os.path.basename(file)
 
-            if "data" in file_name or "call" in file_name:
+            if calls_file is None and "data" in file_name or "call" in file_name:
                 calls_file = file
                 data_files.remove(file)
-            elif "count" in file_name or "depth" in file_name:
+            elif counts_file is None and "count" in file_name or "depth" in file_name:
                 counts_file = file
                 data_files.remove(file)
 
