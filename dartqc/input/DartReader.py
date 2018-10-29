@@ -156,6 +156,13 @@ class DartInput(Input):
         snp_defs = [snp for snp in call_snp_defs if snp.allele_id in read_counts.keys()]
         sample_defs = [sample for sample in call_sample_defs if sample.id in count_sample_names]
 
+        # Add all headers from the read counts file as well (just for outputting dart data type)
+        for snp_def in snp_defs:
+            for a_count_def in count_snp_defs:
+                if a_count_def.allele_id == snp_def.allele_id:
+                    snp_def.counts_headers = a_count_def.all_headers
+                    break
+
         log.info("Data contains {} samples and {} SNPs and {} calls\n".format(len(sample_defs), len(snp_defs),
                                                                               len(sample_defs) * len(snp_defs)))
 
