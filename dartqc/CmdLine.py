@@ -44,7 +44,7 @@ class CmdLine:
                                                       "Use --print_providers for list of options")
 
         prepare_parser.add_argument("--files", "-f", type=lambda s: [p for p in s.split(",")],
-                                    required=True, dest="files", help="path to input file(s)")
+                                    required=True, dest="files", help="path to input file(s) - will guess which ones based on names having (data/call or count/depth in them)")
 
         prepare_parser.add_argument("--id_list", "-i", default=None, type=str,
                                      required=False, dest="id_list",

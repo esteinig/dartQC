@@ -36,7 +36,7 @@ class DartInput(Input):
             unknown_args = []
 
         # Work out which file is which based on file names
-        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files, silent="--generate_mappings" in unknown_args)
+        calls_file, counts_file, calls_mapping_file, counts_mapping_file, pops_file = DartInput._identify_files(working_dir, files, silent="--generate_mappings" in unknown_args, batch_id=batch_id)
 
         # Identify if this is excel instead of CSV (+get the sheet #)
         calls_excel_sheet = unknown_args[
@@ -89,8 +89,7 @@ class DartInput(Input):
 
         # Read the CSV files in
         call_snp_defs, call_sample_defs, calls = DartInput._read_double_row_file(calls_file, calls_mapping)
-        count_snp_defs, count_sample_defs, read_counts = DartInput._read_double_row_file(counts_file, counts_mapping,
-                                                                                         numeric=True)
+        count_snp_defs, count_sample_defs, read_counts = DartInput._read_double_row_file(counts_file, counts_mapping, numeric=True)
         # Rename clone ids for both read counts and calls files
         if id_list is not None:
             if not os.path.isabs(id_list):
@@ -241,7 +240,7 @@ class DartInput(Input):
         log.info("Renamed {} SNPs: {}".format(len(renamed), renamed[:300] + (["..."] if len(renamed) > 300 else [])))
 
     @staticmethod
-    def _identify_files(working_dir: str, files: [str], silent: bool = False) -> [str]:
+    def _identify_files(working_dir: str, files: [str], silent: bool = False, batch_id: str = None) -> [str]:
         files = sorted(files)
         pops_file = None
 
@@ -269,6 +268,7 @@ class DartInput(Input):
             file = data_files[idx]
             # file_name = file[file.find("\\"):] if "\\" in file else file[file.find("/"):] if "/" in file else file
             file_name = os.path.basename(file)
+            file_name = file_name.replace(batch_id, "")
 
             if calls_file is None and "data" in file_name or "call" in file_name:
                 calls_file = file
@@ -463,9 +463,9 @@ class DartInput(Input):
                                 try:
                                     # data_row_1 = [int(val) for val in row[mapping.data_column:]]
                                     data_row_1 = (numpy.asarray(row[mapping.data_column:], dtype=int))
-                                except:
+                                except Exception as err:
                                     data_row_1 = [0 for sample in sample_names]
-                                    log.error("Invalid data {}: {}".format(row_index, row[mapping.data_column:]))
+                                    log.error("Invalid data {} on row {}: {}".format(err, row_index, row[mapping.data_column:]))
                             else:
                                 data_row_1 = row[mapping.data_column:]
 
