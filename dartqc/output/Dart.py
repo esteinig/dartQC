@@ -86,7 +86,7 @@ class CSVOutput(Output):
             writer.writerow(samples_row)
 
             for snp_idx, snp_def in enumerate(filtered_snps):
-                headers = filtered_snps[0].counts_headers if hasattr(snp_def, "counts_headers")  else snp_def.all_headers
+                headers = snp_def.counts_headers if hasattr(snp_def, "counts_headers")  else snp_def.all_headers
 
                 snp_headers = list(headers.values())
 
