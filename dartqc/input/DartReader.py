@@ -138,29 +138,39 @@ class DartInput(Input):
             len(counts_missing_samples), list(counts_missing_samples.values()),
             len(call_missing_samples), list(call_missing_samples.values())))
 
+        log.info("Removing miss-matched SNPs...")
+
         # Delete missing SNPs from call & read count data
         for snp in counts_missing_snps:
             del calls[snp]
         for snp in call_missing_snps:
             del read_counts[snp]
 
+        log.info("Removing miss-matched samples...")
+
         # Delete missing samples from calls & read counts
         for allele_id in calls:
             calls[allele_id] = numpy.delete(calls[allele_id], list(counts_missing_samples.keys()), axis=0)
 
-        for allele_id in calls:
+        for allele_id in read_counts:
             read_counts[allele_id] = numpy.delete(read_counts[allele_id], list(call_missing_samples.keys()), axis=0)
+
+        log.info("Preparing SNP & sample definitions...")
 
         # Get the union of SNP & sample definitions
         snp_defs = [snp for snp in call_snp_defs if snp.allele_id in read_counts.keys()]
         sample_defs = [sample for sample in call_sample_defs if sample.id in count_sample_names]
 
+        log.info("Copying read count headers into SNP definitions...")
+
+        count_def_map = {snp_def.allele_id: snp_def for snp_def in count_snp_defs}
+
         # Add all headers from the read counts file as well (just for outputting dart data type)
         for snp_def in snp_defs:
-            for a_count_def in count_snp_defs:
-                if a_count_def.allele_id == snp_def.allele_id:
-                    snp_def.counts_headers = a_count_def.all_headers
-                    break
+            a_count_def = count_def_map[snp_def.allele_id]
+
+            if a_count_def is not None:
+                snp_def.counts_headers = a_count_def.all_headers
 
         log.info("Data contains {} samples and {} SNPs and {} calls\n".format(len(sample_defs), len(snp_defs),
                                                                               len(sample_defs) * len(snp_defs)))
