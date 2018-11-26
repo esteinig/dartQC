@@ -146,7 +146,7 @@ class DartInput(Input):
         for snp in call_missing_snps:
             del read_counts[snp]
 
-        log.info("Removing miss-matched samples...")
+        log.info("Removing miss-matched samples...") 
 
         # Delete missing samples from calls & read counts
         for allele_id in calls:
