@@ -191,6 +191,5 @@ class ClusterFilter(Filter):
 
         return removed_sequences, retained_sequences
 
-test = ClusterFilter()
-test._parse_cdhit("C:\\Users\\jc229483\\Desktop\\DartQC Test\\newscript_IdentityClusters_1.0.clstr")
+ClusterFilter()
 
