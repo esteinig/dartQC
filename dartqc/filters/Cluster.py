@@ -74,7 +74,7 @@ class ClusterFilter(Filter):
 
         ClusterFilter._write_fasta(dataset, fasta_path)
 
-        out_path = dataset.batch_id + "_IdentityClusters_" + str(identity) + ".clstr"
+        out_path = os.path.join(dataset.working_dir, dataset.batch_id + "_IdentityClusters_" + str(identity) + ".clstr")
         cluster_path = ClusterFilter._run_cdhit(fasta_path=fasta_path, identity=identity, word_size=word_size,
                                                 description_length=description_length, out_path=out_path)
 
@@ -149,6 +149,7 @@ class ClusterFilter(Filter):
                 else:
                     allele_id = ClusterFilter._find_between(row[1], ">", "...")
                     ids.append(allele_id)
+
                     # EOF
                     if row_index == nrows:
                         if len(ids) > 1:
@@ -188,6 +189,8 @@ class ClusterFilter(Filter):
             retained_sequences.append(best_sequence)
             removed_sequences += [member for member in allele_ids if member != best_sequence]
 
-        return retained_sequences, removed_sequences
+        return removed_sequences, retained_sequences
 
-ClusterFilter()
+test = ClusterFilter()
+test._parse_cdhit("C:\\Users\\jc229483\\Desktop\\DartQC Test\\newscript_IdentityClusters_1.0.clstr")
+
