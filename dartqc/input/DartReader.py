@@ -146,7 +146,7 @@ class DartInput(Input):
         for snp in call_missing_snps:
             del read_counts[snp]
 
-        log.info("Removing miss-matched samples...") 
+        log.info("Removing miss-matched samples...")
 
         # Delete missing samples from calls & read counts
         for allele_id in calls:
@@ -484,8 +484,8 @@ class DartInput(Input):
 
                             # Get the SNP code (eg. XX:C>A) and compare
                             # This checks that it isn't two clones of the same SNP
-                            snp_code_1 = snp_def.allele_id[snp_def.allele_id.rfind("-") + 1:]
-                            snp_code_2 = allele_id[allele_id.rfind("-") + 1:]
+                            snp_code_1 = snp_def.allele_id[snp_def.allele_id.rfind("-") + 1:] if "-" in snp_def.allele_id else snp_def.allele_id
+                            snp_code_2 = allele_id[allele_id.rfind("-") + 1:] if "-" in allele_id else allele_id
 
                             allele_clone_id_1 = snp_def.allele_id[: snp_def.allele_id.index("|")]
                             allele_clone_id_2 = allele_id[: allele_id.index("|")]
