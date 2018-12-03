@@ -504,7 +504,7 @@ class DartInput(Input):
                             snp_def.sequence = row[mapping.sequence_column]
 
                             snp_def.snp = snp_code_1
-                            if snp_def.snp not in snp_def.allele_id:
+                            if snp_def.snp is not None and snp_def.snp not in snp_def.allele_id:
                                 log.warning(
                                     "SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id,
                                                                                    row_index))

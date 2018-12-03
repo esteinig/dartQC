@@ -37,6 +37,10 @@ class CSVOutput(Output):
         for snp_idx, snp_def in enumerate(filtered_snps):
             if encoding == "ACTG":
                 # Find the two possible letters for this SNP
+                if snp_def.snp is None:
+                    log.error("ACTG encoding not possible -> Missing SNP def for SNP {}, the allele ID should have the SNP definition in it such as 1234|F|0--32:C>A".format(snp_def.allele_id))
+                    return
+
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
                 # Replace all 0's & 1's with ACTG's - missing stays same
@@ -73,6 +77,10 @@ class CSVOutput(Output):
 
             elif encoding == "IUPAC":
                 # Find the two possible letters for this SNP
+                if snp_def.snp is None:
+                    log.error("IUPAC encoding not possible -> Missing SNP def for SNP {}, the allele ID should have the SNP definition in it such as 1234|F|0--32:C>A".format(snp_def.allele_id))
+                    return
+
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
                 both_snps = snp_vals[0] + snp_vals[1]

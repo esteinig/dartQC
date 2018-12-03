@@ -46,6 +46,10 @@ class PlinkOutput(Output):
         # Convert from (0,1) type tuples to requested encoding
         for snp_idx, snp_def in enumerate(filtered_snps):
             if encoding == "ACTG":
+                if snp_def.snp is None:
+                    log.error("ACTG encoding not possible -> Missing SNP def for SNP {}, the allele ID should have the SNP definition in it such as 1234|F|0--32:C>A".format(snp_def.allele_id))
+                    return
+
                 # Find the two possible letters for this SNP
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
@@ -88,6 +92,10 @@ class PlinkOutput(Output):
 
             elif encoding == "IUPAC":
                 # Find the two possible letters for this SNP
+                if snp_def.snp is None:
+                    log.error("IUPAC encoding not possible -> Missing SNP def for SNP {}, the allele ID should have the SNP definition in it such as 1234|F|0--32:C>A".format(snp_def.allele_id))
+                    return
+
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
                 both_snps = snp_vals[0] + snp_vals[1]
