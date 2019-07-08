@@ -382,6 +382,7 @@ class Dataset:
         dataset_info = {
             "samples": [sample_def.id for sample_def in self.samples],
             "snps": [snp_def.allele_id for snp_def in self.snps],
+            "sequences": [snp_def.sequence for snp_def in self.snps],
             "pops": {sample_def.population: 0 for sample_def in self.samples}
         }
 

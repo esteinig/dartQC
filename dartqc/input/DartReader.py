@@ -555,8 +555,7 @@ class DartInput(Input):
 
             # Create the sample definitions
             if pops is not None and len(pops) != len(sample_names):
-                log.error(
-                    "Miss-matching sample names and populations - makes sure each sample has a pop and ID code set")
+                log.error("Miss-matching sample names and populations - makes sure each sample has a pop and ID code set")
                 was_error = True
 
             sample_defs = [SampleDef(sample_id, pops[idx] if pops is not None else "pop") for idx, sample_id in
