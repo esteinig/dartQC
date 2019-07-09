@@ -28,7 +28,7 @@ class SequenceWhitelistFilter(Filter):
         silenced = FilterResult()
 
         for snp_def in dataset.snps:
-            if snp_def.sequence not in whitelist and snp_def.allele_id not in dataset.filtered.snps:
+            if snp_def.ref_sequence not in whitelist and snp_def.allele_id not in dataset.filtered.snps:
                 silenced.silenced_snp(snp_def.allele_id)
 
         return silenced
