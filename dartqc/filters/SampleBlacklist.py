@@ -27,10 +27,18 @@ class SampleBlacklistFilter(Filter):
     def filter(self, dataset: Dataset, blacklist: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
 
-        for sample_def in dataset.samples:
-            if sample_def.id in blacklist and sample_def.id not in dataset.filtered.samples:
-                silenced.silenced_sample(re.sub(r"['\"]", "", sample_def.id))
+        sample_list = [sample_def.id for sample_def in dataset.samples if sample_def.id not in dataset.filtered.samples]
 
+        # Check if the blacklist is a file instead of a list of items.
+        if len(blacklist) == 1 and ("/" in blacklist[0] or "\\" in blacklist[0]):
+            file_path = blacklist[0]
+
+            with open(file_path, "r") as file:
+                blacklist = list(set(value.strip() for line in file.readlines() for value in line.split(",") if value.strip() in sample_list))
+        else:
+            blacklist = [sample for sample in blacklist if sample in sample_list]
+
+        silenced.samples = blacklist
         return silenced
 
 SampleBlacklistFilter()

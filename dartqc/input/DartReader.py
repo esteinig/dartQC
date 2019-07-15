@@ -81,8 +81,7 @@ class DartInput(Input):
             sys.exit(0)
 
         if len(files) < 2:
-            log.error(
-                "DaRT Reader requires at least 2 files: call data & read counts (you may/should also provide a json mapping file each as well)")
+            log.error("DaRT Reader requires at least 2 files: call data & read counts (you may/should also provide a json mapping file each as well)")
             sys.exit(1)
 
         start_time = time.time()
@@ -190,6 +189,40 @@ class DartInput(Input):
 
                 for idx in bad_idxs:
                     calls[allele_id][idx] = ["-", "-"]
+
+                count_sample_names = [sample for sample in count_sample_names if sample in call_sample_names]
+
+        # Check for replicate calls (shouldn't exist!)
+        call_replicates = {}
+        call_sample_names = [sample for sample in call_sample_names if sample in count_sample_names]
+        for idx, sample_id in enumerate(call_sample_names):
+            if sample_id not in call_replicates:
+                call_replicates[sample_id] = [idx]
+            else:
+                call_replicates[sample_id].append(idx)
+
+        num_call_replicates = sum([len(idxs) - 1 for sample_id, idxs in call_replicates.items()])
+        if num_call_replicates > 0:
+            log.warning("Call data has {} replicates!  Remove replicates and try again (replicates should only exist in the read counts file - if replicates are needed use unique sample IDs)"
+                      .format(num_call_replicates))
+
+            log.info("Replicates: " + ",".join([sample_id for sample_id, idxs in call_replicates.items() if len(idxs) > 1]))
+            sys.exit(1)
+
+
+            # # Attempt to collapse call replicates.
+            # for sample_id, idxs in {sample_id: idxs for sample_id, idxs in call_replicates.items() if len(idxs) > 1}.items():
+            #     for allele_id, snp_calls in calls.items():
+            #         call = snp_calls[idxs[0]]
+            #
+            #         if not all([snp_calls[idx][0] == call[0] and snp_calls[idx][1] == call[1] for idx in idxs]):
+            #             log.error("Not all replicates for " + sample_id + " match! (not all replicates checked yet)  Remove replicates and try again (replicates should only exist in the read counts file - if replicates are needed use unique sample IDs)")
+            #             # sys.exit(1)
+            #
+            #     log.info("All replicate calls match - collapsing")
+            #     calls = DartInput._collapse_replicates(calls, call_replicates, snp_defs, sample_defs, call_sample_names)
+
+
 
         # Collapse read count replicates (calls are already collapsed) and make sure they calls and counts have same order
         # update the count samples for identifying replicates.

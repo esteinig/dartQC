@@ -27,10 +27,18 @@ class SequenceWhitelistFilter(Filter):
     def filter(self, dataset: Dataset, whitelist: [str], unknown_args: [], **kwargs) -> FilterResult:
         silenced = FilterResult()
 
-        for snp_def in dataset.snps:
-            if snp_def.ref_sequence not in whitelist and snp_def.allele_id not in dataset.filtered.snps:
-                silenced.silenced_snp(snp_def.allele_id)
+        sequence_list = {snp_def.allele_id : snp_def.sequence_ref for snp_def in dataset.snps if snp_def.allele_id not in dataset.filtered.snps}
 
+        # Check if the whitelist is a file instead of a list of items.
+        if len(whitelist) == 1 and ("/" in whitelist[0] or "\\" in whitelist[0]):
+            file_path = whitelist[0]
+
+            with open(file_path, "r") as file:
+                whitelist = list(set(value.strip() for line in file.readlines() for value in line.split(",") if value.strip() in sequence_list.values()))
+        else:
+            whitelist = [ref_seq for ref_seq in whitelist if ref_seq in sequence_list.values()]
+
+        silenced.snps = [snp.allele_id for snp, seq in sequence_list.items() if seq not in whitelist]
         return silenced
 
 SequenceWhitelistFilter()
