@@ -38,7 +38,7 @@ class SequenceWhitelistFilter(Filter):
         else:
             whitelist = [ref_seq for ref_seq in whitelist if ref_seq in sequence_list.values()]
 
-        silenced.snps = [snp.allele_id for snp, seq in sequence_list.items() if seq not in whitelist]
+        silenced.snps = [snp for snp, seq in sequence_list.items() if seq not in whitelist]
         return silenced
 
 SequenceWhitelistFilter()

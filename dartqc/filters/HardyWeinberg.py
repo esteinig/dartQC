@@ -59,13 +59,13 @@ class HWEFilter(Filter):
         silenced = FilterResult()
         snp_pop_good_cnts = {snp.allele_id: 0 for snp in filtered_snps}
 
-        # For all populations, how many exceed the required MAF threshold
+        # For all populations, how many exceed the required HWE threshold
         for pop_name, pop_hwe in all_hwe_values.items():
             if pop_name not in ignored_pops:
                 for allele_id, hwe_val in pop_hwe.items():
                     snp_pop_good_cnts[allele_id] += 1 if hwe_val is not None and hwe_val > hwe_thresh else 0
 
-        # If less than required number of pops exceed the MAF threshold (threshold[0]) - silence the SNP
+        # If less than required number of pops exceed the HWE threshold (threshold[0]) - silence the SNP
         for snp_idx, snp_def in enumerate(filtered_snps):
             # Ignore filtered SNPs
             # if ignored_snps[snp_idx]:
