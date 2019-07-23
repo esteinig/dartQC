@@ -43,7 +43,7 @@ class CSVOutput(Output):
         with open(file_path, "w") as file_out:
             writer = csv.writer(file_out, lineterminator='\n')
 
-            pops_row = [""] * len(filtered_snps[0].all_headers) + [sample_def.population for sample_def in filtered_samples]
+            pops_row = ["*"] * len(filtered_snps[0].all_headers) + [sample_def.population for sample_def in filtered_samples]
             samples_row = list(filtered_snps[0].all_headers.keys()) + [sample_def.id for sample_def in filtered_samples]
 
             writer.writerow(pops_row)
@@ -81,6 +81,9 @@ class CSVOutput(Output):
             writer = csv.writer(file_out, lineterminator='\n')
 
             a_header = filtered_snps[0].counts_headers if hasattr(filtered_snps[0], "counts_headers") else filtered_snps[0].all_headers
+
+            # Add a row with * up to the first data column to mimic the dart format & so this output can be used as an input
+            writer.writerow(["*"] * len(a_header) + [""] * len(filtered_samples))
 
             samples_row = list(a_header.keys()) + [sample_def.id for sample_def in filtered_samples]
             writer.writerow(samples_row)

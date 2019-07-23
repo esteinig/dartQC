@@ -231,7 +231,13 @@ def filter(dataset, filters: [], unkown_args: [], **kwargs):
 
                 set_summary += ",{},{},{},{}\n".format(len(results.samples), len(results.snps), results.get_tot_silenced_calls(), results.get_tot_changed_calls())
 
-            dataset.filtered.log("Final Results", None, dataset, params_out, True)
+            if "no_stats" not in kwargs or not kwargs["no_stats"]:
+                log.info("All filtering complete - generating final statistics")
+                log.info("Note:  This can take a while in large datasets & can be disabled with the no_stats argument (there's a checkbox in the desktop app)")
+
+                dataset.filtered.log("Final Results", None, dataset, params_out, True)
+            else:
+                log.info("Skipped generating final statistics (--no_stats argument present)\n")
 
             # Write the final total filtering results to JSON (ie. everything silenced for this filtering set)
             results_path = os.path.join(filter_folder, "final.json")

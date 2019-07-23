@@ -35,23 +35,26 @@ class ReadCountsFilter(Filter):
         # numpy_matrix = numpy.sum(numpy_matrix, axis=2)
         # numpy_matrix = [numpy.where(row <= threshold)[0] for row in numpy_matrix]
 
-        ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-                                      for idx in range(len(dataset.snps))])
+        # ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
+        #                               for idx in range(len(dataset.snps))])
 
-        for snp_idx, snp_def in enumerate(dataset.snps):
-            # Ignore filtered SNPs
-            if ignored_snps[snp_idx]:
-                continue
+        filtered_read_counts, filtered_snps, filtered_samples = dataset.get_filtered_counts()
+        # filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
+
+        for snp_idx, snp_def in enumerate(filtered_snps):
+            # # Ignore filtered SNPs
+            # if ignored_snps[snp_idx]:
+            #     continue
 
             # Note: Using the commented numpy_matrix way may be slightly faster at expense of some memory
-            fail_idxs = numpy.sum(dataset.read_counts[snp_def.allele_id], axis=1)
+            fail_idxs = numpy.sum(filtered_read_counts[snp_def.allele_id], axis=1)
             fail_idxs = numpy.where(fail_idxs <= threshold)[0].tolist()
 
             # fail_idxs = numpy_matrix[snp_idx]
 
             # Silence the calls
             for idx in fail_idxs:
-                sample_id = dataset.samples[idx].id
+                sample_id = filtered_samples[idx].id
 
                 # if sample_id not in dataset.filtered.samples and snp_def.allele_id not in dataset.filtered.snps \
                 #     and (snp_def.allele_id not in dataset.filtered.calls or sample_id not in dataset.filtered.calls[snp_def.allele_id]) \
@@ -64,21 +67,23 @@ class ReadCountsFilter(Filter):
                     silenced.calls[snp_def.allele_id].append(sample_id)
 
             if snp_idx % 5000 == 0:
-                log.debug("Completed {} of {}".format(snp_idx, len(dataset.snps)))
+                log.debug("Completed {} of {}".format(snp_idx, len(filtered_snps)))
 
-        # Remove any that were already filtered previously
-        for allele_id in dataset.filtered.snps:
-            if allele_id in silenced.calls:
-                del silenced.calls[allele_id]
+        log.debug("Complete - recording silenced calls")
 
-        for sample_id in dataset.filtered.samples:
-            for allele_id, samples in silenced.calls.items():
-                if sample_id in samples:
-                    samples.remove(sample_id)
-
-        for allele_id, samples in dataset.filtered.calls:
-            if allele_id in silenced.calls:
-                silenced.calls[allele_id] = [sample_id for sample_id in silenced.calls[allele_id] if sample_id not in samples]
+        # # Remove any that were already filtered previously
+        # for allele_id in dataset.filtered.snps:
+        #     if allele_id in silenced.calls:
+        #         del silenced.calls[allele_id]
+        #
+        # for sample_id in dataset.filtered.samples:
+        #     for allele_id, samples in silenced.calls.items():
+        #         if sample_id in samples:
+        #             samples.remove(sample_id)
+        #
+        # for allele_id, samples in dataset.filtered.calls:
+        #     if allele_id in silenced.calls:
+        #         silenced.calls[allele_id] = [sample_id for sample_id in silenced.calls[allele_id] if sample_id not in samples]
 
         return silenced
 

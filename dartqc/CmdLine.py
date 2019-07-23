@@ -72,6 +72,9 @@ class CmdLine:
         filter_parser.add_argument("--output", "-o", default=None, type=str, required=False, dest="output",
                                    help="Specify an output type & encoding for the preceeding filter.  Pattern: output_type:encoding - eg. csv:11.  Each filter may have many outputs")
 
+        filter_parser.add_argument("--no_stats", action="store_true", dest="no_stats",
+                                   help="Don't generate final result statistics (this can take a while for a large dataset)")
+
         # # Input values must follow [<val>, <val>, ...] - missing values should be empty as in [,,,]
         # filter_parser.add_argument("--ignore_pops", "-i", default=False, dest="ignore_pops",
         #                            type=bool, help="Don't use populations (originally intended for use with MAF & HWE)")
