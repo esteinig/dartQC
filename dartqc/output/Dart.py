@@ -16,7 +16,7 @@ class CSVOutput(Output):
         return "dart"
 
     def get_description(self) -> str:
-        return "Output the calls in DArT format (2 rows per SNP SNP per row, 1 sample per column)"
+        return "Output the calls in DArT format (2 rows per SNP, 1 sample per column) - ready to use as input files"
 
     def write(self, filter_name: str, folder: str, encoding: str, dataset: Dataset, unknown_args: [], **kwargs) -> None:
         file_path = os.path.join(folder, filter_name + "_" + self.get_name() + ".csv")
