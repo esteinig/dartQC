@@ -203,11 +203,11 @@ class DartInput(Input):
 
         num_call_replicates = sum([len(idxs) - 1 for sample_id, idxs in call_replicates.items()])
         if num_call_replicates > 0:
-            log.warning("Call data has {} replicates!  Remove replicates and try again (replicates should only exist in the read counts file - if replicates are needed use unique sample IDs)"
+            log.warning("Call data has {} replicates! Replicates should only exist in the read counts file - if replicates are needed unique sample IDs should be used"
                       .format(num_call_replicates))
 
             log.info("Replicates: " + ",".join([sample_id for sample_id, idxs in call_replicates.items() if len(idxs) > 1]))
-            sys.exit(1)
+            # sys.exit(1)
 
 
             # # Attempt to collapse call replicates.
