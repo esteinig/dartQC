@@ -206,8 +206,9 @@ class DartInput(Input):
             log.warning("Call data has {} replicates! Replicates should only exist in the read counts file - if replicates are needed unique sample IDs should be used"
                       .format(num_call_replicates))
 
-            log.info("Replicates: " + ",".join([sample_id for sample_id, idxs in call_replicates.items() if len(idxs) > 1]))
+            log.warning("Replicates: " + ",".join([sample_id for sample_id, idxs in call_replicates.items() if len(idxs) > 1]))
             # sys.exit(1)
+            log.warning("If this isn't fixed only one of the duplicates will be used, selected at random")
 
 
             # # Attempt to collapse call replicates.

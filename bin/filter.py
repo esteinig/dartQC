@@ -56,6 +56,8 @@ from install import cdhit_config
 #
 # exit(0)
 
+VERSION = "V1 (21/10/2019)"
+
 
 def main():
     start = time.time()
@@ -104,6 +106,7 @@ def main():
     log.info("Filtering started at " + datetime.date.strftime(datetime.date.today(), "%d/%m/%y")
              + "\nArgs: " + str(sys.argv) + "\n"
              + "Unknown args: " + str(unknown_args) + "\n")
+    log.info("Version " + VERSION)
 
     # Workflows
     dataset = None

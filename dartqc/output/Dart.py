@@ -23,7 +23,7 @@ class CSVOutput(Output):
 
         log.info("Outputting DArT Calls")
 
-        if encoding is not None and encoding != "11":
+        if encoding is not None and encoding != "11" and encoding != "undefined":
             log.warning("Only the 11 encoding is supported for the Dart output type - {} ignored".format(encoding))
 
         filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()

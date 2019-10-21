@@ -43,6 +43,12 @@ class PlinkOutput(Output):
 
         del filtered_calls
 
+        # IMPORTANT #
+        # Data is internally stored in the 11 encoding - this means:
+        #   10 => HOMOZYGOUS, because the first allele is present and the second is not.  Therefore there are 2 of the first allele!
+        #   01 => Also HOMOZYGOUS, for the other allele
+        #   11 => HETEROZYGOUS, because BOTH alleles are present!
+
         # Convert from (0,1) type tuples to requested encoding
         for snp_idx, snp_def in enumerate(filtered_snps):
             if encoding == "ACTG":
@@ -50,24 +56,31 @@ class PlinkOutput(Output):
                     log.error("ACTG encoding not possible -> Missing SNP def for SNP {}, the allele ID should have the SNP definition in it such as 1234|F|0--32:C>A".format(snp_def.allele_id))
                     return
 
+                # IMPORTANT #
+                # ACTG encoding needs to give the actual 2 allele calls
+                # Eg. for a A>T SNP 11 = AT, NOT AA!
+                # Eg. for a A>T SNP 01 = TT, because only the second allele is present
+
+
                 # Find the two possible letters for this SNP
                 snp_vals = snp_def.snp.split(":")[1].split(">")
 
                 # Replace all 0's & 1's with ACTG's - missing replaced with 0
-                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[0])
-                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
 
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "-"), "0")
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "-"), "0")
+
             elif encoding == "012":
                 # Find indexes for 0's and 1's in first allele.
                 major = numpy.where(numpy_matrix[0][snp_idx] == "1")
                 minor = numpy.where(numpy_matrix[1][snp_idx] == "1")
 
                 # Identify het's as where the second allele has a 1 in the same location as the first allele
-                het = numpy.intersect1d(numpy.where(numpy_matrix[1][snp_idx] == "1"), major)
+                het = numpy.intersect1d(minor, major)
 
                 # Remove het's from major and minor homozygous's
                 major = numpy.setdiff1d(major, het, True)
@@ -80,6 +93,12 @@ class PlinkOutput(Output):
 
             elif encoding == "AB":
                 snp_vals = ["A", "B"]
+
+                # IMPORTANT #
+                # AB encoding needs to give the actual 2 allele calls
+                # Eg. 11 = AB, NOT AA!
+                # Eg. 01 = BB, because only the second allele is present
+                # Eg. 10 = AA, because only the first allele is present
 
                 # Replace all 0's & 1's with A's and B's - replace missing with 0
                 numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[0])
