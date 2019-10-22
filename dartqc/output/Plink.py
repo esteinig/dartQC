@@ -101,8 +101,8 @@ class PlinkOutput(Output):
                 # Eg. 10 = AA, because only the first allele is present
 
                 # Replace all 0's & 1's with A's and B's - replace missing with 0
-                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[0])
-                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "0"), snp_vals[1])
+                numpy.put(numpy_matrix[0][snp_idx], numpy.where(numpy_matrix[0][snp_idx] == "1"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "0"), snp_vals[0])
                 numpy.put(numpy_matrix[1][snp_idx], numpy.where(numpy_matrix[1][snp_idx] == "1"), snp_vals[1])
 
