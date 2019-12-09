@@ -35,44 +35,15 @@ class HetCompFilter(Filter):
         min_ratio = float(threshold[0])
         max_ratio = float(threshold[1])
 
+        filtered_counts, filtered_snps, filtered_samples = dataset.get_filtered_counts()
         filtered_calls, filtered_snps, filtered_samples = dataset.get_filtered_calls()
-
-        # ignored_snps = numpy.asarray([True if dataset.snps[idx].allele_id in dataset.filtered.snps else False
-        #                               for idx in range(len(filtered_snps))])
-
-        # TODO: Convert to do maths across whole matrix
 
         for snp_idx, snp_def in enumerate(filtered_snps):
             # if ignored_snps[snp_idx]:
             #     continue
 
             allele_id = snp_def.allele_id
-            snp_counts = dataset.read_counts[snp_def.allele_id]
-
-            sample_idxs = {sample_def.id: idx for idx, sample_def in enumerate(filtered_samples)}
-            del_idxs = []
-            for idx, sample_def in enumerate(dataset.samples):
-                if sample_def.id not in sample_idxs:
-                    del_idxs.append(idx)
-
-            snp_counts = numpy.delete(snp_counts, del_idxs, 0)
-
-
-            # first_allele_cnts = snp_counts[:, 0]
-            # second_allele_cnts = snp_counts[:, 0]
-            #
-            # ratios = numpy.divide(first_allele_cnts, second_allele_cnts)
-            # ratios = numpy.asarray([0 if numpy.isnan(ratio) or numpy.isinf(ratio)
-            #                         else ratio if ratio < 1 else 1 / ratio for ratio in ratios])
-            #
-            # silence_idxs = numpy.where((ratios > min_ratio) & (ratios < max_ratio))[0].tolist()
-            # silenced.calls[allele_id] = [filtered_samples[idx].id for idx in silence_idxs]
-            #
-            # homo_idxs = numpy.where(ratios < min_ratio)[0].tolist()
-            # homo_idxs = [idx for idx in homo_idxs if tuple(dataset.calls[allele_id][idx]) == Dataset.heterozygous]
-            # silenced.call_changes[allele_id] = {filtered_samples[idx].id: Dataset.homozygous_major
-            #                                     if first_allele_cnts[idx] > second_allele_cnts[idx]
-            #                                     else Dataset.homozygous_minor for idx in silence_idxs}
+            snp_counts = filtered_counts[snp_def.allele_id]
 
             # Identify which samples are silenced for this SNP
             for idx, sample_read_count in enumerate(snp_counts):
@@ -132,10 +103,10 @@ class HetCompFilter(Filter):
 
                         log.warning(
                             "Homozygous call converted to heterozygous (1,1) based on read count ratio of {:0.3f},"
-                            " total counts: {:2d} & {:2d} replicate counts: {}  original call: {} - {}:{}"
+                            " total counts: {:2d} & {:2d} replicate counts: {}  original call: {} - {}:{}.  SNP: {}, Sample: {}"
                             .format(ratio, sample_read_count[0], sample_read_count[1],
                                     rep_counts, dataset.calls[allele_id][idx], allele_id,
-                                    filtered_samples[idx].id))
+                                    filtered_samples[idx].id, snp_def.allele_id, filtered_samples[idx].id))
                 elif ratio >= min_ratio and ratio <= max_ratio:
                     # Uncertain
                     silenced.silenced_call(allele_id, filtered_samples[idx].id)
