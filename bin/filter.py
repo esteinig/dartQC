@@ -56,7 +56,7 @@ from install import cdhit_config
 #
 # exit(0)
 
-VERSION = "V1 (21/10/2019)"
+VERSION = "V1.1 (9/12/2019)"
 
 
 def main():
