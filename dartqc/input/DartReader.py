@@ -204,7 +204,7 @@ class DartInput(Input):
         num_call_replicates = sum([len(idxs) - 1 for sample_id, idxs in call_replicates.items()])
         if num_call_replicates > 0:
             log.warning("Call data has {} replicates! Replicates should only exist in the read counts file - if replicates are needed unique sample IDs should be used"
-                      .format(num_call_replicates))
+                        .format(num_call_replicates))
 
             log.warning("Replicates: " + ",".join([sample_id for sample_id, idxs in call_replicates.items() if len(idxs) > 1]))
             # sys.exit(1)
@@ -222,8 +222,6 @@ class DartInput(Input):
             #
             #     log.info("All replicate calls match - collapsing")
             #     calls = DartInput._collapse_replicates(calls, call_replicates, snp_defs, sample_defs, call_sample_names)
-
-
 
         # Collapse read count replicates (calls are already collapsed) and make sure they calls and counts have same order
         # update the count samples for identifying replicates.
@@ -395,8 +393,8 @@ class DartInput(Input):
 
         numpy_matrix = numpy.asarray([counts[snp.allele_id] for snp in snps])
 
-        numpy_matrix = numpy.stack(
-            [numpy.sum(numpy_matrix[:, replicates[sample.id]], axis=1) for sample in sample_defs], axis=1)
+        numpy_matrix = numpy.stack([numpy.sum(numpy_matrix[:, replicates[sample.id]], axis=1) for sample in sample_defs], axis=1)
+        # numpy_matrix = numpy.stack([numpy.mean(numpy_matrix[:, replicates[sample.id]], axis=1) for sample in sample_defs], axis=1)
 
         results = {snp.allele_id: numpy_matrix[idx] for idx, snp in enumerate(snps)}
 

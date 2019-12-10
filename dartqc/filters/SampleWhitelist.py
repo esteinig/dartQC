@@ -1,9 +1,12 @@
 import re
 
+import logging
+
 from dartqc.FilterResult import FilterResult
 from dartqc.Dataset import Dataset
 from dartqc.PipelineOptions import Filter
 
+log = logging.getLogger(__file__)
 
 class SampleWhitelistFilter(Filter):
     def get_order(self) -> int:
@@ -39,6 +42,7 @@ class SampleWhitelistFilter(Filter):
             whitelist = [sample for sample in whitelist if sample in sample_list]
 
         silenced.samples = [sample for sample in sample_list if sample not in whitelist]
+
         return silenced
 
 SampleWhitelistFilter()

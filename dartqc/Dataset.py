@@ -1,3 +1,4 @@
+
 # import json
 import re
 
@@ -174,7 +175,14 @@ class Dataset:
             # filtered_calls[allele_id] = numpy.asarray([("-", "-") for idx in range(len(self.samples))])
 
         # Silence whole samples
-        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+        # Get a map of sample ID to IDX's - needs to handle duplicate samples...
+        sample_idxs = {}
+        for idx, sample in enumerate(self.samples):
+            if sample.id not in sample_idxs:
+                sample_idxs[sample.id] = []
+
+            sample_idxs[sample.id].append(idx)
+
         del_sample_idxs = []
         for sample_id in self.filtered.samples:
             sample_idx = sample_idxs[sample_id]
@@ -183,7 +191,7 @@ class Dataset:
                 log.error("Silenced Sample not found!")
                 continue
 
-            del_sample_idxs.append(sample_idx)
+            del_sample_idxs.extend(sample_idx)
 
         for idx in sorted(del_sample_idxs, reverse=True):
             del filtered_samples[idx]
@@ -250,7 +258,14 @@ class Dataset:
             del filtered_snps[snp_idx]
 
         # Silenece whole samples
-        sample_idxs = {sample.id: idx for idx, sample in enumerate(self.samples)}
+        # Get a map of sample ID to IDX's - needs to handle duplicate samples...
+        sample_idxs = {}
+        for idx, sample in enumerate(self.samples):
+            if sample.id not in sample_idxs:
+                sample_idxs[sample.id] = []
+
+            sample_idxs[sample.id].append(idx)
+
         del_sample_idxs = []
         for sample_id in self.filtered.samples:
             sample_idx = sample_idxs[sample_id]
@@ -259,7 +274,7 @@ class Dataset:
                 log.error("Silenced Sample not found!")
                 continue
 
-            del_sample_idxs.append(sample_idx)
+            del_sample_idxs.extend(sample_idx)
 
         for idx in sorted(del_sample_idxs, reverse=True):
             del filtered_samples[idx]

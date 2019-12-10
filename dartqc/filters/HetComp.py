@@ -103,10 +103,10 @@ class HetCompFilter(Filter):
 
                         log.warning(
                             "Homozygous call converted to heterozygous (1,1) based on read count ratio of {:0.3f},"
-                            " total counts: {:2d} & {:2d} replicate counts: {}  original call: {} - {}:{}.  SNP: {}, Sample: {}"
+                            " total counts: {:2d} & {:2d} replicate counts: {}  original call: {} - {}:{}"
                             .format(ratio, sample_read_count[0], sample_read_count[1],
                                     rep_counts, dataset.calls[allele_id][idx], allele_id,
-                                    filtered_samples[idx].id, snp_def.allele_id, filtered_samples[idx].id))
+                                    filtered_samples[idx].id))
                 elif ratio >= min_ratio and ratio <= max_ratio:
                     # Uncertain
                     silenced.silenced_call(allele_id, filtered_samples[idx].id)
