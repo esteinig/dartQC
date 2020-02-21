@@ -1,4 +1,3 @@
-import random
 import time
 import numpy
 
@@ -10,7 +9,6 @@ from DartProcessor import Preprocessor
 from DartReader import DartReader
 from DartWriter import DartWriter
 from Graphs import Graphs
-from matplotlib import colors
 
 
 class DartQC:
@@ -29,7 +27,6 @@ class DartQC:
     # Read the genotype data from files into JSON structures then threshold/filter genotype calls by read counts.
     def pre_process(self, data_file, data_mapping, read_counts_file, read_counts_mapping, read_counts_threshold=5):
         print("Pre-Processing...")
-
         # Reading initial double-row read calls with settings adjusted t input file format:
         dart_reader = DartReader()
         dart_reader.set_options(project=self.project, clone_col=data_mapping["clone_col"], id_col=data_mapping["id_col"],
@@ -53,8 +50,8 @@ class DartQC:
         self.read_data = pp.get_read_data()
 
         # Create bar graphs and scatter plots before thresholding
-        Graphs.create_static_plots(data, self.read_data, self.working_dir, self.project)
-        Graphs.create_plots(data, self.read_data, attributes, "Original", self.working_dir, self.project, color="red")
+        self.create_static_plots(data, self.read_data)
+        self.create_plots(data, self.read_data, attributes, "Original")
 
         # Set all calls to missing < threshold (sum of minor and major read counts for SNP)
         pp.filter_read_counts(threshold=read_counts_threshold)
@@ -64,34 +61,23 @@ class DartQC:
         data, attributes = pp.get_data()
 
         # Create new set of plots after thresholding based on read counts.
-        Graphs.create_plots(data, self.read_data, attributes, "Thresholded", self.working_dir, self.project, color="orange")
+        self.create_plots(data, self.read_data, attributes, "Thresholded")
 
-        self.orig_data = data
-        self.orig_attrs = attributes
+        self.data = data
+        self.attrs = attributes
 
         # Writing these data to JSON, as pre-processing may take a while...
-        start = time.time()
         dart_writer = DartWriter(data, attributes)
         dart_writer.write_json(self.project)
-        print("Write JSON: " + str(round((time.time() - start), 2)) + "s")
 
     # Do MAF, Call rate, Rep and read ref filtering
-    def filter(self, maf=[.02], call_rate=[.5], read_ref=[0], rep=[.9], graph=False):
+    def filter(self, maf=.02, call_rate=.5, read_ref=0, rep=.9):
         print("Filtering...")
-
-        if not isinstance(maf, list):
-            maf = [maf]
-        if not isinstance(call_rate, list):
-            call_rate = [call_rate]
-        if not isinstance(read_ref, list):
-            read_ref = [read_ref]
-        if not isinstance(rep, list):
-            rep = [rep]
 
         # Run provided MAF, Call rate, rep and read ref filters
         # Reading the data from JSON after Preprocessing:
-        data = self.orig_data
-        attributes = self.orig_attrs
+        data = self.data
+        attributes = self.attrs
 
         if data is None:
             dart_reader = DartReader()
@@ -105,33 +91,17 @@ class DartQC:
         # Indexing all filter values defined above
         # True/False for retaining the SNP across all filter values and SNPs
 
-        mm.filter_data(maf, parameter="maf", comparison="<=")
-        mm.filter_data(call_rate, parameter="call_rate", comparison="<=")
-        mm.filter_data(read_ref, parameter="read_count_ref", comparison="<=")
-        mm.filter_data(rep, parameter="rep_average", comparison="<=")
-
-        if graph:
-            graphData = []
-            graphAttrs = []
-
-            for index in range(len(maf)):
-                filterData, filterAttrs = mm.get_data(multiple=[("maf", maf[index]),
-                                                         ("call_rate", call_rate[index]),
-                                                         ("rep_average", rep[index]),
-                                                         ("read_count_ref", read_ref[index])
-                                                         ])
-                graphData.append(filterData)
-                graphAttrs.append(filterAttrs)
-
-            Graphs.create_plots(graphData, read_data=self.read_data, attrs=graphAttrs, name="Filter", legend=["Set " + str(index) for index in range(len(maf))], output_dir=self.working_dir, project=self.project)
-
+        mm.filter_data([maf], parameter="maf", comparison="<=")
+        mm.filter_data([call_rate], parameter="call_rate", comparison="<=")
+        mm.filter_data([read_ref], parameter="read_count_ref", comparison="<=")
+        mm.filter_data([rep], parameter="rep_average", comparison="<=")
 
         # Deploying filter across pre-indexed values (values given here must be present in lists above)
         # Filtered data is exported from module for further use:
-        data, attributes = mm.get_data(multiple=[("maf", maf[0]),
-                                                 ("call_rate", call_rate[0]),
-                                                 ("rep_average", rep[0]),
-                                                 ("read_count_ref", read_ref[0])
+        data, attributes = mm.get_data(multiple=[("maf", maf),
+                                                 ("call_rate", call_rate),
+                                                 ("rep_average", rep),
+                                                 ("read_count_ref", read_ref)
                                                  ])
 
         self.filtered_data = data
@@ -167,19 +137,39 @@ class DartQC:
         # Export data with duplicates and clustered SNPs removed:
         data, attributes = rm.get_data(duplicates=True, clusters=True)
 
-        Graphs.create_plots(data, self.read_data, attributes, "Final", self.working_dir, self.project, "green")
-
-        Graphs.create_plots([self.orig_data, self.filtered_data, data], self.read_data, [self.orig_attrs, self.filtered_attrs, attributes], "Diff", self.working_dir, self.project, ["red", "orange", "green"])
+        self.create_plots(data, self.read_data, attributes, "Final")
 
         # Summary module for writing a summary of SNP parameters:
         sm = SummaryModule(data=data, attributes=attributes)
         sm.write_snp_summary(summary_parameters=["maf", "call_rate", "rep_average", "read_count_ref"])
+
+        # TODO: Create output plots
 
         dart_writer = DartWriter(data, attributes)
         dart_writer.write_json(self.project + "_final")
 
         dart_writer.write_plink(self.project)
 
+    # Some graphs won't be changed based on filtering (eg. read counts, repAvg & freq Hetz)
+    def create_static_plots(self, data, read_data):
+        print("Creating static plots")
+
+        Graphs.read_counts_per_individ(read_data, self.working_dir + self.project + "_IndividReadCounts" + ".jpg")
+        Graphs.avg_reads_per_snp(read_data, self.working_dir + self.project + "_AvgReadsPerSNP" + ".jpg")
+        Graphs.avg_rep_across_snp(data, self.working_dir + self.project + "_AvgRepAcrossSNP" + ".jpg")
+        Graphs.het_across_snp(data, self.working_dir + self.project + "_HetAcrossSNP" + ".jpg")
+
+    def create_plots(self, data, read_data, attrs, name):
+        print("Creating " + name + " plots")
+
+        mm = MarkerModule(data=data, attributes=attrs)
+        snpMAF = {k: v["maf"] for (k, v) in data.items()}
+
+        Graphs.call_rates_across_snp(data, read_data, self.working_dir + self.project + "_" + name + "_CallRatesAcrossSNP" + ".jpg")
+        Graphs.call_rate_across_individ(data, read_data, self.working_dir + self.project + "_" + name + "_CallRatesAcrossIndivid" + ".jpg")
+        Graphs.maf_across_snp(snpMAF, self.working_dir + self.project + "_" + name + "_MAFAcrossSNP" + ".jpg")
+        Graphs.maf_to_read_count(snpMAF, read_data, self.working_dir + self.project + "_" + name + "_MAFToReadCount" + ".jpg")
+        Graphs.call_rate_to_maf(data, snpMAF, self.working_dir + self.project + "_" + name + "_CallRateToMAF" + ".jpg")
 
     @staticmethod
     def create_file_mapping(clone_col, id_col, sample_row, data_start_row, call_start_col=None, sample_start_col=None):
@@ -198,7 +188,7 @@ program_start = time.time()
 
 dartQc = DartQC("prawns", "./testData/")
 dartQc.pre_process("prawn_data_double.csv", DartQC.create_file_mapping(1,2,7,8), "prawn_read_counts.csv", DartQC.create_file_mapping(2,1,4,7,33,33))
-dartQc.filter(maf=[.2,.3,.1, 0], call_rate=[.5, .6,.4,.3], read_ref=[0, 1, 2, 3], rep=[.9,1,.8,.7], graph=True)
+dartQc.filter()
 dartQc.clusters_and_dups()
 
 # DartQC.create_bar_graph([4, 6, 8, 5], "Test Title", ["a", "b", "c", "d"], "X Label", "Y Label", 'foo.png')
