@@ -488,7 +488,6 @@ class DartInput(Input):
                         if allele_id is None or clone_id is None or len(allele_id) == 0 or len(clone_id) == 0:
                             log.error("Row {} is missing allele ID or clone ID: {}".format(row_index, row))
                             was_error = True
-                            continue
 
                         if data_row_idx % 2 == 0:
                             # First row for each SNP - read in full SNP details + call
@@ -525,51 +524,86 @@ class DartInput(Input):
                             # Check that the two rows are for the same SNP!
                             if snp_def.clone_id != clone_id or allele_clone_id_1 != allele_clone_id_2 \
                                     or snp_code_1 != snp_code_2:
-                                raise SimpleException(
-                                    "Miss matched rows: " + snp_def.clone_id + "(" + snp_def.allele_id + ") -> "
-                                    + clone_id + "(" + allele_id + ").\n"
+
+                                # Miss-matched snps!  Err msg + ignore this row.
+                                log.error("Miss matched rows: " + str(row_index - 1) + ":" + snp_def.clone_id + " -> "
+                                    + str(row_index) + ":" + clone_id + ".\n"
                                     + "\t\t- Edit " + file_path + " so all allele's have 2 rows & are sequential\n"
                                     + "\t\t- Check to make sure clone and allele IDs match correctly\n"
                                     + "\t\t- Check the SNP matches (ending of the id such as 20:G>A)")
 
-                            # Set SNP def values that are only available on the second row.
-                            snp_def.sequence = row[mapping.sequence_column]
+                                # Skip back 1 row so the next row matches to this one.
+                                data_row_idx -= 1
 
-                            snp_def.snp = snp_code_1
-                            if snp_def.snp is not None and snp_def.snp not in snp_def.allele_id:
-                                log.warning(
-                                    "SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id,
-                                                                                   row_index))
-                            snp_def.all_headers["SNP"] = snp_def.snp
+                                # This code below is copied from the block above...
+                                all_headers = OrderedDict()
+                                for idx, header in enumerate(headers):
+                                    all_headers[header] = row[idx]
 
-                            # Read in the second rows data
+                                snp_def = SNPDef(clone_id, allele_id, sequence_ref=row[mapping.sequence_column],
+                                                 rep_average=row[mapping.replication_column], all_headers=all_headers)
 
-                            if numeric:
-                                try:
-                                    # data_row_2 = [int(val) for val in row[mapping.data_column:]]
-                                    data_row_2 = (numpy.asarray(row[mapping.data_column:], dtype=int))
-                                except:
-                                    data_row_2 = [0 for sample in sample_names]
-                                    log.error("Invalid data {}: {}".format(row_index, row[mapping.data_column:]))
+                                # Read the value
+                                if numeric:
+                                    try:
+                                        # data_row_1 = [int(val) for val in row[mapping.data_column:]]
+                                        data_row_1 = (numpy.asarray(row[mapping.data_column:], dtype=int))
+                                    except Exception as err:
+                                        data_row_1 = [0 for sample in sample_names]
+                                        log.error("Invalid data {} on row {}: {}".format(err, row_index,
+                                                                                         row[mapping.data_column:]))
+                                else:
+                                    data_row_1 = row[mapping.data_column:]
+
                             else:
-                                data_row_2 = row[mapping.data_column:]
+                                # Set SNP def values that are only available on the second row.
+                                snp_def.sequence = row[mapping.sequence_column]
 
-                            snp_defs.append(snp_def)
+                                snp_def.snp = snp_code_1
+                                if snp_def.snp is not None and snp_def.snp not in snp_def.allele_id:
+                                    log.warning(
+                                        "SNP {} not in allele_ID {} for row {}".format(snp_def.snp, snp_def.allele_id,
+                                                                                       row_index))
+                                snp_def.all_headers["SNP"] = snp_def.snp
 
-                            # data[snp_def.allele_id] = list(numpy.array([data_row_1, data_row_2]).T)
-                            if numeric:
-                                data[snp_def.allele_id] = numpy.dstack((data_row_1, data_row_2))[0]
-                            else:
-                                data[snp_def.allele_id] = numpy.dstack((data_row_1, data_row_2))[0]
+                                # Read in the second rows data
 
-                            snp_def = None
-                            data_row_1 = None
+                                if numeric:
+                                    try:
+                                        # data_row_2 = [int(val) for val in row[mapping.data_column:]]
+                                        data_row_2 = (numpy.asarray(row[mapping.data_column:], dtype=int))
+                                    except:
+                                        data_row_2 = [0 for sample in sample_names]
+                                        log.error("Invalid data (row replaced with zeros) {}: {}".format(row_index, row[mapping.data_column:]))
+                                        was_error = True
+                                else:
+                                    data_row_2 = row[mapping.data_column:]
+
+                                snp_defs.append(snp_def)
+
+                                # data[snp_def.allele_id] = list(numpy.array([data_row_1, data_row_2]).T)
+                                if numeric:
+                                    data[snp_def.allele_id] = numpy.dstack((data_row_1, data_row_2))[0]
+                                else:
+                                    data[snp_def.allele_id] = numpy.dstack((data_row_1, data_row_2))[0]
+
+                                snp_def = None
+                                data_row_1 = None
                     except Exception as e:
                         exc_type, exc_obj, exc_tb = sys.exc_info()
                         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                         log.error("({}:{}) {} - Exception reading {} row {}"
                                   .format(fname, exc_tb.tb_lineno, str(e), file_path, row_index))
                         was_error = True
+
+                        snp_def = None
+                        data_row_1 = None
+
+                        # If this was the first row, ignore it so the next row is a new row to start matching again.
+                        # In that case the next row will prob break as well, but it will fix soon enough & not miss any
+                        # good data
+                        if data_row_idx % 2 == 0:
+                            data_row_idx -= 1
 
                     data_row_idx += 1
 
@@ -578,6 +612,8 @@ class DartInput(Input):
                 # Keep cleaning up memory so we don't run out.
                 if data_row_idx > 0 and data_row_idx % 5000 == 0:
                     log.debug("Reading {} completed row {}".format(file_path, data_row_idx))
+
+            log.debug("Reading {} completed ({} rows)".format(file_path, data_row_idx))
 
             if data_row_1 is not None or snp_def is not None:
                 log.error("Last allele only has 1 row!  "
@@ -594,7 +630,7 @@ class DartInput(Input):
                            enumerate(sample_names)]
 
             if was_error:
-                raise SimpleException("Dart reader aborted due to errors")
+                log.error("There were errors!  You can continue but please review all errors carefully")
 
             return snp_defs, sample_defs, data
 
